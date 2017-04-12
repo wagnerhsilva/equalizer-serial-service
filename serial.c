@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <sys/select.h>
 #include "serial.h"
+#include <defs.h>
 
 int ser_init(Serial_t *ser_instance, const char *ser_device) {
     int err = 0;
@@ -79,13 +80,7 @@ int ser_setup(Serial_t *ser_instance, int baud) {
         return -6;
     }
 
-    /*
-     * Configura o timeout da recepcao
-     * Por hora, hardcoded
-     */
-    ser_instance->read_timeout.tv_sec = 0;
-    ser_instance->read_timeout.tv_usec = 10000;
-
+    
     return 0;
 }
 
@@ -112,15 +107,31 @@ int ser_finish(Serial_t *ser_instance) {
     return 0;
 }
 
-int ser_read(Serial_t *ser_instance, uint8_t *data, int *recv_len) {
 
+static int ser_match_command(uint8_t *buffer, int bufferSize){
+    int response = 0;
+    int i = 0;
+    int byte0 = buffer[0];
+    int byte1 = buffer[1];
+
+    if((byte0 == PROTOCOL_READ_VAR_ARR[0] &&
+       byte1 == PROTOCOL_READ_VAR_ARR[1])||
+      (byte0 == PROTOCOL_IMPEDANCE_VAR_ARR[0] &&
+       byte1 == PROTOCOL_IMPEDANCE_VAR_ARR[1]))
+    {
+       response = 1;
+    }     
+
+    return response;
+}
+
+int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len, struct timeval timeout) {
     fd_set set;
     int rv;
-
+    
     if (ser_instance->fd < 0) {
         return -1;
     }
-
     /*
      * Preparando o conjunto para o select()
      * No caso, estamos assumindo somente uma serial usada
@@ -129,23 +140,62 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int *recv_len) {
      */
     FD_ZERO(&set);
     FD_SET(ser_instance->fd,&set);
+        
+    int bytes_read = 0;
+    int bytes_expected = exp_len;
+    int foundPackage = 0;
+    int timeoutReceived = 0;
 
-    rv = select(1, &set, NULL, NULL, &ser_instance->read_timeout);
-    if (rv == -1) {
-        return -2;
-    }
-    else if (rv == 0) {
-        return -3;
-    }
-    else {
-        *recv_len = read(ser_instance->fd, data, *recv_len);
+    while(bytes_read < bytes_expected){
+        rv = select(ser_instance->fd + 1, &set, NULL, NULL, &timeout);
+        if(rv == -1){
+            LOG("Select error\n");
+            //////////////////////
+            return -2;
+        }else if(rv == 0){
+            LOG("Select timeout\n");
+            return -3;
+        }else{
+            int bread = read(ser_instance->fd, (void *)&(data[bytes_read]), bytes_expected);
+            bytes_read += bread;
+            data[bytes_read] = 0;
+            if(bytes_read == 1) continue; //we need to wait for the header
+            if(!foundPackage){
+                int isMatch = ser_match_command(data, bytes_read);
+                if(!isMatch){
+                    bytes_read = 0;
+                    data[0] = 0;
+                }else{
+                    foundPackage = 1;
+                }
+            }
+        }
     }
 
-    return 0;
+    char *buffer = toStrHexa(data, bytes_read);
+    LOG("Got message: %s\n", buffer);
+    free(buffer);
+    //rv = select(ser_instance->fd + 1, &set, NULL, NULL, &interval);
+    
+    //if (rv == -1) {
+    //    LOG("select error\n");
+    //    return -2;
+    //}
+    //else if (rv == 0) {
+    //    LOG("select timeout\n");
+    //    return -3;
+    //}
+    //else {
+    //    int expected = 32;
+    //    int bread = 0;
+    //    bread = read(ser_instance->fd, data, expected);
+    //    char *hexa = toStrHexa(data, bread);
+    //    LOG("Read data: %s\n", hexa);
+    //}
+    //return 0;
 }
 
 int ser_write(Serial_t *ser_instance, uint8_t *data, int len) {
-
 	int bytesSent = 0;
 
 	if (ser_instance->fd < 0) {

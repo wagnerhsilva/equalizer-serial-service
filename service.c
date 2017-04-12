@@ -1,18 +1,11 @@
 /*
-d * service.c
+ * service.c
  *
  *  Created on: Apr 9, 2017
  *      Author: flavio
  */
 
-#include "database.h"
-#include "protocol.h"
-#include "serial.h"
-#include <stdio.h>
-#include <string.h>
-
-#define DEFAULT_SERIAL_PATH "/dev/ttyUSB0"
-#define DEFAULT_DB_PATH "database.db"
+#include <service.h>
 
 static Serial_t serial_comm;
 static int stop = 1;
@@ -25,18 +18,19 @@ static int getStop(void) {
 	return stop;
 }
 
-int service_init(const char *dev_path, const char *db_path) {
+int service_init(char *dev_path, char *db_path) {
 	int err = 0;
-	char *l_dev = DEFAULT_SERIAL_PATH;
 	char *l_db = DEFAULT_DB_PATH;
-
 	/*
 	 * Checa o caminho para inicio da execucao
 	 */
-	if (dev_path != NULL) {
-		l_dev = dev_path;
-	}
-	if (db_path != NULL) {
+    if(dev_path == NULL){ 
+        return -1;
+    }
+
+    char *l_dev = dev_path;
+
+    if (db_path != NULL) {
 		l_db = db_path;
 	}
 
@@ -59,16 +53,21 @@ int service_init(const char *dev_path, const char *db_path) {
 	/*
 	 * Inicializa o banco de dados
 	 */
+    
+    if(CHECK(db_init(l_db))){
+        return -3;
+    }
+    /*
 	err = db_init(l_db);
 	if (err != 0) {
 		return -3;
 	}
-
+    */
 	/*
 	 * Variavel que mantem o loop funcionando. A partir daqui o servico
 	 * pode operar
 	 */
-	setStop(1);
+	setStop(0);
 
 	return 0;
 }
@@ -86,11 +85,16 @@ int service_start(void) {
 		/*
 		 * Recupera a lista de elementos a serem recuperados
 		 */
+
+        if(CHECK(db_get_addresses(&list))){
+            break;
+        }
+        /*
 		err = db_get_addresses(&list);
 		if (err != 0) {
 			break;
 		}
-
+        */
 		if (list.items > 0) {
 			/*
 			 * Busca informacao de variaveis e de impedancia para cada item
@@ -123,10 +127,10 @@ int service_start(void) {
 				/*
 				 * Armazena informacoes recebidas no banco de dados
 				 */
-				err = db_add_vars(&output_vars);
+				/*err = db_add_vars(&output_vars);
 				if (err != 0) {
 					break;
-				}
+				}*/
 				/*
 				 * Preenche campos necessarios para solicitar leitura das
 				 * informacoes de impedancia
@@ -143,14 +147,14 @@ int service_start(void) {
 				/*
 				 * Armazena as informacoes recebidas no banco de dados
 				 */
-				err = db_add_impedance(input_impedance.addr_bank,
-						input_impedance.addr_batt,&output_impedance);
+				//err = db_add_impedance(input_impedance.addr_bank,
+				//		input_impedance.addr_batt,&output_impedance);
+                err = db_add_response(&output_vars, &output_impedance);
 				if (err != 0) {
 					break;
 				}
 			}
 		}
-
 	}
 
 	return err;

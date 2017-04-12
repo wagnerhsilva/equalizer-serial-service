@@ -5,10 +5,11 @@
  *      Author: flavio
  */
 
-#include "service.h"
+#include <service.h>
 #include <stdio.h>
+#include <defs.h>
 
-int main(void) {
+int main(int argc, char **argv) {
 
 	int err = 0;
 
@@ -17,16 +18,15 @@ int main(void) {
 	 * inicializacao. TODO: Recuperar a partir de argumentos de linha de
 	 * comando
 	 */
-	err = service_init(NULL,NULL);
-	if (err != 0) {
-		return 1;
-	}
+    
+    if(argc != 2){
+        LOG("Invalid arguments!\n");
+    }
+    
+    char * device = argv[1];
 
-	err = service_start();
-	if (err != 0) {
-		err = 2;
-	}
-
+	CHECK(service_init(device, NULL));
+	CHECK(service_start());
 	service_finish();
 
 	return err;

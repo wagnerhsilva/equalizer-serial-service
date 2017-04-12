@@ -8,12 +8,7 @@
 #ifndef PROTOCOL_H_
 #define PROTOCOL_H_
 
-#include "serial.h"
-
-#define PROTOCOL_FRAME_LEN					32
-#define PROTOCOL_FRAME_LEN_SHORT			(PROTOCOL_FRAME_LEN / 2)
-#define PROTOTOL_FRAME_REQUEST_DATA_LEN 	24
-#define PROTOCOL_FRAME_RESPONSE_DATA_LEN	26
+#include <serial.h>
 
 typedef struct {
 	unsigned char	addr_bank;

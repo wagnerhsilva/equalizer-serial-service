@@ -29,6 +29,9 @@ int db_init(char *path);
 int db_finish(void);
 int db_add_vars(Protocol_ReadCmd_OutputVars *vars);
 int db_add_impedance(unsigned char addr_bank, unsigned char addr_batt, Protocol_ImpedanceCmd_OutputVars *vars);
+
+int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
+                    Protocol_ImpedanceCmd_OutputVars *imp_vars);
 int db_get_addresses(Database_Addresses_t *list);
 
 #endif /* DATABASE_H_ */
