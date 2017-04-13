@@ -55,9 +55,9 @@ static char * int_to_addr(int val, int isBank){
     char * res = (char *)malloc(sizeof(char)*5); //at most 4 -> M255
     char *number = (char *)malloc(sizeof(char)*4);
     if(isBank){
-        res[0] = 'M';
-    }else{
         res[0] = 'S';
+    }else{
+        res[0] = 'M';
     }
     res[1] = '\0';
     
