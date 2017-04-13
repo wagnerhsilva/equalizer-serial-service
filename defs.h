@@ -16,7 +16,7 @@
 #define PROTOCOL_READ_VAR_COMMAND_1         0xC0
 #define PROTOCOL_IMPEDANCE_COMMAND_0        0x10
 #define PROTOCOL_IMPEDANCE_COMMAND_1        0xB0
-#define PROTOCOL_TIMEOUT_VSEC               10
+#define PROTOCOL_TIMEOUT_VSEC               0
 #define PROTOCOL_TIMEOUT_USEC               1000
 
 
