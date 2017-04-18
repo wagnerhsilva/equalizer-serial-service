@@ -155,7 +155,7 @@ static int prot_check_extract_readvar_response8(uint8_t * data,Protocol_ReadCmd_
 {
     int err = 0;
     uint16_t markedChksum = bytes_to_u16(data[31], data[30]);
-    uint16_t chksum = prot_calc_checksum(&data[0], 28);
+    uint16_t chksum = prot_calc_checksum(&data[0], 30);
     
     if(markedChksum != chksum){
         LOG("Invalid checksum, got: %d expected: %d\n",markedChksum, chksum);
@@ -344,7 +344,7 @@ static int prot_check_extract_impedance_response8(uint8_t * data,
 {
     int err = 0;
     uint16_t markedChksum = bytes_to_u16(data[31], data[30]);
-    uint16_t chksum = prot_calc_checksum(&data[0], 28);
+    uint16_t chksum = prot_calc_checksum(&data[0], 30);
 
     if(markedChksum != chksum){
         LOG("Invalid checksum, got: %d expected: %d\n", markedChksum, chksum);
