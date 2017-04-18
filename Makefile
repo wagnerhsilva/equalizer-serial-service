@@ -3,4 +3,6 @@ OUTPUT=service
 INC=-I . -lsqlite3
 OPT=-O2
 all:
-	gcc $(OPT) $(TARGETS) -o $(OUTPUT) $(INC)
+	${CC} $(OPT) $(TARGETS) -o $(OUTPUT) $(INC)
+clean:
+	rm -rf *o service
