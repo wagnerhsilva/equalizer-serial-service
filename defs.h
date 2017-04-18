@@ -16,13 +16,13 @@
 #define PROTOCOL_READ_VAR_COMMAND_1         0xC0
 #define PROTOCOL_IMPEDANCE_COMMAND_0        0x10
 #define PROTOCOL_IMPEDANCE_COMMAND_1        0xB0
-#define PROTOCOL_TIMEOUT_VSEC               0
+#define PROTOCOL_TIMEOUT_VSEC               10
 #define PROTOCOL_TIMEOUT_USEC               1000
 
 
 //#define DEFAULT_SERIAL_PATH                 "/dev/ttyUSB1" //debug
 //#define DEFAULT_SERIAL_PATH                 "/dev/ttyS0" //debug
-#define DEFAULT_DB_PATH                     "equalizerdb"
+#define DEFAULT_DB_PATH                     "../equalizer/equalizer-api/equalizerdb"
 #define bytes_to_u16(LSB, MSB) (LSB | MSB << 8)
 #define bytes_to_u32(MSB0,MSB1,MSB2,LSB) ((MSB0 << 24) | (MSB1 << 16) \
                                          |(MSB2 << 8)  | (LSB))
