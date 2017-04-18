@@ -1,7 +1,7 @@
 #include <defs.h>
 
 FILE *fp = NULL;
-const int DEBUG = 1;
+const int DEBUG = 0;
 
 const int PROTOCOL_READ_VAR_ARR[2] = {PROTOCOL_READ_VAR_COMMAND_0,
                                      PROTOCOL_READ_VAR_COMMAND_1};
@@ -10,7 +10,7 @@ const int PROTOCOL_IMPEDANCE_VAR_ARR[2] = {PROTOCOL_IMPEDANCE_COMMAND_0,
                                           PROTOCOL_IMPEDANCE_COMMAND_1};
 
 int _check(int error, int line, const char *file){
-    if(error != 0){
+    if(error != 0 && DEBUG){
         LOG("Error file %s on line %d with code %d\n", file, line, error);
         if(fp) fclose(fp);
     }
