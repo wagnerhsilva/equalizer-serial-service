@@ -175,6 +175,7 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len, struct timeval 
     char *buffer = toStrHexa(data, bytes_read);
     LOG("Got message: %s\n", buffer);
     free(buffer);
+    return 0;
     //rv = select(ser_instance->fd + 1, &set, NULL, NULL, &interval);
     
     //if (rv == -1) {
