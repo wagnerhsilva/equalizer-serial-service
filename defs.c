@@ -1,7 +1,7 @@
 #include <defs.h>
 
 FILE *fp = NULL;
-const int DEBUG = 1;
+const int DEBUG = 0;
 
 const int PROTOCOL_READ_VAR_ARR[2] = {PROTOCOL_READ_VAR_COMMAND_0,
                                      PROTOCOL_READ_VAR_COMMAND_1};

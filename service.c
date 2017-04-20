@@ -6,6 +6,8 @@
  */
 
 #include <service.h>
+#include <signal.h>
+#include <string.h>
 
 static Serial_t serial_comm;
 static int stop = 1;
@@ -16,6 +18,22 @@ static void setStop(int value) {
 
 static int getStop(void) {
 	return stop;
+}
+
+void signal_handler(int signo){
+    const char *signame = strsignal(signo);
+    LOG("Received signal: %s\n", signame);
+    LOG("Ending service...\n");
+    service_finish();
+}
+
+static void init_signal_handler(void){
+    struct sigaction new_action, old_action;
+    new_action.sa_handler = signal_handler;
+    sigemptyset(&new_action.sa_mask);
+    new_action.sa_flags = 0;
+    
+    sigaction(SIGINT, &new_action, NULL);
 }
 
 int service_init(char *dev_path, char *db_path) {
@@ -67,7 +85,8 @@ int service_init(char *dev_path, char *db_path) {
 	 * Variavel que mantem o loop funcionando. A partir daqui o servico
 	 * pode operar
 	 */
-	setStop(0);
+    //init_signal_handler();   
+    setStop(0);
 
 	return 0;
 }
@@ -176,9 +195,12 @@ int service_finish(void) {
 	 * Finaliza os modulos serial e banco de dados. O modulo de protocolo
 	 * nao e necessario.
 	 */
+    LOG("Closing database...");
 	db_finish();
+    LOG("closed.\n");
+    LOG("Closing serial...");
 	ser_finish(&serial_comm);
-
+    LOG("closed.");
 	return 0;
 }
 

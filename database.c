@@ -135,6 +135,13 @@ int db_init(char *path) {
         sqlite3_close(database);
         return -1;
     }
+
+    err = sqlite3_exec(database, DATABASE_TRANSACTION_BEG, NULL, NULL, &zErrMsg);
+    if(err != SQLITE_OK){
+        LOG("Unable to start transaction : %s\n", zErrMsg);
+        sqlite3_close(database);
+        return -1;
+    }
     
 	/*
 	 * Assumindo que as tabelas ja existam e estejam prontas para serem usadas.
@@ -146,8 +153,11 @@ int db_init(char *path) {
 }
 
 int db_finish(void) {
+    char *zErrMsg = 0;
+    int err = sqlite3_exec(database, DATABASE_TRANSACTION_END, NULL, NULL, &zErrMsg);
+    //ignore err we are closing anyways
 	sqlite3_close(database);
-
+    database = 0;
 	return 0;
 }
 
@@ -250,33 +260,36 @@ int db_add_impedance(unsigned char addr_bank, unsigned char addr_batt,
 	return 0;
 }
 
-int db_get_addresses(Database_Addresses_t *list) {
-	int err = 0;
-	char sql_message[500];
-	char *zErrMsg = 0;
+int db_get_addresses(Database_Addresses_t *list){
+    if(database != 0){
+        int err = 0;
+        char sql_message[500];
+        char *zErrMsg = 0;
 
-	/*
-	 * Inicializa ponteiro interno usado pela callbak e zera seu contador,
-	 * pois será preenchido novamente
-	 */
-	addr_list = list;
-	addr_list->items = 0;
+        /*
+         * Inicializa ponteiro interno usado pela callbak e zera seu contador,
+         * pois será preenchido novamente
+         */
+        addr_list = list;
+        addr_list->items = 0;
 
-	/*
-	 * Controi a mensagem SQL para o banco de dados
-	 *
-	 * TODO: Checar como foi implementada a politica de timestamp da tabela.
-	 * Caso nao tenha sido implementada, e preciso incluir na tabela.
-	 */
- 
-	sprintf(sql_message,
-			"SELECT * FROM %s ",
-			DATABASE_ADDRESSES_NAME);
-	err = sqlite3_exec(database,sql_message,read_callback,0,&zErrMsg);
-	if (err != SQLITE_OK) {
-        LOG("Error on select exec, msg: %s\n", zErrMsg);
-		return -1;
-	}
+        /*
+         * Controi a mensagem SQL para o banco de dados
+         *
+         * TODO: Checar como foi implementada a politica de timestamp da tabela.
+         * Caso nao tenha sido implementada, e preciso incluir na tabela.
+         */
+     
+        sprintf(sql_message,
+                "SELECT * FROM %s ",
+                DATABASE_ADDRESSES_NAME);
+        err = sqlite3_exec(database,sql_message,read_callback,0,&zErrMsg);
+        if (err != SQLITE_OK) {
+            LOG("Error on select exec, msg: %s\n", zErrMsg);
+            return -1;
+        }
 
-	return 0;
+        return 0;
+    }
+    return -1;
 }

@@ -20,6 +20,9 @@
 #define PROTOCOL_TIMEOUT_USEC               1000
 #define DATABASE_JOURNAL_MODE               "PRAGMA journal_mode=WAL"
 #define DATABASE_BUSY_TIMEOUT               "PRAGMA busy_timeout=10000"
+#define DATABASE_TRANSACTION_BEG            "BEGIN TRANSACTION"
+#define DATABASE_TRANSACTION_END            "END TRANSACTION"
+
 
 //#define DEFAULT_SERIAL_PATH                 "/dev/ttyUSB1" //debug
 //#define DEFAULT_SERIAL_PATH                 "/dev/ttyS0" //debug
