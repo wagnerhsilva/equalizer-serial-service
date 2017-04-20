@@ -104,9 +104,13 @@ static int read_callback(void *data, int argc, char **argv, char **azColName){
 	return ret;
 }
 
+int initCallback(void *notUsed, int argc, char **argv, char **azColName){
+    return 0;
+}
+
 int db_init(char *path) {
 	int err = 0;
-
+    
 	/*
 	 * O banco de dados e inicializado, na forma de um arquivo. Caso o arquivo
 	 * nao exista, ele e criado
@@ -116,6 +120,22 @@ int db_init(char *path) {
 		return -1;
 	}
 
+    char *zErrMsg = 0;
+    
+    err = sqlite3_exec(database, DATABASE_BUSY_TIMEOUT, initCallback, 0, &zErrMsg);
+    if(err != SQLITE_OK){
+        LOG("Unnable to set %s : %s\n",(char *)(DATABASE_BUSY_TIMEOUT), zErrMsg);
+        sqlite3_close(database);
+        return -1; 
+    }
+
+    err = sqlite3_exec(database, DATABASE_JOURNAL_MODE, initCallback, 0, &zErrMsg);
+    if(err != SQLITE_OK){
+        LOG("Unnable to set %s : %s\n", (char *)(DATABASE_JOURNAL_MODE), zErrMsg);
+        sqlite3_close(database);
+        return -1;
+    }
+    
 	/*
 	 * Assumindo que as tabelas ja existam e estejam prontas para serem usadas.
 	 * Quem deve construir as tabelas e o sistema web. Na verdade, no
