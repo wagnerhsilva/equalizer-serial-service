@@ -20,6 +20,7 @@
 
 static sqlite3 				*database;
 static Database_Addresses_t	*addr_list;
+static sqlite3_stmt         *baked_stmt;
 
 static int db_get_timestamp(char *timestamp){
 	time_t rawtime;
@@ -122,28 +123,31 @@ int db_init(char *path) {
 
     char *zErrMsg = 0;
     
-    err = sqlite3_exec(database, DATABASE_BUSY_TIMEOUT, initCallback, 0, &zErrMsg);
+    err = sqlite3_exec(database, DATABASE_BUSY_TIMEOUT, 0, 0, &zErrMsg);
     if(err != SQLITE_OK){
         LOG("Unnable to set %s : %s\n",(char *)(DATABASE_BUSY_TIMEOUT), zErrMsg);
         sqlite3_close(database);
         return -1; 
     }
 
-    err = sqlite3_exec(database, DATABASE_JOURNAL_MODE, initCallback, 0, &zErrMsg);
+    err = sqlite3_exec(database, DATABASE_JOURNAL_MODE, 0, 0, &zErrMsg);
     if(err != SQLITE_OK){
         LOG("Unnable to set %s : %s\n", (char *)(DATABASE_JOURNAL_MODE), zErrMsg);
         sqlite3_close(database);
         return -1;
     }
 
-    err = sqlite3_exec(database, DATABASE_TRANSACTION_BEG, NULL, NULL, &zErrMsg);
+    err = sqlite3_exec(database, "PRAGMA synchronous = OFF", 0, 0, &zErrMsg);
     if(err != SQLITE_OK){
-        LOG("Unable to start transaction : %s\n", zErrMsg);
+        LOG("Unnable to turn synchorinzation off : %s\n", zErrMsg);
         sqlite3_close(database);
         return -1;
     }
     
-	/*
+    sqlite3_prepare_v2(database, "INSERT INTO DataLog (dataHora, string, bateria, temperatura, impedancia, tensao, equalizacao) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);", -1,
+                       &baked_stmt, NULL);
+    
+    /*
 	 * Assumindo que as tabelas ja existam e estejam prontas para serem usadas.
 	 * Quem deve construir as tabelas e o sistema web. Na verdade, no
 	 * processo de instalacao o arquivo com banco de dados ja deve vir
@@ -154,8 +158,6 @@ int db_init(char *path) {
 
 int db_finish(void) {
     char *zErrMsg = 0;
-    int err = sqlite3_exec(database, DATABASE_TRANSACTION_END, NULL, NULL, &zErrMsg);
-    //ignore err we are closing anyways
 	sqlite3_close(database);
     database = 0;
 	return 0;
@@ -170,15 +172,30 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
     char *zErrMsg = 0;
     
     err = db_get_timestamp(timestamp);
-    sprintf(sql_message,
+    /*sprintf(sql_message,
             "INSERT INTO %s (dataHora, string, bateria, temperatura, impedancia, tensao, equalizacao) VALUES ('%s', '%s', '%s', %hu, %d, %hu, %hu)", (char *)DATABASE_VARS_TABLE_NAME,
             timestamp, int_to_addr(read_vars->addr_bank, 1), int_to_addr(read_vars->addr_batt, 0), read_vars->etemp, 
             imp_vars->impedance, read_vars->vbat, read_vars->duty_cycle);
     err = sqlite3_exec(database,sql_message,write_callback,0,&zErrMsg);
-	if (err != SQLITE_OK) {
+    */
+    char etemp[15]; sprintf(etemp, "%hu", read_vars->etemp);
+    char imped[15]; sprintf(imped, "%d", imp_vars->impedance);
+    char vbat[15]; sprintf(vbat, "%hu", read_vars->vbat);
+    char duty[15]; sprintf(duty, "%hu", read_vars->duty_cycle);
+    sqlite3_bind_text(baked_stmt, 1, timestamp, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(baked_stmt, 2, int_to_addr(read_vars->addr_bank, 1), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(baked_stmt, 3, int_to_addr(read_vars->addr_batt, 0), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(baked_stmt, 4, etemp, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(baked_stmt, 5, imped, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(baked_stmt, 6, vbat, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(baked_stmt, 7, duty, -1, SQLITE_TRANSIENT);
+    sqlite3_step(baked_stmt);
+    sqlite3_clear_bindings(baked_stmt);
+    sqlite3_reset(baked_stmt);
+	/*if (err != SQLITE_OK) {
         LOG("Error on insert into exec, msg: %s\n", zErrMsg);
 		return -1;
-	}
+	}*/
     
     return 0;
 }
