@@ -21,19 +21,19 @@ static int getStop(void) {
 }
 
 void signal_handler(int signo){
-    const char *signame = strsignal(signo);
-    LOG("Received signal: %s\n", signame);
-    LOG("Ending service...\n");
-    service_finish();
+	const char *signame = strsignal(signo);
+	LOG("Received signal: %s\n", signame);
+	LOG("Ending service...\n");
+	service_finish();
 }
 
 static void init_signal_handler(void){
-    struct sigaction new_action, old_action;
-    new_action.sa_handler = signal_handler;
-    sigemptyset(&new_action.sa_mask);
-    new_action.sa_flags = 0;
-    
-    sigaction(SIGINT, &new_action, NULL);
+	struct sigaction new_action, old_action;
+	new_action.sa_handler = signal_handler;
+	sigemptyset(&new_action.sa_mask);
+	new_action.sa_flags = 0;
+
+	sigaction(SIGINT, &new_action, NULL);
 }
 
 int service_init(char *dev_path, char *db_path) {
@@ -42,13 +42,13 @@ int service_init(char *dev_path, char *db_path) {
 	/*
 	 * Checa o caminho para inicio da execucao
 	 */
-    if(dev_path == NULL){ 
-        return -1;
-    }
+	if(dev_path == NULL){ 
+		return -1;
+	}
 
-    char *l_dev = dev_path;
+	char *l_dev = dev_path;
 
-    if (db_path != NULL) {
+	if (db_path != NULL) {
 		l_db = db_path;
 	}
 
@@ -71,22 +71,15 @@ int service_init(char *dev_path, char *db_path) {
 	/*
 	 * Inicializa o banco de dados
 	 */
-    
-    if(CHECK(db_init(l_db))){
-        return -3;
-    }
-    /*
-	err = db_init(l_db);
-	if (err != 0) {
+
+	if(CHECK(db_init(l_db))){
 		return -3;
 	}
-    */
 	/*
 	 * Variavel que mantem o loop funcionando. A partir daqui o servico
 	 * pode operar
 	 */
-    //init_signal_handler();   
-    setStop(0);
+	setStop(0);
 
 	return 0;
 }
@@ -105,15 +98,9 @@ int service_start(void) {
 		 * Recupera a lista de elementos a serem recuperados
 		 */
 
-        if(CHECK(db_get_addresses(&list))){
-            break;
-        }
-        /*
-		err = db_get_addresses(&list);
-		if (err != 0) {
+		if(CHECK(db_get_addresses(&list))){
 			break;
 		}
-        */
 		if (list.items > 0) {
 			/*
 			 * Busca informacao de variaveis e de impedancia para cada item
@@ -146,10 +133,6 @@ int service_start(void) {
 				/*
 				 * Armazena informacoes recebidas no banco de dados
 				 */
-				/*err = db_add_vars(&output_vars);
-				if (err != 0) {
-					break;
-				}*/
 				/*
 				 * Preenche campos necessarios para solicitar leitura das
 				 * informacoes de impedancia
@@ -166,9 +149,7 @@ int service_start(void) {
 				/*
 				 * Armazena as informacoes recebidas no banco de dados
 				 */
-				//err = db_add_impedance(input_impedance.addr_bank,
-				//		input_impedance.addr_batt,&output_impedance);
-                err = db_add_response(&output_vars, &output_impedance);
+				err = db_add_response(&output_vars, &output_impedance);
 				if (err != 0) {
 					break;
 				}
@@ -195,12 +176,12 @@ int service_finish(void) {
 	 * Finaliza os modulos serial e banco de dados. O modulo de protocolo
 	 * nao e necessario.
 	 */
-    LOG("Closing database...");
+	LOG("Closing database...");
 	db_finish();
-    LOG("closed.\n");
-    LOG("Closing serial...");
+	LOG("closed.\n");
+	LOG("Closing serial...");
 	ser_finish(&serial_comm);
-    LOG("closed.");
+	LOG("closed.");
 	return 0;
 }
 
