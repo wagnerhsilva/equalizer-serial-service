@@ -9,7 +9,7 @@
 #define CHECK(r) _check((r), __LINE__, __FILE__)
 #define PROTOCOL_FRAME_LEN                  32
 #define PROTOCOL_FRAME_LEN_SHORT            (PROTOCOL_FRAME_LEN / 2)
-#define PROTOTOL_FRAME_REQUEST_DATA_LEN     22
+#define PROTOTOL_FRAME_REQUEST_DATA_LEN     24
 #define PROTOCOL_FRAME_RESPONSE_DATA_LEN    26
 //slave should sent a begining of message 2byte package, but whatever
 #define PROTOCOL_READ_VAR_COMMAND_0         0x10
@@ -26,7 +26,8 @@
 
 //#define DEFAULT_SERIAL_PATH                 "/dev/ttyUSB1" //debug
 //#define DEFAULT_SERIAL_PATH                 "/dev/ttyS0" //debug
-#define DEFAULT_DB_PATH                     "../equalizer/equalizer-api/equalizerdb"
+//#define DEFAULT_DB_PATH                     "../equalizer/equalizer-api/equalizerdb"
+#define DEFAULT_DB_PATH			      "equalizerdb"
 #define bytes_to_u16(LSB, MSB) (LSB | MSB << 8)
 #define bytes_to_u32(MSB0,MSB1,MSB2,LSB) ((MSB0 << 24) | (MSB1 << 16) \
                                          |(MSB2 << 8)  | (LSB))

@@ -14,6 +14,8 @@
 #define DATABASE_VARS_TABLE_NAME	"DataLog"
 #define DATABASE_IMPEDANCE_TABLE_NAME	"impedance"
 #define DATABASE_ADDRESSES_NAME		"Modulo"
+#define DATABASE_PARAMETERS_TABLE_NAME	"Parameters"
+
 
 #define BATTERY_STRINGS_ADDR           4
 #define BATTERY_COUNT_ADDR             5
@@ -108,7 +110,16 @@ static int read_callback(void *data, int argc, char **argv, char **azColName){
 
 static int param_callback(void *data, int argc, char **argv, char **azColName){
 	int ret = 0;
-
+	int i = 0;	
+	LOG("Received msg with %d values: \n", argc);
+	for(i = 0; i < argc; i++){
+		LOG("%s ", argv[i]);
+	}
+	
+	if(!param_list){
+		LOG("We have a nullptr\n");
+		exit(0);
+	}
 	/*
 	 * TODO: Corrigir esta implementacao
 	 */
@@ -283,7 +294,7 @@ int db_get_parameters(Database_Parameters_t *list){
 
 		sprintf(sql_message,
 				"SELECT * FROM %s ",
-				DATABASE_ADDRESSES_NAME);
+				DATABASE_PARAMETERS_TABLE_NAME);
 		err = sqlite3_exec(database,sql_message,param_callback,0,&zErrMsg);
 		if (err != SQLITE_OK) {
 			LOG("Error on select exec, msg: %s\n", zErrMsg);
@@ -304,7 +315,7 @@ int db_update_average(unsigned short new_value) {
 		/*
 		 * TODO: Revisar a instrucao SQL com os valores corretos
 		 */
-		sprintf(sql,"UPDATE param set AVERAGE = %d;",new_value);
+		sprintf(sql,"UPDATE %s set avg_last = '%d';",DATABASE_PARAMETERS_TABLE_NAME, new_value);
 		err = sqlite3_exec(database,sql,write_callback,0,&zErrMsg);
 		if (err != SQLITE_OK) {
 			LOG("Error on update exec, msg: %s\n",zErrMsg);

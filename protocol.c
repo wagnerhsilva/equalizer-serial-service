@@ -60,9 +60,12 @@ static uint8_t * prot_creat_readvar_request8(Protocol_ReadCmd_InputVars *in)
      * Para se ter o mesmo efeito, mas de forma estatica, propoe-se o uso
      * de um buffer static interno.
      */
-    //uint8_t *request8 = 0;
-    //request8 = (uint8_t*)malloc(sizeof(uint8_t)*PROTOCOL_FRAME_LEN);
-    static uint8_t request8[PROTOCOL_FRAME_LEN] = { 0 };
+
+    //adicionado free ao final de prot_read_vars e prot_read_impedance
+    //static arrays n√o fornecem a mesma versalidade
+    uint8_t *request8 = 0;
+    request8 = (uint8_t*)malloc(sizeof(uint8_t)*PROTOCOL_FRAME_LEN);
+    //static uint8_t request8[PROTOCOL_FRAME_LEN] = { 0 };
     int pointer = 0;
     
     request8[pointer++] = u16_MSB(PROTOCOL_START_OF_FRAME); //0x23
@@ -257,7 +260,7 @@ int prot_read_vars(Protocol_ReadCmd_InputVars *in,
 	if (err != 0) {
 		return -3;
 	}
-
+        free(msg8);
 	return 0;
 }
 
@@ -283,6 +286,6 @@ int prot_read_impedance(Protocol_ImpedanceCmd_InputVars *in,
 	if (err != 0) {
 		return -3;
 	}
-
+	free(msg8);
 	return 0;
 }

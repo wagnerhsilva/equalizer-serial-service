@@ -184,7 +184,7 @@ int service_start(void) {
 				/*
 				 * Calcula a media atualizada de vref
 				 */
-				average = output_vars.vref / list.items; 
+				average += output_vars.vref / list.items; 
 			}
 			/*
 			 * Atualiza o valor de vref medio usado como entrada
