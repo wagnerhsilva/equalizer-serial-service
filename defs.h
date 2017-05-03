@@ -18,7 +18,8 @@
 #define PROTOCOL_IMPEDANCE_COMMAND_1        0xB0
 #define PROTOCOL_TIMEOUT_VSEC               10
 #define PROTOCOL_TIMEOUT_USEC               1000
-
+#define DATABASE_JOURNAL_MODE               "PRAGMA journal_mode=WAL"
+#define DATABASE_BUSY_TIMEOUT               "PRAGMA busy_timeout=10000"
 
 //#define DEFAULT_SERIAL_PATH                 "/dev/ttyUSB1" //debug
 //#define DEFAULT_SERIAL_PATH                 "/dev/ttyS0" //debug
