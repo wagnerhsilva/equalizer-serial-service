@@ -85,13 +85,16 @@ int service_init(char *dev_path, char *db_path) {
 }
 
 int service_start(void) {
-	int 								i = 0;
-	int 								err = 0;
-	Database_Addresses_t				list;
-	Protocol_ReadCmd_InputVars 			input_vars;
-	Protocol_ImpedanceCmd_InputVars		input_impedance;
-	Protocol_ReadCmd_OutputVars			output_vars;
-	Protocol_ImpedanceCmd_OutputVars	output_impedance;
+	unsigned short 			 average = 0;
+	unsigned short			 average_last = 0;
+	unsigned short			 delay_value = 0;
+	int 				 i = 0;
+	int 				 err = 0;
+	Database_Addresses_t		 list;
+	Protocol_ReadCmd_InputVars 	 input_vars;
+	Protocol_ImpedanceCmd_InputVars	 input_impedance;
+	Protocol_ReadCmd_OutputVars	 output_vars;
+	Protocol_ImpedanceCmd_OutputVars output_impedance;
 
 	while(!getStop()) {
 		/*
@@ -120,7 +123,15 @@ int service_start(void) {
 				 */
 				input_vars.addr_bank = list.item[i].addr_bank;
 				input_vars.addr_batt = list.item[i].addr_batt;
-				input_vars.vref = list.item[i].vref;
+				/*
+				 * Vref e a media das leituras de tensao dos
+				 * sensores, coletados a cada ciclo
+				 */
+				input_vars.vref = average_last;
+				/*
+				 * Parametros seguintes se encontram na base
+				 * de dados do sistema
+				 */
 				input_vars.duty_min = list.item[i].duty_min;
 				input_vars.duty_max = list.item[i].duty_max;
 				/*
@@ -153,7 +164,29 @@ int service_start(void) {
 				if (err != 0) {
 					break;
 				}
+				/*
+				 * Calcula a media atualizada de vref
+				 */
+				average = output_vars.vref / list.items; 
 			}
+			/*
+			 * Atualiza o valor de vref medio usado como entrada
+			 * na leitura dos sensores. Esta informacao deve ser
+			 * armazenada em base de dados.
+			 */
+			average_last = average;
+			/*
+			 * TODO: Adicionar em base de dados
+			 */
+			
+			/*
+			 * Realiza uma pausa entre as leituras, com valores
+			 * lidos obtidos do banco de dados
+			 */
+			sleep(delay_value);
+			/*
+			 * Reinicia loop de aquisicao de dados de sensor
+			 */
 		}
 	}
 

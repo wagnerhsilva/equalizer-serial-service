@@ -18,6 +18,7 @@ typedef struct {
 	unsigned short	vref;
 	unsigned short	duty_min;
 	unsigned short	duty_max;
+	unsigned short  index;
 } Database_Address_t;
 
 typedef struct {
