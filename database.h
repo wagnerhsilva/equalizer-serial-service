@@ -22,6 +22,14 @@ typedef struct {
 } Database_Address_t;
 
 typedef struct {
+	unsigned short	average_last;
+	unsigned short	duty_min;
+	unsigned short	duty_max;
+	unsigned short  index;
+	unsigned short  delay;
+} Database_Parameters_t;
+
+typedef struct {
 	int items;
 	Database_Address_t item[DATABASE_MAX_ADDRESSES_LEN];
 } Database_Addresses_t;
@@ -34,5 +42,7 @@ int db_add_impedance(unsigned char addr_bank, unsigned char addr_batt, Protocol_
 int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
                     Protocol_ImpedanceCmd_OutputVars *imp_vars);
 int db_get_addresses(Database_Addresses_t *list);
+int db_get_parameters(Database_Parameters_t *list);
+int db_update_average(unsigned short new_value);
 
 #endif /* DATABASE_H_ */

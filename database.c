@@ -11,16 +11,17 @@
 #include "protocol.h"
 #include <defs.h>
 #include <string.h>
-#define DATABASE_VARS_TABLE_NAME		"DataLog"
+#define DATABASE_VARS_TABLE_NAME	"DataLog"
 #define DATABASE_IMPEDANCE_TABLE_NAME	"impedance"
-#define DATABASE_ADDRESSES_NAME			"Modulo"
+#define DATABASE_ADDRESSES_NAME		"Modulo"
 
-#define BATTERY_STRINGS_ADDR              4
-#define BATTERY_COUNT_ADDR                5
+#define BATTERY_STRINGS_ADDR           4
+#define BATTERY_COUNT_ADDR             5
 
-static sqlite3 				*database;
+static sqlite3 			*database;
 static Database_Addresses_t	*addr_list;
-static sqlite3_stmt         *baked_stmt;
+static Database_Parameters_t	*param_list;
+static sqlite3_stmt       	*baked_stmt;
 
 static int db_get_timestamp(char *timestamp){
 	time_t rawtime;
@@ -34,38 +35,38 @@ static int db_get_timestamp(char *timestamp){
 }
 
 static int write_callback(void *data, int argc, char **argv, char **azColName){
-   return 0;
+	return 0;
 }
 
 static unsigned char addr_to_int(char *addr){
-    char *end;
-    unsigned char response;
-    long i = 0;
-    char *str = &addr[1];
-    for(i = strtol(str, &end, 10); str != end; i = strtol(str, &end, 10)){ //grab last only
-        str = end;
-    }
-    if(i < 256 && i >= 0) 
-        response = (unsigned char) i;
-    else
-        response = 0;
-    return response;
+	char *end;
+	unsigned char response;
+	long i = 0;
+	char *str = &addr[1];
+	for(i = strtol(str, &end, 10); str != end; i = strtol(str, &end, 10)){ //grab last only
+		str = end;
+	}
+	if(i < 256 && i >= 0) 
+		response = (unsigned char) i;
+	else
+		response = 0;
+	return response;
 }
 
 static char * int_to_addr(int val, int isBank){
-    char * res = (char *)malloc(sizeof(char)*5); //at most 4 -> M255
-    char *number = (char *)malloc(sizeof(char)*4);
-    if(isBank){
-        res[0] = 'S';
-    }else{
-        res[0] = 'M';
-    }
-    res[1] = '\0';
-    
-    snprintf(number, 4, "%d", val);
-    strcat(res, number);
-    free(number);
-    return res;
+	char * res = (char *)malloc(sizeof(char)*5); //at most 4 -> M255
+	char *number = (char *)malloc(sizeof(char)*4);
+	if(isBank){
+		res[0] = 'S';
+	}else{
+		res[0] = 'M';
+	}
+	res[1] = '\0';
+
+	snprintf(number, 4, "%d", val);
+	strcat(res, number);
+	free(number);
+	return res;
 }
 
 
@@ -73,45 +74,62 @@ static int read_callback(void *data, int argc, char **argv, char **azColName){
 	/*
 	 * We get the amount of strings in the database and the amount
 	 * of batteries per string, since every string has the same amount
-     * a simple loop should instanciate them all
+	 * a simple loop should instanciate them all
 	 */
-    int ret = -1;
-    if(addr_list->items == 0){ //this should run one time only
-        int i = 0, j = 0;
-        int bank_count = atoi(argv[BATTERY_STRINGS_ADDR]);
-        int batt_count = atoi(argv[BATTERY_COUNT_ADDR]);
-        
-        int amount = bank_count * batt_count;
-        if(amount < DATABASE_MAX_ADDRESSES_LEN){
-            for(i = 0; i < bank_count; i++){
-                for(j = 0; j < batt_count; j++){
-                    addr_list->item[addr_list->items].addr_bank = (i+1);
-                    addr_list->item[addr_list->items].addr_batt = (j+1);
-                    
-                    //TODO: Fill this with proper values, don't know where this comes from
-                    addr_list->item[addr_list->items].vref = 0;
-                    addr_list->item[addr_list->items].duty_min = 0;
-                    addr_list->item[addr_list->items].duty_max = 0;
-                    
-                    addr_list->items++;
-                }
-            }
-        ret = 0;
-        }
-   }else{
-        LOG("Database unexpected result...\n");
-    }
-    
+	int ret = -1;
+	if(addr_list->items == 0){ //this should run one time only
+		int i = 0, j = 0;
+		int bank_count = atoi(argv[BATTERY_STRINGS_ADDR]);
+		int batt_count = atoi(argv[BATTERY_COUNT_ADDR]);
+
+		int amount = bank_count * batt_count;
+		if(amount < DATABASE_MAX_ADDRESSES_LEN){
+			for(i = 0; i < bank_count; i++){
+				for(j = 0; j < batt_count; j++){
+					addr_list->item[addr_list->items].addr_bank = (i+1);
+					addr_list->item[addr_list->items].addr_batt = (j+1);
+
+					//TODO: Fill this with proper values, don't know where this comes from
+					addr_list->item[addr_list->items].vref = 0;
+					addr_list->item[addr_list->items].duty_min = 0;
+					addr_list->item[addr_list->items].duty_max = 0;
+
+					addr_list->items++;
+				}
+			}
+			ret = 0;
+		}
+	}else{
+		LOG("Database unexpected result...\n");
+	}
+
 	return ret;
 }
 
+static int param_callback(void *data, int argc, char **argv, char **azColName){
+	int ret = 0;
+
+	/*
+	 * TODO: Corrigir esta implementacao
+	 */
+	param_list->average_last = atoi(argv[0]);
+	param_list->duty_min = atoi(argv[1]);
+	param_list->duty_max = atoi(argv[2]);
+	param_list->index = atoi(argv[3]);
+	param_list->delay = atoi(argv[4]);
+	
+	return ret;
+}
+
+
+
 int initCallback(void *notUsed, int argc, char **argv, char **azColName){
-    return 0;
+	return 0;
 }
 
 int db_init(char *path) {
 	int err = 0;
-    
+
 	/*
 	 * O banco de dados e inicializado, na forma de um arquivo. Caso o arquivo
 	 * nao exista, ele e criado
@@ -121,33 +139,33 @@ int db_init(char *path) {
 		return -1;
 	}
 
-    char *zErrMsg = 0;
-    
-    err = sqlite3_exec(database, DATABASE_BUSY_TIMEOUT, 0, 0, &zErrMsg);
-    if(err != SQLITE_OK){
-        LOG("Unnable to set %s : %s\n",(char *)(DATABASE_BUSY_TIMEOUT), zErrMsg);
-        sqlite3_close(database);
-        return -1; 
-    }
+	char *zErrMsg = 0;
 
-    err = sqlite3_exec(database, DATABASE_JOURNAL_MODE, 0, 0, &zErrMsg);
-    if(err != SQLITE_OK){
-        LOG("Unnable to set %s : %s\n", (char *)(DATABASE_JOURNAL_MODE), zErrMsg);
-        sqlite3_close(database);
-        return -1;
-    }
+	err = sqlite3_exec(database, DATABASE_BUSY_TIMEOUT, 0, 0, &zErrMsg);
+	if(err != SQLITE_OK){
+		LOG("Unnable to set %s : %s\n",(char *)(DATABASE_BUSY_TIMEOUT), zErrMsg);
+		sqlite3_close(database);
+		return -1; 
+	}
 
-    err = sqlite3_exec(database, "PRAGMA synchronous = OFF", 0, 0, &zErrMsg);
-    if(err != SQLITE_OK){
-        LOG("Unnable to turn synchorinzation off : %s\n", zErrMsg);
-        sqlite3_close(database);
-        return -1;
-    }
-    
-    sqlite3_prepare_v2(database, "INSERT INTO DataLog (dataHora, string, bateria, temperatura, impedancia, tensao, equalizacao) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);", -1,
-                       &baked_stmt, NULL);
-    
-    /*
+	err = sqlite3_exec(database, DATABASE_JOURNAL_MODE, 0, 0, &zErrMsg);
+	if(err != SQLITE_OK){
+		LOG("Unnable to set %s : %s\n", (char *)(DATABASE_JOURNAL_MODE), zErrMsg);
+		sqlite3_close(database);
+		return -1;
+	}
+
+	err = sqlite3_exec(database, "PRAGMA synchronous = OFF", 0, 0, &zErrMsg);
+	if(err != SQLITE_OK){
+		LOG("Unnable to turn synchorinzation off : %s\n", zErrMsg);
+		sqlite3_close(database);
+		return -1;
+	}
+
+	sqlite3_prepare_v2(database, "INSERT INTO DataLog (dataHora, string, bateria, temperatura, impedancia, tensao, equalizacao) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);", -1,
+			&baked_stmt, NULL);
+
+	/*
 	 * Assumindo que as tabelas ja existam e estejam prontas para serem usadas.
 	 * Quem deve construir as tabelas e o sistema web. Na verdade, no
 	 * processo de instalacao o arquivo com banco de dados ja deve vir
@@ -157,156 +175,143 @@ int db_init(char *path) {
 }
 
 int db_finish(void) {
-    char *zErrMsg = 0;
+	char *zErrMsg = 0;
 	sqlite3_close(database);
-    database = 0;
+	database = 0;
 	return 0;
 }
 
 int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
-                    Protocol_ImpedanceCmd_OutputVars *imp_vars)
+		Protocol_ImpedanceCmd_OutputVars *imp_vars)
 {
-    int err = 0;
-    char sql_message[500];
-    char timestamp[80];
-    char *zErrMsg = 0;
-    
-    err = db_get_timestamp(timestamp);
-    /*sprintf(sql_message,
-            "INSERT INTO %s (dataHora, string, bateria, temperatura, impedancia, tensao, equalizacao) VALUES ('%s', '%s', '%s', %hu, %d, %hu, %hu)", (char *)DATABASE_VARS_TABLE_NAME,
-            timestamp, int_to_addr(read_vars->addr_bank, 1), int_to_addr(read_vars->addr_batt, 0), read_vars->etemp, 
-            imp_vars->impedance, read_vars->vbat, read_vars->duty_cycle);
-    err = sqlite3_exec(database,sql_message,write_callback,0,&zErrMsg);
-    */
-    char etemp[15]; sprintf(etemp, "%hu", read_vars->etemp);
-    char imped[15]; sprintf(imped, "%d", imp_vars->impedance);
-    char vbat[15]; sprintf(vbat, "%hu", read_vars->vbat);
-    char duty[15]; sprintf(duty, "%hu", read_vars->duty_cycle);
-    sqlite3_bind_text(baked_stmt, 1, timestamp, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(baked_stmt, 2, int_to_addr(read_vars->addr_bank, 1), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(baked_stmt, 3, int_to_addr(read_vars->addr_batt, 0), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(baked_stmt, 4, etemp, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(baked_stmt, 5, imped, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(baked_stmt, 6, vbat, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(baked_stmt, 7, duty, -1, SQLITE_TRANSIENT);
-    sqlite3_step(baked_stmt);
-    sqlite3_clear_bindings(baked_stmt);
-    sqlite3_reset(baked_stmt);
+	int err = 0;
+	char sql_message[500];
+	char timestamp[80];
+	char *zErrMsg = 0;
+
+	err = db_get_timestamp(timestamp);
+	/*sprintf(sql_message,
+	  "INSERT INTO %s (dataHora, string, bateria, temperatura, impedancia, tensao, equalizacao) VALUES ('%s', '%s', '%s', %hu, %d, %hu, %hu)", (char *)DATABASE_VARS_TABLE_NAME,
+	  timestamp, int_to_addr(read_vars->addr_bank, 1), int_to_addr(read_vars->addr_batt, 0), read_vars->etemp, 
+	  imp_vars->impedance, read_vars->vbat, read_vars->duty_cycle);
+	  err = sqlite3_exec(database,sql_message,write_callback,0,&zErrMsg);
+	 */
+	char etemp[15]; sprintf(etemp, "%hu", read_vars->etemp);
+	char imped[15]; sprintf(imped, "%d", imp_vars->impedance);
+	char vbat[15]; sprintf(vbat, "%hu", read_vars->vbat);
+	char duty[15]; sprintf(duty, "%hu", read_vars->duty_cycle);
+	sqlite3_bind_text(baked_stmt, 1, timestamp, -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_stmt, 2, int_to_addr(read_vars->addr_bank, 1), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_stmt, 3, int_to_addr(read_vars->addr_batt, 0), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_stmt, 4, etemp, -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_stmt, 5, imped, -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_stmt, 6, vbat, -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_stmt, 7, duty, -1, SQLITE_TRANSIENT);
+	sqlite3_step(baked_stmt);
+	sqlite3_clear_bindings(baked_stmt);
+	sqlite3_reset(baked_stmt);
 	/*if (err != SQLITE_OK) {
-        LOG("Error on insert into exec, msg: %s\n", zErrMsg);
-		return -1;
-	}*/
-    
-    return 0;
+	  LOG("Error on insert into exec, msg: %s\n", zErrMsg);
+	  return -1;
+	  }*/
+
+	return 0;
 }
 
 
 int db_add_vars(Protocol_ReadCmd_OutputVars *vars) {
-//	int err = 0;
-//	char sql_message[500];
-//	char timestamp[16];
-//	char *zErrMsg = 0;
-//
-//	/*
-//	 * Captura a data e hora atual para registro
-//	 */
-//	err = db_get_timestamp(timestamp);
-//
-//	/*
-//	 * Controi a mensagem SQL para o banco de dados
-//	 *
-//	 * TODO: Checar como foi implementada a politica de timestamp da tabela.
-//	 * Caso nao tenha sido implementada, e preciso incluir na tabela.
-//	 */
-//	sprintf(sql_message,
-//			"INSERT INTO %s (TIMESTAMP, BANK, BATTERY, VBAT, ITEMP, ETEMP, VSOURCE, OFF_VBAT, OFF_IBAT, VREF, DUTYCYCLE) "
-//			"VALUES (%s, %u %u %u %u %u %u %u %u %u %u);",
-//			DATABASE_VARS_TABLE_NAME,
-//			timestamp,
-//			vars->addr_bank,
-//			vars->addr_batt,
-//			vars->vbat,
-//			vars->itemp,
-//			vars->etemp,
-//			vars->vsource,
-//			vars->vbat_off,
-//			vars->ibat_off,
-//			vars->vref,
-//			vars->duty_cycle);
-//	err = sqlite3_exec(database,sql_message,write_callback,0,&zErrMsg);
-//	if (err != SQLITE_OK) {
-//		return -1;
-//	}
-
 	return 0;
 }
 
 int db_add_impedance(unsigned char addr_bank, unsigned char addr_batt,
 		Protocol_ImpedanceCmd_OutputVars *vars) {
-//	int err = 0;
-//	char sql_message[500];
-//	char timestamp[16];
-//	char *zErrMsg = 0;
-//
-//	/*
-//	 * Captura a data e hora atual para registro
-//	 */
-//	err = db_get_timestamp(timestamp);
-//
-//	/*
-//	 * Controi a mensagem SQL para o banco de dados
-//	 *
-//	 * TODO: Checar como foi implementada a politica de timestamp da tabela.
-//	 * Caso nao tenha sido implementada, e preciso incluir na tabela.
-//	 */
-//	sprintf(sql_message,
-//			"INSERT INTO %s (TIMESTAMP, BANK, BATTERY, IMPEDANCE, CURRENT) "
-//			"VALUES (%s, %u %u %u %u %u %u %u %u %u %d);",
-//			DATABASE_IMPEDANCE_TABLE_NAME,
-//			timestamp,
-//			addr_bank,
-//			addr_batt,
-//			vars->impedance,
-//			vars->current);
-//	err = sqlite3_exec(database,sql_message,write_callback,0,&zErrMsg);
-//	if (err != SQLITE_OK) {
-//        LOG("Error on insert, msg: %s\n", zErrMsg);
-//		return -1;
-//	}
-
 	return 0;
 }
 
 int db_get_addresses(Database_Addresses_t *list){
-    if(database != 0){
-        int err = 0;
-        char sql_message[500];
-        char *zErrMsg = 0;
+	if(database != 0){
+		int err = 0;
+		char sql_message[500];
+		char *zErrMsg = 0;
 
-        /*
-         * Inicializa ponteiro interno usado pela callbak e zera seu contador,
-         * pois será preenchido novamente
-         */
-        addr_list = list;
-        addr_list->items = 0;
+		/*
+		 * Inicializa ponteiro interno usado pela callbak e zera seu contador,
+		 * pois será preenchido novamente
+		 */
+		addr_list = list;
+		addr_list->items = 0;
 
-        /*
-         * Controi a mensagem SQL para o banco de dados
-         *
-         * TODO: Checar como foi implementada a politica de timestamp da tabela.
-         * Caso nao tenha sido implementada, e preciso incluir na tabela.
-         */
-     
-        sprintf(sql_message,
-                "SELECT * FROM %s ",
-                DATABASE_ADDRESSES_NAME);
-        err = sqlite3_exec(database,sql_message,read_callback,0,&zErrMsg);
-        if (err != SQLITE_OK) {
-            LOG("Error on select exec, msg: %s\n", zErrMsg);
-            return -1;
-        }
+		/*
+		 * Controi a mensagem SQL para o banco de dados
+		 *
+		 * TODO: Checar como foi implementada a politica de timestamp da tabela.
+		 * Caso nao tenha sido implementada, e preciso incluir na tabela.
+		 */
 
-        return 0;
-    }
-    return -1;
+		sprintf(sql_message,
+				"SELECT * FROM %s ",
+				DATABASE_ADDRESSES_NAME);
+		err = sqlite3_exec(database,sql_message,read_callback,0,&zErrMsg);
+		if (err != SQLITE_OK) {
+			LOG("Error on select exec, msg: %s\n", zErrMsg);
+			return -1;
+		}
+
+		return 0;
+	}
+	return -1;
 }
+
+
+int db_get_parameters(Database_Parameters_t *list){
+	if(database != 0){
+		int err = 0;
+		char sql_message[500];
+		char *zErrMsg = 0;
+
+		/*
+		 * Inicializa ponteiro interno usado pela callbak e zera seu contador,
+		 * pois será preenchido novamente
+		 */
+		param_list = list;
+
+		/*
+		 * Controi a mensagem SQL para o banco de dados
+		 *
+		 * TODO: Colocar a tabela e os parametros corretos
+		 */
+
+		sprintf(sql_message,
+				"SELECT * FROM %s ",
+				DATABASE_ADDRESSES_NAME);
+		err = sqlite3_exec(database,sql_message,param_callback,0,&zErrMsg);
+		if (err != SQLITE_OK) {
+			LOG("Error on select exec, msg: %s\n", zErrMsg);
+			return -1;
+		}
+
+		return 0;
+	}
+	return -1;
+}
+
+int db_update_average(unsigned short new_value) {
+	int err = 0;
+	char sql[256];
+	char *zErrMsg = 0;
+
+	if (database != 0) {
+		/*
+		 * TODO: Revisar a instrucao SQL com os valores corretos
+		 */
+		sprintf(sql,"UPDATE param set AVERAGE = %d;",new_value);
+		err = sqlite3_exec(database,sql,write_callback,0,&zErrMsg);
+		if (err != SQLITE_OK) {
+			LOG("Error on update exec, msg: %s\n",zErrMsg);
+			return -1;
+		}
+		return 0;
+	}
+	return -1;
+}
+

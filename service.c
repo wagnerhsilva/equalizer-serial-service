@@ -87,15 +87,26 @@ int service_init(char *dev_path, char *db_path) {
 int service_start(void) {
 	unsigned short 			 average = 0;
 	unsigned short			 average_last = 0;
-	unsigned short			 delay_value = 0;
 	int 				 i = 0;
 	int 				 err = 0;
 	Database_Addresses_t		 list;
+	Database_Parameters_t		 params;
 	Protocol_ReadCmd_InputVars 	 input_vars;
 	Protocol_ImpedanceCmd_InputVars	 input_impedance;
 	Protocol_ReadCmd_OutputVars	 output_vars;
 	Protocol_ImpedanceCmd_OutputVars output_impedance;
 
+	/*
+	 * Os parametros sao recuperados antes do inicio da execucao
+	 * do loop principal
+	 */
+	if (CHECK(db_get_parameters(&params))) {
+		return -1;
+	}
+
+	/*
+	 * Inicia a execucao principal
+	 */
 	while(!getStop()) {
 		/*
 		 * Recupera a lista de elementos a serem recuperados
@@ -104,6 +115,12 @@ int service_start(void) {
 		if(CHECK(db_get_addresses(&list))){
 			break;
 		}
+		/*
+		 * Atualiza a ultima media calculada armazenada na base de
+		 * dados
+		 */
+		average_last = params.average_last;
+
 		if (list.items > 0) {
 			/*
 			 * Busca informacao de variaveis e de impedancia para cada item
@@ -132,8 +149,8 @@ int service_start(void) {
 				 * Parametros seguintes se encontram na base
 				 * de dados do sistema
 				 */
-				input_vars.duty_min = list.item[i].duty_min;
-				input_vars.duty_max = list.item[i].duty_max;
+				input_vars.duty_min = params.duty_min;
+				input_vars.duty_max = params.duty_max;
 				/*
 				 * Dispara o processo de busca de informacoes no sensor
 				 */
@@ -175,15 +192,13 @@ int service_start(void) {
 			 * armazenada em base de dados.
 			 */
 			average_last = average;
-			/*
-			 * TODO: Adicionar em base de dados
-			 */
+			db_update_average(average);
 			
 			/*
 			 * Realiza uma pausa entre as leituras, com valores
 			 * lidos obtidos do banco de dados
 			 */
-			sleep(delay_value);
+			sleep(params.delay);
 			/*
 			 * Reinicia loop de aquisicao de dados de sensor
 			 */
