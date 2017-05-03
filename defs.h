@@ -26,8 +26,8 @@
 
 //#define DEFAULT_SERIAL_PATH                 "/dev/ttyUSB1" //debug
 //#define DEFAULT_SERIAL_PATH                 "/dev/ttyS0" //debug
-//#define DEFAULT_DB_PATH                     "../equalizer/equalizer-api/equalizerdb"
-#define DEFAULT_DB_PATH			      "equalizerdb"
+#define DEFAULT_DB_PATH                     "../equalizer-api/equalizer-api/equalizerdb"
+//#define DEFAULT_DB_PATH			      "equalizerdb"
 #define bytes_to_u16(LSB, MSB) (LSB | MSB << 8)
 #define bytes_to_u32(MSB0,MSB1,MSB2,LSB) ((MSB0 << 24) | (MSB1 << 16) \
                                          |(MSB2 << 8)  | (LSB))
