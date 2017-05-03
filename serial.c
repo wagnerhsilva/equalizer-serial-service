@@ -97,12 +97,13 @@ int ser_finish(Serial_t *ser_instance) {
     /*
      * Retorna os parametros iniciais da serial
      */
+    close(ser_instance->fd);
     tcsetattr(ser_instance->fd, TCSANOW, &ser_instance->old_termios);
 
     /*
      * Fecha a serial
      */
-    close(ser_instance->fd);
+    //close(ser_instance->fd);
 
     return 0;
 }

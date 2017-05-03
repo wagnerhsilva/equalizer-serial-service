@@ -9,7 +9,7 @@
 #define CHECK(r) _check((r), __LINE__, __FILE__)
 #define PROTOCOL_FRAME_LEN                  32
 #define PROTOCOL_FRAME_LEN_SHORT            (PROTOCOL_FRAME_LEN / 2)
-#define PROTOTOL_FRAME_REQUEST_DATA_LEN     24
+#define PROTOTOL_FRAME_REQUEST_DATA_LEN     22
 #define PROTOCOL_FRAME_RESPONSE_DATA_LEN    26
 //slave should sent a begining of message 2byte package, but whatever
 #define PROTOCOL_READ_VAR_COMMAND_0         0x10
@@ -20,6 +20,9 @@
 #define PROTOCOL_TIMEOUT_USEC               1000
 #define DATABASE_JOURNAL_MODE               "PRAGMA journal_mode=WAL"
 #define DATABASE_BUSY_TIMEOUT               "PRAGMA busy_timeout=10000"
+#define DATABASE_TRANSACTION_BEG            "BEGIN TRANSACTION"
+#define DATABASE_TRANSACTION_END            "END TRANSACTION"
+
 
 //#define DEFAULT_SERIAL_PATH                 "/dev/ttyUSB1" //debug
 //#define DEFAULT_SERIAL_PATH                 "/dev/ttyS0" //debug

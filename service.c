@@ -6,6 +6,8 @@
  */
 
 #include <service.h>
+#include <signal.h>
+#include <string.h>
 
 static Serial_t serial_comm;
 static int stop = 1;
@@ -18,19 +20,35 @@ static int getStop(void) {
 	return stop;
 }
 
+void signal_handler(int signo){
+	const char *signame = strsignal(signo);
+	LOG("Received signal: %s\n", signame);
+	LOG("Ending service...\n");
+	service_finish();
+}
+
+static void init_signal_handler(void){
+	struct sigaction new_action, old_action;
+	new_action.sa_handler = signal_handler;
+	sigemptyset(&new_action.sa_mask);
+	new_action.sa_flags = 0;
+
+	sigaction(SIGINT, &new_action, NULL);
+}
+
 int service_init(char *dev_path, char *db_path) {
 	int err = 0;
 	char *l_db = DEFAULT_DB_PATH;
 	/*
 	 * Checa o caminho para inicio da execucao
 	 */
-    if(dev_path == NULL){ 
-        return -1;
-    }
+	if(dev_path == NULL){ 
+		return -1;
+	}
 
-    char *l_dev = dev_path;
+	char *l_dev = dev_path;
 
-    if (db_path != NULL) {
+	if (db_path != NULL) {
 		l_db = db_path;
 	}
 
@@ -53,16 +71,10 @@ int service_init(char *dev_path, char *db_path) {
 	/*
 	 * Inicializa o banco de dados
 	 */
-    
-    if(CHECK(db_init(l_db))){
-        return -3;
-    }
-    /*
-	err = db_init(l_db);
-	if (err != 0) {
+
+	if(CHECK(db_init(l_db))){
 		return -3;
 	}
-    */
 	/*
 	 * Variavel que mantem o loop funcionando. A partir daqui o servico
 	 * pode operar
@@ -73,28 +85,42 @@ int service_init(char *dev_path, char *db_path) {
 }
 
 int service_start(void) {
-	int 								i = 0;
-	int 								err = 0;
-	Database_Addresses_t				list;
-	Protocol_ReadCmd_InputVars 			input_vars;
-	Protocol_ImpedanceCmd_InputVars		input_impedance;
-	Protocol_ReadCmd_OutputVars			output_vars;
-	Protocol_ImpedanceCmd_OutputVars	output_impedance;
+	unsigned short 			 average = 0;
+	unsigned short			 average_last = 0;
+	int 				 i = 0;
+	int 				 err = 0;
+	Database_Addresses_t		 list;
+	Database_Parameters_t		 params;
+	Protocol_ReadCmd_InputVars 	 input_vars;
+	Protocol_ImpedanceCmd_InputVars	 input_impedance;
+	Protocol_ReadCmd_OutputVars	 output_vars;
+	Protocol_ImpedanceCmd_OutputVars output_impedance;
 
+	/*
+	 * Os parametros sao recuperados antes do inicio da execucao
+	 * do loop principal
+	 */
+	if (CHECK(db_get_parameters(&params))) {
+		return -1;
+	}
+
+	/*
+	 * Inicia a execucao principal
+	 */
 	while(!getStop()) {
 		/*
 		 * Recupera a lista de elementos a serem recuperados
 		 */
 
-        if(CHECK(db_get_addresses(&list))){
-            break;
-        }
-        /*
-		err = db_get_addresses(&list);
-		if (err != 0) {
+		if(CHECK(db_get_addresses(&list))){
 			break;
 		}
-        */
+		/*
+		 * Atualiza a ultima media calculada armazenada na base de
+		 * dados
+		 */
+		average_last = params.average_last;
+
 		if (list.items > 0) {
 			/*
 			 * Busca informacao de variaveis e de impedancia para cada item
@@ -114,9 +140,17 @@ int service_start(void) {
 				 */
 				input_vars.addr_bank = list.item[i].addr_bank;
 				input_vars.addr_batt = list.item[i].addr_batt;
-				input_vars.vref = list.item[i].vref;
-				input_vars.duty_min = list.item[i].duty_min;
-				input_vars.duty_max = list.item[i].duty_max;
+				/*
+				 * Vref e a media das leituras de tensao dos
+				 * sensores, coletados a cada ciclo
+				 */
+				input_vars.vref = average_last;
+				/*
+				 * Parametros seguintes se encontram na base
+				 * de dados do sistema
+				 */
+				input_vars.duty_min = params.duty_min;
+				input_vars.duty_max = params.duty_max;
 				/*
 				 * Dispara o processo de busca de informacoes no sensor
 				 */
@@ -127,10 +161,6 @@ int service_start(void) {
 				/*
 				 * Armazena informacoes recebidas no banco de dados
 				 */
-				/*err = db_add_vars(&output_vars);
-				if (err != 0) {
-					break;
-				}*/
 				/*
 				 * Preenche campos necessarios para solicitar leitura das
 				 * informacoes de impedancia
@@ -147,13 +177,31 @@ int service_start(void) {
 				/*
 				 * Armazena as informacoes recebidas no banco de dados
 				 */
-				//err = db_add_impedance(input_impedance.addr_bank,
-				//		input_impedance.addr_batt,&output_impedance);
-                err = db_add_response(&output_vars, &output_impedance);
+				err = db_add_response(&output_vars, &output_impedance);
 				if (err != 0) {
 					break;
 				}
+				/*
+				 * Calcula a media atualizada de vref
+				 */
+				average = output_vars.vref / list.items; 
 			}
+			/*
+			 * Atualiza o valor de vref medio usado como entrada
+			 * na leitura dos sensores. Esta informacao deve ser
+			 * armazenada em base de dados.
+			 */
+			average_last = average;
+			db_update_average(average);
+			
+			/*
+			 * Realiza uma pausa entre as leituras, com valores
+			 * lidos obtidos do banco de dados
+			 */
+			sleep(params.delay);
+			/*
+			 * Reinicia loop de aquisicao de dados de sensor
+			 */
 		}
 	}
 
@@ -176,9 +224,12 @@ int service_finish(void) {
 	 * Finaliza os modulos serial e banco de dados. O modulo de protocolo
 	 * nao e necessario.
 	 */
+	LOG("Closing database...");
 	db_finish();
+	LOG("closed.\n");
+	LOG("Closing serial...");
 	ser_finish(&serial_comm);
-
+	LOG("closed.");
 	return 0;
 }
 

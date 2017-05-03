@@ -16,6 +16,7 @@ typedef struct {
 	unsigned short	vref;
 	unsigned short	duty_min;
 	unsigned short	duty_max;
+	unsigned short  index;
 } Protocol_ReadCmd_InputVars;
 
 typedef struct {
