@@ -1,4 +1,6 @@
 #include <defs.h>
+#include <limits.h>
+#include <math.h>
 
 FILE *fp = NULL;
 const int DEBUG = 1;
@@ -15,6 +17,16 @@ int _check(int error, int line, const char *file){
         if(fp) fclose(fp);
     }
     return error;
+}
+
+static float saturate(float edge0, float edge1, float x){
+    return (x < edge0 ? edge0 : (edge1 < x ? edge1 : x));
+}
+
+unsigned short _compressFloat(float a){
+    float z = saturate(0, USHRT_MAX-1, a);
+    z = roundf(z);
+    return (unsigned short)(z);
 }
 
 int LOG(const char *format, ...){

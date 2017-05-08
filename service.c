@@ -8,8 +8,9 @@
 #include <service.h>
 #include <signal.h>
 #include <string.h>
+#include <math.h>
 
-static Serial_t serial_comm;
+Serial_t serial_comm;
 static int stop = 1;
 
 static void setStop(int value) {
@@ -85,7 +86,7 @@ int service_init(char *dev_path, char *db_path) {
 }
 
 int service_start(void) {
-	unsigned short 			 average = 0;
+	float 				 f_average = 0.0f; //let's be on the safe side
 	unsigned short			 average_last = 0;
 	int 				 i = 0;
 	int 				 err = 0;
@@ -107,6 +108,8 @@ int service_start(void) {
 	/*
 	 * Inicia a execucao principal
 	 */
+	average_last = params.average_last;
+
 	while(!getStop()) {
 		/*
 		 * Recupera a lista de elementos a serem recuperados
@@ -119,13 +122,14 @@ int service_start(void) {
 		 * Atualiza a ultima media calculada armazenada na base de
 		 * dados
 		 */
-		average_last = params.average_last;
-
+		
 		if (list.items > 0) {
 			/*
 			 * Busca informacao de variaveis e de impedancia para cada item
 			 * presente na tabela
 			 */
+			
+			f_average = 0;
 			for (i=0;i<list.items;i++) {
 				/*
 				 * Inicializa as estrutura
@@ -184,16 +188,18 @@ int service_start(void) {
 				/*
 				 * Calcula a media atualizada de vref
 				 */
-				average = output_vars.vref / list.items; 
+                float fvbat = (float)(output_vars.vbat);
+                float fitems = (float)(list.items);
+				f_average += fvbat / fitems; 
 			}
 			/*
 			 * Atualiza o valor de vref medio usado como entrada
 			 * na leitura dos sensores. Esta informacao deve ser
 			 * armazenada em base de dados.
 			 */
-			average_last = average;
-			db_update_average(average);
-			
+			average_last = _compressFloat(f_average);
+			db_update_average(average_last);
+	        LOG("Storing average value : %g --> %u\n",f_average, average_last);		
 			/*
 			 * Realiza uma pausa entre as leituras, com valores
 			 * lidos obtidos do banco de dados
