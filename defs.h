@@ -47,4 +47,5 @@ typedef enum bool bool;
 int LOG(const char *format, ...);
 int _check(int error, int line, const char *file);
 char * toStrHexa(unsigned char * data, int len);
+unsigned short _compressFloat(float a);
 #endif

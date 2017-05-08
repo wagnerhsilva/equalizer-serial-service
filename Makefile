@@ -1,6 +1,6 @@
 TARGETS=database.c main.c serial.c service.c protocol.c defs.c
 OUTPUT=service
-INC=-I . -lsqlite3
+INC=-I . -lsqlite3 -lm
 OPT=-O2
 DEBUG=-g
 all:
