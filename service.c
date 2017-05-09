@@ -44,6 +44,7 @@ int service_init(char *dev_path, char *db_path) {
 	 * Checa o caminho para inicio da execucao
 	 */
 	if(dev_path == NULL){ 
+        LOG("Invalid device path\n");
 		return -1;
 	}
 
@@ -155,6 +156,7 @@ int service_start(void) {
 				 */
 				input_vars.duty_min = params.duty_min;
 				input_vars.duty_max = params.duty_max;
+                input_vars.index = params.index;
 				/*
 				 * Dispara o processo de busca de informacoes no sensor
 				 */
@@ -199,7 +201,7 @@ int service_start(void) {
 			 */
 			average_last = _compressFloat(f_average);
 			db_update_average(average_last);
-	        LOG("Storing average value : %g --> %u\n",f_average, average_last);		
+	        //LOG("Storing average value : %g --> %u\n",f_average, average_last);		
 			/*
 			 * Realiza uma pausa entre as leituras, com valores
 			 * lidos obtidos do banco de dados

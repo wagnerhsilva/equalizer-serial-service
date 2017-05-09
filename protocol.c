@@ -9,7 +9,7 @@
 #include <string.h>
 #include <stdint.h>
 
-#define PROTOCOL_START_OF_FRAME		0x2320
+#define PROTOCOL_START_OF_FRAME		0x2321
 #define PROTOCOL_READ_VAR_COMMAND	0x10C0
 #define PROTOCOL_IMPEDANCE_COMMAND	0x10B0
 
@@ -69,7 +69,7 @@ static uint8_t * prot_creat_readvar_request8(Protocol_ReadCmd_InputVars *in)
     int pointer = 0;
     
     request8[pointer++] = u16_MSB(PROTOCOL_START_OF_FRAME); //0x23
-    request8[pointer++] = u16_LSB(PROTOCOL_START_OF_FRAME); //0x20
+    request8[pointer++] = u16_LSB(PROTOCOL_START_OF_FRAME); //0x21
     request8[pointer++] = in->addr_bank; //bank
     request8[pointer++] = in->addr_batt; //batt
     

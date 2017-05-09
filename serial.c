@@ -15,6 +15,7 @@ int ser_init(Serial_t *ser_instance, const char *ser_device) {
 
     ser_instance->fd = open(ser_device, O_RDWR | O_NOCTTY);
     if (ser_instance->fd < 0) {
+        LOG("Unnable to open serial, maybe you don't have permision or the port is incorrect?\n");
         /* Erro de abertura da serial */
         err = -1;
     }
@@ -26,6 +27,7 @@ int ser_setup(Serial_t *ser_instance, int baud) {
     int err = 0;
 
     if (ser_instance->fd < 0) {
+        LOG("Invalid serial port\n");
         return -1;
     }
 
@@ -33,11 +35,13 @@ int ser_setup(Serial_t *ser_instance, int baud) {
      * Por hora so aceita a velocidade de 115200
      */
     if (baud != 115200) {
+        LOG("We can only handle baudrate as 115200\n");
         return -2;
     }
 
     err = tcgetattr(ser_instance->fd, &ser_instance->old_termios);
     if (err != 0) {
+        LOG("Unnable to acquire terminal controll\n");
         return -3;
     }
 
@@ -67,16 +71,19 @@ int ser_setup(Serial_t *ser_instance, int baud) {
 
     err = cfsetispeed(&ser_instance->new_termios, B115200);
     if (err != 0) {
+        LOG("Unnable to set input baudrate\n");
         return -4;
     }
 
     err = cfsetospeed(&ser_instance->new_termios, B115200);
     if (err != 0) {
+        LOG("Unnable to set output baudrate\n");
         return -5;
     }
 
     err = tcsetattr(ser_instance->fd, TCSANOW, &ser_instance->new_termios);
     if (err != 0) {
+        LOG("Unnable to take controll of terminal\n");
         return -6;
     }
 
@@ -150,11 +157,10 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len, struct timeval 
     while(bytes_read < bytes_expected){
         rv = select(ser_instance->fd + 1, &set, NULL, NULL, &timeout);
         if(rv == -1){
-            LOG("Select error\n");
-            //////////////////////
+            LOG("Unnable to perform select, maybe you didn't run this as super user?\n");
             return -2;
         }else if(rv == 0){
-            LOG("Select timeout\n");
+            LOG("Battery timeout, maybe your battery is not connected or the port is not correct?\n");
             return -3;
         }else{
             int bread = read(ser_instance->fd, (void *)&(data[bytes_read]), bytes_expected);
@@ -174,7 +180,7 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len, struct timeval 
     }
 
     char *buffer = toStrHexa(data, bytes_read);
-    //LOG("Got message: %s\n", buffer);
+    LOG("Got package: %s\n", buffer);
     free(buffer);
     return 0;
     //rv = select(ser_instance->fd + 1, &set, NULL, NULL, &interval);
@@ -199,11 +205,14 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len, struct timeval 
 
 int ser_write(Serial_t *ser_instance, uint8_t *data, int len) {
 	int bytesSent = 0;
-
+    int i = 0;
 	if (ser_instance->fd < 0) {
 		return -1;
 	}
-
+    
+    char *buffer = toStrHexa(data, len);
+    LOG("Sending package: %s\n", buffer);
+    free(buffer);
 	bytesSent = write(ser_instance->fd,data,len);
 	if (bytesSent != len) {
 		return -2;

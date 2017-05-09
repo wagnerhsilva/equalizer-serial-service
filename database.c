@@ -15,7 +15,11 @@
 #define DATABASE_IMPEDANCE_TABLE_NAME	"impedance"
 #define DATABASE_ADDRESSES_NAME		"Modulo"
 #define DATABASE_PARAMETERS_TABLE_NAME	"Parameters"
-
+#define DATABASE_PARAM_AVG_ADDR        1
+#define DATABASE_PARAM_DUTYMIN_ADDR    2
+#define DATABASE_PARAM_DUTYMAX_ADDR    3
+#define DATABASE_PARAM_CTE_ADDR        4
+#define DATABASE_PARAM_DELAY_ADDR      5
 
 #define BATTERY_STRINGS_ADDR           4
 #define BATTERY_COUNT_ADDR             5
@@ -110,25 +114,26 @@ static int read_callback(void *data, int argc, char **argv, char **azColName){
 
 static int param_callback(void *data, int argc, char **argv, char **azColName){
 	int ret = 0;
-	int i = 0;	
-	LOG("Received msg with %d values: \n", argc);
-	for(i = 0; i < argc; i++){
-		LOG("%s ", argv[i]);
-	}
-	
+    char *garbage = 0;
+		
 	if(!param_list){
 		LOG("We have a nullptr\n");
 		exit(0);
 	}
-	/*
-	 * TODO: Corrigir esta implementacao
-	 */
-	param_list->average_last = atoi(argv[0]);
-	param_list->duty_min = atoi(argv[1]);
-	param_list->duty_max = atoi(argv[2]);
-	param_list->index = atoi(argv[3]);
-	param_list->delay = atoi(argv[4]);
 	
+	param_list->average_last = (unsigned short) strtol(argv[DATABASE_PARAM_AVG_ADDR], &garbage, 0);
+	param_list->duty_min = (unsigned short) strtol(argv[DATABASE_PARAM_DUTYMIN_ADDR], &garbage, 0);
+	param_list->duty_max = (unsigned short) strtol(argv[DATABASE_PARAM_DUTYMAX_ADDR], &garbage, 0);
+	param_list->index = (unsigned short) strtol(argv[DATABASE_PARAM_CTE_ADDR], &garbage, 0);
+	param_list->delay = (unsigned short) strtol(argv[DATABASE_PARAM_DELAY_ADDR], &garbage, 0);
+	
+    LOG("Initing with:\n");
+    LOG("AVG_LAST: %hu\n", param_list->average_last);
+    LOG("DUTY_MIN: %hu\n", param_list->duty_min);
+    LOG("DUTY_MAX: %hu\n", param_list->duty_max);
+    LOG("INDEX: %hu\n", param_list->index);
+    LOG("DELAY: %hu\n", param_list->delay);
+    
 	return ret;
 }
 
@@ -140,13 +145,14 @@ int initCallback(void *notUsed, int argc, char **argv, char **azColName){
 
 int db_init(char *path) {
 	int err = 0;
-    
+    int iterator = 0;
 	/*
 	 * O banco de dados e inicializado, na forma de um arquivo. Caso o arquivo
 	 * nao exista, ele e criado
 	 */
 	err = sqlite3_open(path,&database);
 	if (err != 0) {
+        LOG("Unnable to open database, you might need to call support\n");
 		return -1;
 	}
 	
@@ -182,6 +188,7 @@ int db_init(char *path) {
 	 * processo de instalacao o arquivo com banco de dados ja deve vir
 	 * previamente preparado.
 	 */
+
 	return 0;
 }
 
@@ -311,7 +318,7 @@ int db_update_average(unsigned short new_value) {
 	char sql[256];
 	char *zErrMsg = 0;
 
-	if (database != 0) {
+if (database != 0) {
 		/*
 		 * TODO: Revisar a instrucao SQL com os valores corretos
 		 */

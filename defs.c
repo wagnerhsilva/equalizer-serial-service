@@ -1,9 +1,13 @@
 #include <defs.h>
 #include <limits.h>
 #include <math.h>
+#include <time.h>
+#include <stdio.h>
+#include <string.h>
 
 FILE *fp = NULL;
 const int DEBUG = 1;
+static int firstpass = 1;
 
 const int PROTOCOL_READ_VAR_ARR[2] = {PROTOCOL_READ_VAR_COMMAND_0,
                                      PROTOCOL_READ_VAR_COMMAND_1};
@@ -34,6 +38,19 @@ int LOG(const char *format, ...){
     if(DEBUG){
         if(!fp){
             fp = fopen(DEBUG_FILE, "a+");
+        }
+        if(firstpass == 1){
+            time_t rawtime;
+            struct tm * timeinfo;
+            time(&rawtime);
+            timeinfo = localtime(&rawtime);
+            char buffer[256];
+            strcat(buffer, "---[Invoked at: ");
+            int s = strlen(buffer);
+            strftime(&buffer[s], 100, "%Y-%m-%d %H:%M:%S", timeinfo);
+            strcat(buffer, "]---\n");
+            firstpass = 0;
+            fwrite(buffer, strlen(buffer), 1, fp);
         }
         va_list arg;
         va_start(arg, format);
