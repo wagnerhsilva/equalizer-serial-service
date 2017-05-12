@@ -11,20 +11,16 @@
 
 
 static int exist_file(const char *name){
-    if (name == NULL) {
-	return access(DEFAULT_DB_PATH, F_OK) != -1;
-    } else {
-        return access(name, F_OK) != -1;
-    }
+    return access(name, F_OK) != -1;
 }
 
-void waitWebInitialization(char *database){
-    int exist = exist_file(database);
+void waitWebInitialization(void){
+    int exist = exist_file(DEFAULT_DB_PATH);
     int count = 0;
     while(!exist){
         LOG("Waiting for web to instanciate db [%d]\n", count++);
         sleep(1);
-        exist = exist_file(database);
+        exist = exist_file(DEFAULT_DB_PATH);
     }
 }
 
@@ -38,17 +34,13 @@ int main(int argc, char **argv) {
 	 * comando
 	 */
     
-    if ((argc != 2) || (argc != 3)) {
+    if(argc != 2){
         LOG("Invalid arguments!\n");
     }
-
-    char * database = NULL;
+    
     char * device = argv[1];
     LOG("Looking for database...\n");
-    if (argc == 3) {
-        database = argv[2];
-    }
-    waitWebInitialization(database);
+    waitWebInitialization();
     LOG("Database found, initing service...\n");
 	if(CHECK(service_init(device, NULL)) == 0){
         LOG("Service ok, running...\n");
