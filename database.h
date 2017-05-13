@@ -27,6 +27,7 @@ typedef struct {
 	unsigned short	duty_max;
 	unsigned short  index;
 	unsigned short  delay;
+	unsigned short  num_cycles_var_read;
 } Database_Parameters_t;
 
 typedef struct {

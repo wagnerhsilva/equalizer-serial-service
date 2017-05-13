@@ -15,11 +15,13 @@
 #define DATABASE_IMPEDANCE_TABLE_NAME	"impedance"
 #define DATABASE_ADDRESSES_NAME		"Modulo"
 #define DATABASE_PARAMETERS_TABLE_NAME	"Parameters"
-#define DATABASE_PARAM_AVG_ADDR        1
-#define DATABASE_PARAM_DUTYMIN_ADDR    2
-#define DATABASE_PARAM_DUTYMAX_ADDR    3
-#define DATABASE_PARAM_CTE_ADDR        4
-#define DATABASE_PARAM_DELAY_ADDR      5
+#define DATABASE_PARAM_AVG_ADDR			1
+#define DATABASE_PARAM_DUTYMIN_ADDR		2
+#define DATABASE_PARAM_DUTYMAX_ADDR		3
+#define DATABASE_PARAM_CTE_ADDR			4
+#define DATABASE_PARAM_DELAY_ADDR		5
+#define DATABASE_PARAM_NUM_CYCLES_VAR_READ	6
+#define DATABASE_PARAM_NB_ITEMS			15
 
 #define BATTERY_STRINGS_ADDR           4
 #define BATTERY_COUNT_ADDR             5
@@ -114,26 +116,45 @@ static int read_callback(void *data, int argc, char **argv, char **azColName){
 
 static int param_callback(void *data, int argc, char **argv, char **azColName){
 	int ret = 0;
-    char *garbage = 0;
-		
+	char *garbage = 0;
+
+	/*
+	 * Sanity checks
+	 */
 	if(!param_list){
 		LOG("We have a nullptr\n");
 		exit(0);
 	}
-	
-	param_list->average_last = (unsigned short) strtol(argv[DATABASE_PARAM_AVG_ADDR], &garbage, 0);
-	param_list->duty_min = (unsigned short) strtol(argv[DATABASE_PARAM_DUTYMIN_ADDR], &garbage, 0);
-	param_list->duty_max = (unsigned short) strtol(argv[DATABASE_PARAM_DUTYMAX_ADDR], &garbage, 0);
-	param_list->index = (unsigned short) strtol(argv[DATABASE_PARAM_CTE_ADDR], &garbage, 0);
-	param_list->delay = (unsigned short) strtol(argv[DATABASE_PARAM_DELAY_ADDR], &garbage, 0);
-	
-    LOG("Initing with:\n");
-    LOG("AVG_LAST: %hu\n", param_list->average_last);
-    LOG("DUTY_MIN: %hu\n", param_list->duty_min);
-    LOG("DUTY_MAX: %hu\n", param_list->duty_max);
-    LOG("INDEX: %hu\n", param_list->index);
-    LOG("DELAY: %hu\n", param_list->delay);
-    
+
+	/* Em caso do banco de dados vir com problema, de forma a nao chegar
+	 * todos os parametros, eles serao carregados com valores padrao fixos */
+	if (argc != DATABASE_PARAM_NB_ITEMS) {
+		LOG("Problemas na tabela - carregando valores padrao\n");
+		param_list->average_last = 13500;
+		param_list->duty_min = 0;
+		param_list->duty_max = 45000;
+		param_list->index = 0x2600;
+		param_list->delay = 1;
+		param_list->num_cycles_var_read = 500;
+	} else {
+		LOG("Leitura de valores da tabela de parametros\n");
+
+		param_list->average_last = (unsigned short) strtol(argv[DATABASE_PARAM_AVG_ADDR], &garbage, 0);
+		param_list->duty_min = (unsigned short) strtol(argv[DATABASE_PARAM_DUTYMIN_ADDR], &garbage, 0);
+		param_list->duty_max = (unsigned short) strtol(argv[DATABASE_PARAM_DUTYMAX_ADDR], &garbage, 0);
+		param_list->index = (unsigned short) strtol(argv[DATABASE_PARAM_CTE_ADDR], &garbage, 0);
+		param_list->delay = (unsigned short) strtol(argv[DATABASE_PARAM_DELAY_ADDR], &garbage, 0);
+		param_list->num_cycles_var_read = (unsigned short) strtol(argv[DATABASE_PARAM_NUM_CYCLES_VAR_READ], &garbage, 0);
+	}
+
+	LOG("Initing with:\n");
+	LOG("AVG_LAST: %hu\n", param_list->average_last);
+	LOG("DUTY_MIN: %hu\n", param_list->duty_min);
+	LOG("DUTY_MAX: %hu\n", param_list->duty_max);
+	LOG("INDEX: %hu\n", param_list->index);
+	LOG("DELAY: %hu\n", param_list->delay);
+	LOG("NUM_CYCLES_VAR_READ: %hu\n", param_list->num_cycles_var_read);
+
 	return ret;
 }
 
