@@ -44,7 +44,7 @@ int service_init(char *dev_path, char *db_path) {
 	 * Checa o caminho para inicio da execucao
 	 */
 	if(dev_path == NULL){ 
-        LOG("Invalid device path\n");
+		LOG("Invalid device path\n");
 		return -1;
 	}
 
@@ -91,12 +91,18 @@ int service_start(void) {
 	unsigned short			 average_last = 0;
 	int 				 i = 0;
 	int 				 err = 0;
+	int				 vars_read_counter = 0;
+	int				 isFirstRead = 1;
 	Database_Addresses_t		 list;
 	Database_Parameters_t		 params;
 	Protocol_ReadCmd_InputVars 	 input_vars;
 	Protocol_ImpedanceCmd_InputVars	 input_impedance;
 	Protocol_ReadCmd_OutputVars	 output_vars;
+	Protocol_ReadCmd_OutputVars	 output_vars_last;
+	Protocol_ReadCmd_OutputVars	 *pt_vars;
 	Protocol_ImpedanceCmd_OutputVars output_impedance;
+	Protocol_ImpedanceCmd_OutputVars output_impedance_last;
+	Protocol_ImpedanceCmd_OutputVars *pt_imp;
 
 	/*
 	 * Os parametros sao recuperados antes do inicio da execucao
@@ -123,13 +129,13 @@ int service_start(void) {
 		 * Atualiza a ultima media calculada armazenada na base de
 		 * dados
 		 */
-		
+
 		if (list.items > 0) {
 			/*
 			 * Busca informacao de variaveis e de impedancia para cada item
 			 * presente na tabela
 			 */
-			
+
 			f_average = 0;
 			for (i=0;i<list.items;i++) {
 				/*
@@ -156,13 +162,17 @@ int service_start(void) {
 				 */
 				input_vars.duty_min = params.duty_min;
 				input_vars.duty_max = params.duty_max;
-                input_vars.index = params.index;
+				input_vars.index = params.index;
 				/*
 				 * Dispara o processo de busca de informacoes no sensor
 				 */
-				err = prot_read_vars(&input_vars,&output_vars);
-				if (err != 0) {
-					break;
+				if ((isFirstRead) || (vars_read_counter < params.num_cycles_var_read)) {
+					err = prot_read_vars(&input_vars,&output_vars);
+					if (err != 0) {
+						break;
+					}
+					/* Salva a leitura feita */
+					memcpy((unsigned char *)&output_vars_last,(unsigned char *)&output_vars,sizeof(Protocol_ReadCmd_OutputVars));
 				}
 				/*
 				 * Armazena informacoes recebidas no banco de dados
@@ -176,32 +186,66 @@ int service_start(void) {
 				/*
 				 * Dispara o processo de busca de informacoes no sensor
 				 */
-				err = prot_read_impedance(&input_impedance,&output_impedance);
-				if (err != 0) {
-					break;
+				if ((isFirstRead) || (vars_read_counter == params.num_cycles_var_read)) {
+					err = prot_read_impedance(&input_impedance,&output_impedance);
+					if (err != 0) {
+						break;
+					}
+					/* Salva a leitura feira */
+					memcpy((unsigned char *)&output_impedance_last,(unsigned char *)&output_impedance,sizeof(Protocol_ImpedanceCmd_OutputVars));
 				}
 				/*
 				 * Armazena as informacoes recebidas no banco de dados
 				 */
-				err = db_add_response(&output_vars, &output_impedance);
+				if (isFirstRead) {
+					/* Na primeira leitura, as duas leituras sao realizadas e armazenadas */
+					pt_vars = &output_vars;
+					pt_imp = &output_impedance;
+				} else {
+					if (vars_read_counter < params.num_cycles_var_read) {
+						/* Registra ultima leitura de impedancia */
+						pt_vars = &output_vars;
+						pt_imp = &output_impedance_last;
+					} else {
+						/* Registra ultima leitura de variavel */
+						pt_vars = &output_vars_last;
+						pt_imp = &output_impedance;
+					}
+				}
+				err = db_add_response(pt_vars, pt_imp);
 				if (err != 0) {
 					break;
 				}
 				/*
 				 * Calcula a media atualizada de vref
 				 */
-                float fvbat = (float)(output_vars.vbat);
-                float fitems = (float)(list.items);
-				f_average += fvbat / fitems; 
+				if ((isFirstRead) || (vars_read_counter < params.num_cycles_var_read)) {
+					float fvbat = (float)(output_vars.vbat);
+					float fitems = (float)(list.items);
+					f_average += fvbat / fitems; 
+				}
 			}
 			/*
 			 * Atualiza o valor de vref medio usado como entrada
 			 * na leitura dos sensores. Esta informacao deve ser
 			 * armazenada em base de dados.
 			 */
-			average_last = _compressFloat(f_average);
-			db_update_average(average_last);
-	        //LOG("Storing average value : %g --> %u\n",f_average, average_last);		
+			if ((isFirstRead) || (vars_read_counter < params.num_cycles_var_read)) {
+				average_last = _compressFloat(f_average);
+				db_update_average(average_last);
+				//LOG("Storing average value : %g --> %u\n",f_average, average_last);
+			}
+			/*
+			 * Atualiza flag e contadores
+			 */
+			if (isFirstRead) {
+				LOG("Primeira Leitura realizada\n");
+				isFirstRead = 0;
+			}
+			vars_read_counter++;
+			if (vars_read_counter > params.num_cycles_var_read) {
+				vars_read_counter = 0;
+			}
 			/*
 			 * Realiza uma pausa entre as leituras, com valores
 			 * lidos obtidos do banco de dados
