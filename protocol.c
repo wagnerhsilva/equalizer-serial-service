@@ -249,6 +249,8 @@ int prot_read_vars(Protocol_ReadCmd_InputVars *in,
 		return -1;
 	}
 
+	LOG("V:");
+
 	/* Envia o request e aguarda a resposta */
 	err = prot_communicate(msg8); //in place response
 	if (err != 0) {
@@ -274,6 +276,8 @@ int prot_read_impedance(Protocol_ImpedanceCmd_InputVars *in,
 	if (err != 0) {
 		return -3;
 	}
+
+	LOG("I:");
 
 	/* Envia o request e aguarda a resposta */
 	err = prot_communicate(msg8); //in place response
