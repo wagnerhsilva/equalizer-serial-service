@@ -21,7 +21,7 @@
 #define DATABASE_PARAM_CTE_ADDR			4
 #define DATABASE_PARAM_DELAY_ADDR		5
 #define DATABASE_PARAM_NUM_CYCLES_VAR_READ	6
-#define DATABASE_PARAM_NB_ITEMS			15
+#define DATABASE_PARAM_NB_ITEMS			15+1
 
 #define BATTERY_STRINGS_ADDR           4
 #define BATTERY_COUNT_ADDR             5
@@ -85,6 +85,19 @@ static int read_callback(void *data, int argc, char **argv, char **azColName){
 	 * a simple loop should instanciate them all
 	 */
 	int ret = -1;
+
+	/*
+	 * Sanity check
+	 */
+	if (argc < 6) {
+		LOG("Problema na coleta da lista de baterias: %d\n",argc);
+		addr_list->items = 0;
+		return ret;
+	}
+
+	/*
+	 * Tudo OK - realiza o procedimento
+	 */
 	if(addr_list->items == 0){ //this should run one time only
 		int i = 0, j = 0;
 		int bank_count = atoi(argv[BATTERY_STRINGS_ADDR]);
@@ -129,7 +142,7 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 	/* Em caso do banco de dados vir com problema, de forma a nao chegar
 	 * todos os parametros, eles serao carregados com valores padrao fixos */
 	if (argc != DATABASE_PARAM_NB_ITEMS) {
-		LOG("Problemas na tabela - carregando valores padrao\n");
+		LOG("Problemas na tabela - carregando valores padrao: %d\n",argc);
 		param_list->average_last = 13500;
 		param_list->duty_min = 0;
 		param_list->duty_max = 45000;
