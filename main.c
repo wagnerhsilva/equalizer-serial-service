@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <defs.h>
 
+extern int DEBUG;
 
 static int exist_file(const char *name){
     return access(name, F_OK) != -1;
@@ -34,11 +35,13 @@ int main(int argc, char **argv) {
 	 * comando
 	 */
     
-    if(argc != 2){
+    if(argc != 3){
         LOG("Invalid arguments!\n");
     }
     
     char * device = argv[1];
+    DEBUG = atoi(argv[2]);
+
     LOG("Looking for database...\n");
     waitWebInitialization();
     LOG("Database found, initing service...\n");

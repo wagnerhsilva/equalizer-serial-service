@@ -6,7 +6,7 @@
 #include <string.h>
 
 FILE *fp = NULL;
-const int DEBUG = 1;
+int DEBUG = 1;
 static int firstpass = 1;
 
 const int PROTOCOL_READ_VAR_ARR[2] = {PROTOCOL_READ_VAR_COMMAND_0,
