@@ -213,7 +213,7 @@ static int prot_communicate(uint8_t *msg8)
     timeout.tv_sec = PROTOCOL_TIMEOUT_VSEC;
     timeout.tv_usec = PROTOCOL_TIMEOUT_USEC;
     uint8_t *data = (uint8_t *)malloc(sizeof(uint8_t)*(PROTOCOL_FRAME_LEN+1));
-	err = ser_read(ser_instance, data, PROTOCOL_FRAME_LEN, timeout);
+	err = ser_read(ser_instance, data, PROTOCOL_FRAME_LEN, &timeout);
 	if (err != 0) {
         free(data);
 		return -2;

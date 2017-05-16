@@ -133,7 +133,7 @@ static int ser_match_command(uint8_t *buffer, int bufferSize){
     return response;
 }
 
-int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len, struct timeval timeout) {
+int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len, struct timeval *timeout) {
     fd_set set;
     int rv;
     
@@ -155,7 +155,7 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len, struct timeval 
     int timeoutReceived = 0;
 
     while(bytes_read < bytes_expected){
-        rv = select(ser_instance->fd + 1, &set, NULL, NULL, &timeout);
+        rv = select(ser_instance->fd + 1, &set, NULL, NULL, timeout);
         if(rv == -1){
             LOG("Unnable to perform select, maybe you didn't run this as super user?\n");
             return -2;
