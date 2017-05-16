@@ -88,9 +88,9 @@ int service_init(char *dev_path, char *db_path) {
 
 int service_start(void) {
 	float 				 f_average = 0.0f; //let's be on the safe side
-	float				 f_bus_sum = 0.0f;
+	unsigned int			 f_bus_sum = 0;
 	unsigned short			 average_last = 0;
-	unsigned short			 bus_sum_last = 0;
+	unsigned int			 bus_sum_last = 0;
 	int 				 i = 0;
 	int 				 err = 0;
 	int				 vars_read_counter = 0;
@@ -227,7 +227,7 @@ int service_start(void) {
 					float fvbat = (float)(output_vars.vbat);
 					float fitems = (float)(list.items);
 					f_average += fvbat / fitems; 
-					f_bus_sum += fvbat;
+					f_bus_sum += (unsigned int)output_vars.vbat;
 				}
 			}
 			/*
@@ -237,7 +237,7 @@ int service_start(void) {
 			 */
 			if ((isFirstRead) || (vars_read_counter < params.num_cycles_var_read)) {
 				average_last = _compressFloat(f_average);
-				bus_sum_last = _compressFloat(f_bus_sum);
+				bus_sum_last = f_bus_sum;
 				db_update_average(average_last, f_bus_sum);
 				//LOG("Storing average value : %g --> %u\n",f_average, average_last);
 			}

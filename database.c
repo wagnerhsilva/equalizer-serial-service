@@ -169,7 +169,7 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 	LOG("INDEX: %hu\n", param_list->index);
 	LOG("DELAY: %hu\n", param_list->delay);
 	LOG("NUM_CYCLES_VAR_READ: %hu\n", param_list->num_cycles_var_read);
-	LOG("BUS_SUM: %hu\n",param_list->bus_sum);
+	LOG("BUS_SUM: %u\n",param_list->bus_sum);
 
 	return ret;
 }
@@ -350,7 +350,7 @@ int db_get_parameters(Database_Parameters_t *list){
 	return -1;
 }
 
-int db_update_average(unsigned short new_avg, unsigned short new_sum) {
+int db_update_average(unsigned short new_avg, unsigned int new_sum) {
 	int err = 0;
 	char sql[256];
 	char *zErrMsg = 0;
