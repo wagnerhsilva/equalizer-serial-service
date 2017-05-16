@@ -21,6 +21,7 @@
 #define DATABASE_PARAM_CTE_ADDR			4
 #define DATABASE_PARAM_DELAY_ADDR		5
 #define DATABASE_PARAM_NUM_CYCLES_VAR_READ	6
+#define DATABASE_PARAM_BUS_SUM			7
 #define DATABASE_PARAM_NB_ITEMS			15+1
 
 #define BATTERY_STRINGS_ADDR           4
@@ -158,6 +159,7 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 		param_list->index = (unsigned short) strtol(argv[DATABASE_PARAM_CTE_ADDR], &garbage, 0);
 		param_list->delay = (unsigned short) strtol(argv[DATABASE_PARAM_DELAY_ADDR], &garbage, 0);
 		param_list->num_cycles_var_read = (unsigned short) strtol(argv[DATABASE_PARAM_NUM_CYCLES_VAR_READ], &garbage, 0);
+		param_list->bus_sum = (unsigned short) strtol(argv[DATABASE_PARAM_BUS_SUM], &garbage, 0);
 	}
 
 	LOG("Initing with:\n");
@@ -167,6 +169,7 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 	LOG("INDEX: %hu\n", param_list->index);
 	LOG("DELAY: %hu\n", param_list->delay);
 	LOG("NUM_CYCLES_VAR_READ: %hu\n", param_list->num_cycles_var_read);
+	LOG("BUS_SUM: %hu\n",param_list->bus_sum);
 
 	return ret;
 }
@@ -347,16 +350,26 @@ int db_get_parameters(Database_Parameters_t *list){
 	return -1;
 }
 
-int db_update_average(unsigned short new_value) {
+int db_update_average(unsigned short new_avg, unsigned short new_sum) {
 	int err = 0;
 	char sql[256];
 	char *zErrMsg = 0;
 
-if (database != 0) {
+	if (database != 0) {
 		/*
 		 * TODO: Revisar a instrucao SQL com os valores corretos
 		 */
-		sprintf(sql,"UPDATE %s set avg_last = '%d';",DATABASE_PARAMETERS_TABLE_NAME, new_value);
+		sprintf(sql,"UPDATE %s set avg_last = '%d';",DATABASE_PARAMETERS_TABLE_NAME, new_avg);
+		err = sqlite3_exec(database,sql,write_callback,0,&zErrMsg);
+		if (err != SQLITE_OK) {
+			LOG("Error on update exec, msg: %s\n",zErrMsg);
+			return -1;
+		}
+
+		/*
+		 * TODO: Revisar a instrucao SQL com os valores corretos
+		 */
+		sprintf(sql,"UPDATE %s set param1 = '%d';",DATABASE_PARAMETERS_TABLE_NAME, new_sum);
 		err = sqlite3_exec(database,sql,write_callback,0,&zErrMsg);
 		if (err != SQLITE_OK) {
 			LOG("Error on update exec, msg: %s\n",zErrMsg);
