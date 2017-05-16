@@ -369,7 +369,7 @@ int db_update_average(unsigned short new_avg, unsigned int new_sum) {
 		/*
 		 * TODO: Revisar a instrucao SQL com os valores corretos
 		 */
-		sprintf(sql,"UPDATE %s set param1 = '%d';",DATABASE_PARAMETERS_TABLE_NAME, new_sum);
+		sprintf(sql,"UPDATE %s set bus_voltage = '%d';",DATABASE_PARAMETERS_TABLE_NAME, new_sum);
 		err = sqlite3_exec(database,sql,write_callback,0,&zErrMsg);
 		if (err != SQLITE_OK) {
 			LOG("Error on update exec, msg: %s\n",zErrMsg);
