@@ -255,6 +255,9 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	char imped[15]; sprintf(imped, "%d", imp_vars->impedance);
 	char vbat[15]; sprintf(vbat, "%hu", read_vars->vbat);
 	char duty[15]; sprintf(duty, "%hu", read_vars->duty_cycle);
+
+	LOG("%d:%d:impedance = %d:%s\n",read_vars->addr_bank,read_vars->addr_batt,imp_vars->impedance,imped);
+
 	sqlite3_bind_text(baked_stmt, 1, timestamp, -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(baked_stmt, 2, int_to_addr(read_vars->addr_bank, 1), -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(baked_stmt, 3, int_to_addr(read_vars->addr_batt, 0), -1, SQLITE_TRANSIENT);

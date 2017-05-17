@@ -100,10 +100,10 @@ int service_start(void) {
 	Protocol_ReadCmd_InputVars 	 input_vars;
 	Protocol_ImpedanceCmd_InputVars	 input_impedance;
 	Protocol_ReadCmd_OutputVars	 output_vars;
-	Protocol_ReadCmd_OutputVars	 output_vars_last;
+	Protocol_ReadCmd_OutputVars	 output_vars_last[MAX_STRING_LEN];
 	Protocol_ReadCmd_OutputVars	 *pt_vars;
 	Protocol_ImpedanceCmd_OutputVars output_impedance;
-	Protocol_ImpedanceCmd_OutputVars output_impedance_last;
+	Protocol_ImpedanceCmd_OutputVars output_impedance_last[MAX_STRING_LEN];
 	Protocol_ImpedanceCmd_OutputVars *pt_imp;
 
 	/*
@@ -133,7 +133,7 @@ int service_start(void) {
 		 * dados
 		 */
 
-		if (list.items > 0) {
+		if ((list.items > 0) && (list.items < MAX_STRING_LEN)) {
 			/*
 			 * Busca informacao de variaveis e de impedancia para cada item
 			 * presente na tabela
@@ -185,13 +185,13 @@ int service_start(void) {
 						break;
 					}
 					/* Salva a leitura feita */
-					memcpy((unsigned char *)&output_vars_last,(unsigned char *)&output_vars,sizeof(Protocol_ReadCmd_OutputVars));
+					memcpy((unsigned char *)&output_vars_last[i],(unsigned char *)&output_vars,sizeof(Protocol_ReadCmd_OutputVars));
 					err = prot_read_impedance(&input_impedance,&output_impedance);
 					if (err != 0) {
 						break;
 					}
 					/* Salva a leitura feira */
-					memcpy((unsigned char *)&output_impedance_last,(unsigned char *)&output_impedance,sizeof(Protocol_ImpedanceCmd_OutputVars));
+					memcpy((unsigned char *)&output_impedance_last[i],(unsigned char *)&output_impedance,sizeof(Protocol_ImpedanceCmd_OutputVars));
 				} else {
 					/* Seleciona a captura de informacoes, entre
 					 * a busca por variaveis e a busca pela
@@ -203,14 +203,14 @@ int service_start(void) {
 							break;
 						}
 						/* Salva a leitura feita */
-						memcpy((unsigned char *)&output_vars_last,(unsigned char *)&output_vars,sizeof(Protocol_ReadCmd_OutputVars));
+						memcpy((unsigned char *)&output_vars_last[i],(unsigned char *)&output_vars,sizeof(Protocol_ReadCmd_OutputVars));
 					} else {
 						err = prot_read_impedance(&input_impedance,&output_impedance);
 						if (err != 0) {
 							break;
 						}
 						/* Salva a leitura feira */
-						memcpy((unsigned char *)&output_impedance_last,(unsigned char *)&output_impedance,sizeof(Protocol_ImpedanceCmd_OutputVars));
+						memcpy((unsigned char *)&output_impedance_last[i],(unsigned char *)&output_impedance,sizeof(Protocol_ImpedanceCmd_OutputVars));
 
 					}
 				}
@@ -226,10 +226,10 @@ int service_start(void) {
 					if (vars_read_counter < params.num_cycles_var_read) {
 						/* Registra ultima leitura de impedancia */
 						pt_vars = &output_vars;
-						pt_imp = &output_impedance_last;
+						pt_imp = &output_impedance_last[i];
 					} else {
 						/* Registra ultima leitura de variavel */
-						pt_vars = &output_vars_last;
+						pt_vars = &output_vars_last[i];
 						pt_imp = &output_impedance;
 					}
 				}
@@ -262,7 +262,7 @@ int service_start(void) {
 			 * Atualiza flag e contadores
 			 */
 			if (isFirstRead) {
-				LOG("Primeira Leitura realizada\n");
+				//LOG("Primeira Leitura realizada\n");
 				isFirstRead = 0;
 			}
 			LOG("vars_read_counter = %d\n",vars_read_counter);

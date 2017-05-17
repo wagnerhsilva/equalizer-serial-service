@@ -180,27 +180,10 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len, struct timeval 
     }
 
     char *buffer = toStrHexa(data, bytes_read);
-    LOG("Got package: %s\n", buffer);
+    //LOG("Got package: %s\n", buffer);
     free(buffer);
     return 0;
-    //rv = select(ser_instance->fd + 1, &set, NULL, NULL, &interval);
-    
-    //if (rv == -1) {
-    //    LOG("select error\n");
-    //    return -2;
-    //}
-    //else if (rv == 0) {
-    //    LOG("select timeout\n");
-    //    return -3;
-    //}
-    //else {
-    //    int expected = 32;
-    //    int bread = 0;
-    //    bread = read(ser_instance->fd, data, expected);
-    //    char *hexa = toStrHexa(data, bread);
-    //    LOG("Read data: %s\n", hexa);
-    //}
-    //return 0;
+   
 }
 
 int ser_write(Serial_t *ser_instance, uint8_t *data, int len) {
@@ -211,7 +194,7 @@ int ser_write(Serial_t *ser_instance, uint8_t *data, int len) {
 	}
     
     char *buffer = toStrHexa(data, len);
-    LOG("Sending package: %s\n", buffer);
+    //LOG("Sending package: %s\n", buffer);
     free(buffer);
 	bytesSent = write(ser_instance->fd,data,len);
 	if (bytesSent != len) {

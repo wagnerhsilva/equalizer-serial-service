@@ -22,7 +22,7 @@
 #define DATABASE_BUSY_TIMEOUT               "PRAGMA busy_timeout=10000"
 #define DATABASE_TRANSACTION_BEG            "BEGIN TRANSACTION"
 #define DATABASE_TRANSACTION_END            "END TRANSACTION"
-
+#define MAX_STRING_LEN                      256
 
 //#define DEFAULT_SERIAL_PATH                 "/dev/ttyUSB1" //debug
 //#define DEFAULT_SERIAL_PATH                 "/dev/ttyS0" //debug
