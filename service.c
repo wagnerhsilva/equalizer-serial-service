@@ -168,36 +168,53 @@ int service_start(void) {
 				input_vars.duty_max = params.duty_max;
 				input_vars.index = params.index;
 				/*
-				 * Dispara o processo de busca de informacoes no sensor
+				 * Preenche campos necessarios para solicitar leitura
+				 * das informacoes de impedancia
 				 */
-				if ((isFirstRead) || (vars_read_counter < params.num_cycles_var_read)) {
+				input_impedance.addr_bank = list.item[i].addr_bank;
+				input_impedance.addr_batt = list.item[i].addr_batt;
+
+				if (isFirstRead) {
+					/*
+					 * Se for a primeira leitura, realiza tanto a 
+					 * leitura das variaveis quanto a leitura da 
+					 * impedancia para toda a string
+					 */
 					err = prot_read_vars(&input_vars,&output_vars);
 					if (err != 0) {
 						break;
 					}
 					/* Salva a leitura feita */
 					memcpy((unsigned char *)&output_vars_last,(unsigned char *)&output_vars,sizeof(Protocol_ReadCmd_OutputVars));
-				}
-				/*
-				 * Armazena informacoes recebidas no banco de dados
-				 */
-				/*
-				 * Preenche campos necessarios para solicitar leitura das
-				 * informacoes de impedancia
-				 */
-				input_impedance.addr_bank = list.item[i].addr_bank;
-				input_impedance.addr_batt = list.item[i].addr_batt;
-				/*
-				 * Dispara o processo de busca de informacoes no sensor
-				 */
-				if ((isFirstRead) || (vars_read_counter == params.num_cycles_var_read)) {
 					err = prot_read_impedance(&input_impedance,&output_impedance);
 					if (err != 0) {
 						break;
 					}
 					/* Salva a leitura feira */
 					memcpy((unsigned char *)&output_impedance_last,(unsigned char *)&output_impedance,sizeof(Protocol_ImpedanceCmd_OutputVars));
+				} else {
+					/* Seleciona a captura de informacoes, entre
+					 * a busca por variaveis e a busca pela
+					 * impedancia
+					 */
+					if (vars_read_counter < params.num_cycles_var_read) {
+						err = prot_read_vars(&input_vars,&output_vars);
+						if (err != 0) {
+							break;
+						}
+						/* Salva a leitura feita */
+						memcpy((unsigned char *)&output_vars_last,(unsigned char *)&output_vars,sizeof(Protocol_ReadCmd_OutputVars));
+					} else {
+						err = prot_read_impedance(&input_impedance,&output_impedance);
+						if (err != 0) {
+							break;
+						}
+						/* Salva a leitura feira */
+						memcpy((unsigned char *)&output_impedance_last,(unsigned char *)&output_impedance,sizeof(Protocol_ImpedanceCmd_OutputVars));
+
+					}
 				}
+
 				/*
 				 * Armazena as informacoes recebidas no banco de dados
 				 */
@@ -231,9 +248,9 @@ int service_start(void) {
 				}
 			}
 			/*
-			 * Atualiza o valor de vref medio usado como entrada
-			 * na leitura dos sensores. Esta informacao deve ser
-			 * armazenada em base de dados.
+			 * Atualiza o valor de target e de tensao de barramento
+			 * na base de dados, apos a captura de todas as leituras de
+			 * sensores de uma string
 			 */
 			if ((isFirstRead) || (vars_read_counter < params.num_cycles_var_read)) {
 				average_last = _compressFloat(f_average);
@@ -248,8 +265,11 @@ int service_start(void) {
 				LOG("Primeira Leitura realizada\n");
 				isFirstRead = 0;
 			}
-			vars_read_counter++;
-			if (vars_read_counter > params.num_cycles_var_read) {
+			LOG("vars_read_counter = %d\n",vars_read_counter);
+			if (vars_read_counter < params.num_cycles_var_read) {
+				vars_read_counter++;
+			} else {
+				LOG("%d - zerando contador\n",vars_read_counter);
 				vars_read_counter = 0;
 			}
 			/*
