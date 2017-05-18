@@ -209,18 +209,25 @@ static int prot_communicate(uint8_t *msg8)
 	 * Aguarda a chegada da mensagem de resposta. A serializacao do quadro sera
 	 * feita atraves de cast do tipo
 	 */
-    struct timeval timeout;
-    timeout.tv_sec = PROTOCOL_TIMEOUT_VSEC;
-    timeout.tv_usec = PROTOCOL_TIMEOUT_USEC;
-    uint8_t *data = (uint8_t *)malloc(sizeof(uint8_t)*(PROTOCOL_FRAME_LEN+1));
+	struct timeval timeout;
+	timeout.tv_sec = PROTOCOL_TIMEOUT_VSEC;
+	timeout.tv_usec = PROTOCOL_TIMEOUT_USEC;
+	uint8_t *data = (uint8_t *)malloc(sizeof(uint8_t)*(PROTOCOL_FRAME_LEN+1));
 	err = ser_read(ser_instance, data, PROTOCOL_FRAME_LEN, &timeout);
-	if (err != 0) {
-        free(data);
+	if (err == -3) {
+		/* Erro de timeout: neste caso, as informacoes de retorno
+		 * devem ser zeradas */
+		memset(msg8,0,sizeof(uint8_t)*(PROTOCOL_FRAME_LEN+1));
+	} else if (err == 0) {
+		/* Transfere a mensagem recebida para o buffer de retorno */
+		memcpy(msg8, data, sizeof(uint8_t)*(PROTOCOL_FRAME_LEN+1));
+	} else {
+		/* Erro */
+		free(data);
 		return -2;
 	}
-    memcpy(msg8, data, sizeof(uint8_t)*(PROTOCOL_FRAME_LEN+1));
-    free(data);
-    return 0;
+	free(data);
+	return 0;
 }
 
 int prot_init(Serial_t *serial) {
