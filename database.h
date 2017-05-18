@@ -42,7 +42,7 @@ int db_add_vars(Protocol_ReadCmd_OutputVars *vars);
 int db_add_impedance(unsigned char addr_bank, unsigned char addr_batt, Protocol_ImpedanceCmd_OutputVars *vars);
 
 int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
-                    Protocol_ImpedanceCmd_OutputVars *imp_vars);
+                    Protocol_ImpedanceCmd_OutputVars *imp_vars, int id_db);
 int db_get_addresses(Database_Addresses_t *list);
 int db_get_parameters(Database_Parameters_t *list);
 int db_update_average(unsigned short new_avg, unsigned int new_sum);

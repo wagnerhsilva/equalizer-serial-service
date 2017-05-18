@@ -141,6 +141,7 @@ int service_start(void) {
 
 			f_average = 0;
 			f_bus_sum = 0;
+			LOG("total de sensores = %d\n",list.items);
 			for (i=0;i<list.items;i++) {
 				/*
 				 * Inicializa as estrutura
@@ -236,7 +237,7 @@ int service_start(void) {
 						pt_imp = &output_impedance;
 					}
 				}
-				err = db_add_response(pt_vars, pt_imp);
+				err = db_add_response(pt_vars, pt_imp, i+1);
 				if (err != 0) {
 					break;
 				}

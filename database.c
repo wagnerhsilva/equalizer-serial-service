@@ -31,6 +31,7 @@ static sqlite3 			*database;
 static Database_Addresses_t	*addr_list;
 static Database_Parameters_t	*param_list;
 static sqlite3_stmt       	*baked_stmt;
+static sqlite3_stmt		*baked_stmt_rt;
 
 static int db_get_timestamp(char *timestamp){
 	time_t rawtime;
@@ -218,6 +219,7 @@ int db_init(char *path) {
 
 	sqlite3_prepare_v2(database, "INSERT INTO DataLog (dataHora, string, bateria, temperatura, impedancia, tensao, equalizacao) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);", -1,
 			&baked_stmt, NULL);
+	sqlite3_prepare_v2(database, "UPDATE DataLogRT SET datahora = ?1, string = ?2, bateria = ?3, temperatura = ?4, impedancia = ?5, tensao = ?6, equalizacao = ?7 WHERE id = ?8;", -1, &baked_stmt_rt, NULL);
 
 	/*
 	 * Assumindo que as tabelas ja existam e estejam prontas para serem usadas.
@@ -237,7 +239,7 @@ int db_finish(void) {
 }
 
 int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
-		Protocol_ImpedanceCmd_OutputVars *imp_vars)
+		Protocol_ImpedanceCmd_OutputVars *imp_vars, int id_db)
 {
 	int err = 0;
 	char sql_message[500];
@@ -250,9 +252,14 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	char imped[15]; sprintf(imped, "%d", imp_vars->impedance);
 	char vbat[15]; sprintf(vbat, "%hu", read_vars->vbat);
 	char duty[15]; sprintf(duty, "%hu", read_vars->duty_cycle);
+	char id[15]; sprintf(id,"%hu", id_db);
 
-	LOG("%d:%d:impedance = %d:%s\n",read_vars->addr_bank,read_vars->addr_batt,imp_vars->impedance,imped);
+	//LOG("%d:%d:impedance = %d:%s\n",read_vars->addr_bank,read_vars->addr_batt,imp_vars->impedance,imped);
 
+	/*
+	 * Inclui campos na tabela de registros completa
+	 */
+	LOG("Salvando DataLog ...");
 	sqlite3_bind_text(baked_stmt, 1, timestamp, -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(baked_stmt, 2, int_to_addr(read_vars->addr_bank, 1), -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(baked_stmt, 3, int_to_addr(read_vars->addr_batt, 0), -1, SQLITE_TRANSIENT);
@@ -263,10 +270,24 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	sqlite3_step(baked_stmt);
 	sqlite3_clear_bindings(baked_stmt);
 	sqlite3_reset(baked_stmt);
-	/*if (err != SQLITE_OK) {
-	  LOG("Error on insert into exec, msg: %s\n", zErrMsg);
-	  return -1;
-	  }*/
+	LOG("OK\n");
+
+	/*
+	 * Inclui campos na tabela de registros de tempo real
+	 */
+	LOG("Salvando DataLogRT ...");
+	sqlite3_bind_text(baked_stmt_rt, 1, timestamp, -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_stmt_rt, 2, int_to_addr(read_vars->addr_bank, 1), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_stmt_rt, 3, int_to_addr(read_vars->addr_batt, 0), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_stmt_rt, 4, etemp, -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_stmt_rt, 5, imped, -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_stmt_rt, 6, vbat, -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_stmt_rt, 7, duty, -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_stmt_rt, 8, id, -1, SQLITE_TRANSIENT);
+	sqlite3_step(baked_stmt_rt);
+	sqlite3_clear_bindings(baked_stmt_rt);
+	sqlite3_reset(baked_stmt_rt);
+	LOG("OK\n");
 
 	return 0;
 }
