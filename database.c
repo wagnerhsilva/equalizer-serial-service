@@ -245,12 +245,7 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	char *zErrMsg = 0;
 
 	err = db_get_timestamp(timestamp);
-	/*sprintf(sql_message,
-	  "INSERT INTO %s (dataHora, string, bateria, temperatura, impedancia, tensao, equalizacao) VALUES ('%s', '%s', '%s', %hu, %d, %hu, %hu)", (char *)DATABASE_VARS_TABLE_NAME,
-	  timestamp, int_to_addr(read_vars->addr_bank, 1), int_to_addr(read_vars->addr_batt, 0), read_vars->etemp, 
-	  imp_vars->impedance, read_vars->vbat, read_vars->duty_cycle);
-	  err = sqlite3_exec(database,sql_message,write_callback,0,&zErrMsg);
-	 */
+
 	char etemp[15]; sprintf(etemp, "%hu", read_vars->etemp);
 	char imped[15]; sprintf(imped, "%d", imp_vars->impedance);
 	char vbat[15]; sprintf(vbat, "%hu", read_vars->vbat);

@@ -219,15 +219,18 @@ int service_start(void) {
 				 * Armazena as informacoes recebidas no banco de dados
 				 */
 				if (isFirstRead) {
+					LOG("isFirstRead:output_vars:output_impedance\n");
 					/* Na primeira leitura, as duas leituras sao realizadas e armazenadas */
 					pt_vars = &output_vars;
 					pt_imp = &output_impedance;
 				} else {
 					if (vars_read_counter < params.num_cycles_var_read) {
+						LOG("notFirst:output_vars:output_impedance_last\n");
 						/* Registra ultima leitura de impedancia */
 						pt_vars = &output_vars;
 						pt_imp = &output_impedance_last[i];
 					} else {
+						LOG("notFirst:output_vars_last:output_impedance\n");
 						/* Registra ultima leitura de variavel */
 						pt_vars = &output_vars_last[i];
 						pt_imp = &output_impedance;

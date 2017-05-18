@@ -92,19 +92,61 @@ static uint8_t * prot_creat_readvar_request8(Protocol_ReadCmd_InputVars *in)
     return request8;
 }
 
+static int prot_treat_readvar_timeout_response8(Protocol_ReadCmd_InputVars *in,
+		            Protocol_ReadCmd_OutputVars *out)
+{
+    int err = 0;
+
+    out->errcode = 0;
+    out->vbat = 0;
+    out->itemp = 0;
+    out->etemp = 0;
+    out->vsource = 0;
+    out->hw_ver = 0;
+    out->fw_ver = 0;
+    out->vbat_off = 0;
+    out->ibat_off = 0;
+    out->vref = 0;
+    out->duty_cycle = 0;
+    out->addr_bank = in->addr_bank;
+    out->addr_batt = in->addr_batt;
+    
+    //////////////////////////////////////////////////////
+    //LOG("ERRCODE: %04x\n", out->errcode);
+    //LOG("VBAT: %04x\n", out->vbat);
+    //LOG("ITEMP: %04x\n", out->itemp);
+    //LOG("ETEMP: %04x\n", out->etemp);   
+    //LOG("VSOURCE: %04x\n", out->vsource);
+    //LOG("HWVER: %02x\n", out->hw_ver);
+    //LOG("FWVER: %02x\n", out->fw_ver);
+    //LOG("VBAT_OFF: %04x\n", out->vbat_off);
+    //LOG("IBAT_OFF: %04x\n", out->ibat_off);
+    //LOG("VREF: %04x\n", out->vref);
+    //LOG("DUTY_CYCLE: %04x\n", out->duty_cycle);
+    //LOG("ADDR_BANK: %02x\n", out->addr_bank);
+    //LOG("ADDR_BATT: %02x\n", out->addr_batt);
+    ///////////////////////////////////////////////////////
+    return err;
+}
+
 static int prot_check_extract_readvar_response8(uint8_t * data,Protocol_ReadCmd_OutputVars *out)
 {
     int err = 0;
     uint16_t markedChksum = bytes_to_u16(data[31], data[30]);
     uint16_t chksum = prot_calc_checksum(&data[0], 30);
-    
-    if(markedChksum != chksum){
+   
+    /* Em caso de timeout, o checksum calculado sera zero e o processo devera
+       ter continuidade */ 
+    if((markedChksum != chksum) && (markedChksum != 0)){
         LOG("Invalid checksum, got: %d expected: %d\n",markedChksum, chksum);
         return -1;
     }
-    
+   
+    /* Em caso de tratamento de mensagens de timeout, o comando recebido sera 0.
+       Neste caso, o processamento deve seguir seu tratamento natural, que sera
+       entregar valores zerados para a base de dados. */ 
     uint16_t cmd = bytes_to_u16(data[1], data[0]);
-    if(cmd != PROTOCOL_READ_VAR_COMMAND){
+    if ((cmd != 0) && (cmd != PROTOCOL_READ_VAR_COMMAND)) {
         LOG("Incorrect command response, got: %d expected: %d\n", cmd, PROTOCOL_READ_VAR_COMMAND);
         return -2;
     }
@@ -173,8 +215,11 @@ static int prot_check_extract_impedance_response8(uint8_t * data,
         return -1;
     }
 
+    /* Em caso de tratamento de mensagens de timeout, o comando recebido sera 0.
+       Neste caso, o processamento deve seguir seu tratamento natural, que sera
+       entregar valores zerados para a base de dados. */ 
     uint16_t cmd = bytes_to_u16(data[1], data[0]);
-    if(cmd != PROTOCOL_IMPEDANCE_COMMAND){
+    if((cmd != 0) && (cmd != PROTOCOL_IMPEDANCE_COMMAND)){
         LOG("Incorrect command response, got: %d expected: %d\n", cmd, PROTOCOL_IMPEDANCE_COMMAND);
         return -2;
     }
@@ -190,6 +235,24 @@ static int prot_check_extract_impedance_response8(uint8_t * data,
     //LOG("CURRENT: %08x\n", out->current);
     ////////////////////////////////////////////////////
     return 0;
+}
+
+static int prot_treat_impedance_timeout_response8(Protocol_ImpedanceCmd_InputVars *i,
+                            Protocol_ImpedanceCmd_OutputVars *out)
+{
+    int err = 0;
+
+    out->errcode = 0;
+    out->impedance = 0;
+    out->current = 0;
+
+    ////////////////////////////////////////////////////
+    //LOG("Impedance message response:\n");
+    //LOG("ERRCODE: %04x\n", out->errcode);
+    //LOG("IMPEDANCE: %08x\n", out->impedance);
+    //LOG("CURRENT: %08x\n", out->current);
+    ////////////////////////////////////////////////////
+    return err;
 }
 
 static int prot_communicate(uint8_t *msg8) 
@@ -215,9 +278,10 @@ static int prot_communicate(uint8_t *msg8)
 	uint8_t *data = (uint8_t *)malloc(sizeof(uint8_t)*(PROTOCOL_FRAME_LEN+1));
 	err = ser_read(ser_instance, data, PROTOCOL_FRAME_LEN, &timeout);
 	if (err == -3) {
-		/* Erro de timeout: neste caso, as informacoes de retorno
-		 * devem ser zeradas */
-		memset(msg8,0,sizeof(uint8_t)*(PROTOCOL_FRAME_LEN+1));
+		/* Erro de timeout: retornar o codigo de erro especifico para
+		 * tratamento apropriado nas camadas superiores */
+		free(data);
+		return -3;
 	} else if (err == 0) {
 		/* Transfere a mensagem recebida para o buffer de retorno */
 		memcpy(msg8, data, sizeof(uint8_t)*(PROTOCOL_FRAME_LEN+1));
@@ -260,13 +324,19 @@ int prot_read_vars(Protocol_ReadCmd_InputVars *in,
 
 	/* Envia o request e aguarda a resposta */
 	err = prot_communicate(msg8); //in place response
-	if (err != 0) {
+	if (err == 0) {
+		err = prot_check_extract_readvar_response8(msg8, out);
+	} else if (err == -3) {
+		/* Trata a situacao de timeout */
+		err = prot_treat_readvar_timeout_response8(in,out);	
+	} else {
+		free(msg8);
 		return -2;
 	}
 
 	/* Retorna o resultado */
-	err = prot_check_extract_readvar_response8(msg8, out);
 	if (err != 0) {
+		free(msg8);
 		return -3;
 	}
         free(msg8);
@@ -288,12 +358,15 @@ int prot_read_impedance(Protocol_ImpedanceCmd_InputVars *in,
 
 	/* Envia o request e aguarda a resposta */
 	err = prot_communicate(msg8); //in place response
-	if (err != 0) {
+	if (err == 0) {
+		err = prot_check_extract_impedance_response8(msg8, out);
+	} else if (err == -3) {
+		err = prot_treat_impedance_timeout_response8(in, out);
+	} else {
 		return -3;
 	}
 
 	/* Retorna o resultado */
-	err = prot_check_extract_impedance_response8(msg8, out);
 	if (err != 0) {
 		return -3;
 	}
