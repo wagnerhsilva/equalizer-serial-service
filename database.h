@@ -29,6 +29,7 @@ typedef struct {
 	unsigned short  delay;
 	unsigned short  num_cycles_var_read;
 	unsigned int	bus_sum; /* param 1 */
+	unsigned int	save_log_time;
 } Database_Parameters_t;
 
 typedef struct {
@@ -42,7 +43,7 @@ int db_add_vars(Protocol_ReadCmd_OutputVars *vars);
 int db_add_impedance(unsigned char addr_bank, unsigned char addr_batt, Protocol_ImpedanceCmd_OutputVars *vars);
 
 int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
-                    Protocol_ImpedanceCmd_OutputVars *imp_vars, int id_db);
+                    Protocol_ImpedanceCmd_OutputVars *imp_vars, int id_db, int save_log);
 int db_get_addresses(Database_Addresses_t *list);
 int db_get_parameters(Database_Parameters_t *list);
 int db_update_average(unsigned short new_avg, unsigned int new_sum);

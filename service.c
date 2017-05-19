@@ -95,6 +95,8 @@ int service_start(void) {
 	int 				 err = 0;
 	int				 vars_read_counter = 0;
 	int				 isFirstRead = 1;
+	int				 save_log_counter = 0;
+	int				 save_log_state = 1;
 	Database_Addresses_t		 list;
 	Database_Parameters_t		 params;
 	Protocol_ReadCmd_InputVars 	 input_vars;
@@ -120,6 +122,8 @@ int service_start(void) {
 	average_last = params.average_last;
 	bus_sum_last = params.bus_sum;
 
+	LOG("INICIAL: save_log_state = %d\n",save_log_state);
+	LOG("INICIAL: save_log_counter = %d\n",save_log_counter);
 	while(!getStop()) {
 		/*
 		 * Recupera a lista de elementos a serem recuperados
@@ -220,24 +224,24 @@ int service_start(void) {
 				 * Armazena as informacoes recebidas no banco de dados
 				 */
 				if (isFirstRead) {
-					LOG("isFirstRead:output_vars:output_impedance\n");
+					//LOG("isFirstRead:output_vars:output_impedance\n");
 					/* Na primeira leitura, as duas leituras sao realizadas e armazenadas */
 					pt_vars = &output_vars;
 					pt_imp = &output_impedance;
 				} else {
 					if (vars_read_counter < params.num_cycles_var_read) {
-						LOG("notFirst:output_vars:output_impedance_last\n");
+						//LOG("notFirst:output_vars:output_impedance_last\n");
 						/* Registra ultima leitura de impedancia */
 						pt_vars = &output_vars;
 						pt_imp = &output_impedance_last[i];
 					} else {
-						LOG("notFirst:output_vars_last:output_impedance\n");
+						//LOG("notFirst:output_vars_last:output_impedance\n");
 						/* Registra ultima leitura de variavel */
 						pt_vars = &output_vars_last[i];
 						pt_imp = &output_impedance;
 					}
 				}
-				err = db_add_response(pt_vars, pt_imp, i+1);
+				err = db_add_response(pt_vars, pt_imp, i+1, save_log_state);
 				if (err != 0) {
 					break;
 				}
@@ -261,6 +265,24 @@ int service_start(void) {
 				bus_sum_last = f_bus_sum;
 				db_update_average(average_last, f_bus_sum);
 				//LOG("Storing average value : %g --> %u\n",f_average, average_last);
+			}
+			/*
+			 * Atualiza intervalo de registro na base de log
+			 */
+			LOG("save_log_state = %d\n",save_log_state);
+			LOG("save_log_counter = %d\n",save_log_counter);
+			if (save_log_state) {
+				/* Checa se e para registrar sempre */
+				if (params.save_log_time != 0) {
+					save_log_state = 0;
+					save_log_counter = 0;
+				}
+				/* Caso contrario, fica sempre na situacao de gravacao */
+			} else {
+				save_log_counter++;
+				if (save_log_counter == params.save_log_time) {
+					save_log_state = 1;
+				}
 			}
 			/*
 			 * Atualiza flag e contadores

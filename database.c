@@ -22,7 +22,8 @@
 #define DATABASE_PARAM_DELAY_ADDR		5
 #define DATABASE_PARAM_NUM_CYCLES_VAR_READ	6
 #define DATABASE_PARAM_BUS_SUM			7
-#define DATABASE_PARAM_NB_ITEMS			17+1
+#define DATABASE_PARAM_SAVE_LOG_TIME		8
+#define DATABASE_PARAM_NB_ITEMS			18+1
 
 #define BATTERY_STRINGS_ADDR           4
 #define BATTERY_COUNT_ADDR             5
@@ -160,7 +161,8 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 		param_list->index = (unsigned short) strtol(argv[DATABASE_PARAM_CTE_ADDR], &garbage, 0);
 		param_list->delay = (unsigned short) strtol(argv[DATABASE_PARAM_DELAY_ADDR], &garbage, 0);
 		param_list->num_cycles_var_read = (unsigned short) strtol(argv[DATABASE_PARAM_NUM_CYCLES_VAR_READ], &garbage, 0);
-		param_list->bus_sum = (unsigned short) strtol(argv[DATABASE_PARAM_BUS_SUM], &garbage, 0);
+		param_list->bus_sum = (unsigned int) strtol(argv[DATABASE_PARAM_BUS_SUM], &garbage, 0);
+		param_list->save_log_time = (unsigned int) strtol(argv[DATABASE_PARAM_SAVE_LOG_TIME], &garbage, 0);
 	}
 
 	LOG("Initing with:\n");
@@ -239,7 +241,7 @@ int db_finish(void) {
 }
 
 int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
-		Protocol_ImpedanceCmd_OutputVars *imp_vars, int id_db)
+		Protocol_ImpedanceCmd_OutputVars *imp_vars, int id_db, int save_log)
 {
 	int err = 0;
 	char sql_message[500];
@@ -259,18 +261,20 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	/*
 	 * Inclui campos na tabela de registros completa
 	 */
-	LOG("Salvando DataLog ...");
-	sqlite3_bind_text(baked_stmt, 1, timestamp, -1, SQLITE_TRANSIENT);
-	sqlite3_bind_text(baked_stmt, 2, int_to_addr(read_vars->addr_bank, 1), -1, SQLITE_TRANSIENT);
-	sqlite3_bind_text(baked_stmt, 3, int_to_addr(read_vars->addr_batt, 0), -1, SQLITE_TRANSIENT);
-	sqlite3_bind_text(baked_stmt, 4, etemp, -1, SQLITE_TRANSIENT);
-	sqlite3_bind_text(baked_stmt, 5, imped, -1, SQLITE_TRANSIENT);
-	sqlite3_bind_text(baked_stmt, 6, vbat, -1, SQLITE_TRANSIENT);
-	sqlite3_bind_text(baked_stmt, 7, duty, -1, SQLITE_TRANSIENT);
-	sqlite3_step(baked_stmt);
-	sqlite3_clear_bindings(baked_stmt);
-	sqlite3_reset(baked_stmt);
-	LOG("OK\n");
+	if (save_log) {
+		LOG("Salvando DataLog ...");
+		sqlite3_bind_text(baked_stmt, 1, timestamp, -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(baked_stmt, 2, int_to_addr(read_vars->addr_bank, 1), -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(baked_stmt, 3, int_to_addr(read_vars->addr_batt, 0), -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(baked_stmt, 4, etemp, -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(baked_stmt, 5, imped, -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(baked_stmt, 6, vbat, -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(baked_stmt, 7, duty, -1, SQLITE_TRANSIENT);
+		sqlite3_step(baked_stmt);
+		sqlite3_clear_bindings(baked_stmt);
+		sqlite3_reset(baked_stmt);
+		LOG("OK\n");
+	}
 
 	/*
 	 * Inclui campos na tabela de registros de tempo real
