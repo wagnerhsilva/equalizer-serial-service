@@ -117,6 +117,13 @@ int service_start(void) {
 	}
 
 	/*
+	 * Atualiza o endereco MAC da placa
+	 */
+	if (CHECK(db_set_macaddress())) {
+		return -1;
+	}
+
+	/*
 	 * Inicia a execucao principal
 	 */
 	average_last = params.average_last;

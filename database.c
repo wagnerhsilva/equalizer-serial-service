@@ -15,6 +15,7 @@
 #define DATABASE_IMPEDANCE_TABLE_NAME	"impedance"
 #define DATABASE_ADDRESSES_NAME		"Modulo"
 #define DATABASE_PARAMETERS_TABLE_NAME	"Parameters"
+#define DATABASE_NETWORK_TABLE_NAME	"RedeSeguranca"
 #define DATABASE_PARAM_AVG_ADDR			1
 #define DATABASE_PARAM_DUTYMIN_ADDR		2
 #define DATABASE_PARAM_DUTYMAX_ADDR		3
@@ -24,6 +25,8 @@
 #define DATABASE_PARAM_BUS_SUM			7
 #define DATABASE_PARAM_SAVE_LOG_TIME		8
 #define DATABASE_PARAM_NB_ITEMS			18+1
+#define DATABASE_NETWORK_MAC_ADDR		1
+#define DATABASE_NETWORK_NB_ITEMS		14+1
 
 #define BATTERY_STRINGS_ADDR           4
 #define BATTERY_COUNT_ADDR             5
@@ -125,6 +128,27 @@ static int read_callback(void *data, int argc, char **argv, char **azColName){
 		}
 	}else{
 		LOG("Database unexpected result...\n");
+	}
+
+	return ret;
+}
+
+static int network_callback(void *data, int argc, char **argv, char **azColName){
+	int ret = 0;
+	char macaddr[18];
+
+	memset(macaddr,0,sizeof(macaddr));
+
+	/* Em caso do banco de dados vir com problema, de forma a nao chegar
+	 * todos os parametros, eles serao carregados com valores padrao fixos */
+	if (argc != DATABASE_NETWORK_NB_ITEMS) {
+		LOG("Problemas na tabela - configura valor padrao 00:00:00:00:00:01\n");
+		LOG("argc=%d / %d\n",argc,DATABASE_NETWORK_NB_ITEMS);
+		system("ifconfig eth0 hw ether 00:00:00:00:00:01");
+	} else {
+		LOG("Atualizacao do MAC Address\n");
+		sprintf(macaddr,"ifconfig eth0 hw ether %s\0",argv[DATABASE_NETWORK_MAC_ADDR]);
+		system(macaddr);
 	}
 
 	return ret;
@@ -340,6 +364,25 @@ int db_get_addresses(Database_Addresses_t *list){
 	return -1;
 }
 
+int db_set_macaddress(void){
+	if(database != 0){
+		int err = 0;
+		char sql_message[500];
+		char *zErrMsg = 0;
+
+		sprintf(sql_message,
+				"SELECT * FROM %s ",
+				DATABASE_NETWORK_TABLE_NAME);
+		err = sqlite3_exec(database,sql_message,network_callback,0,&zErrMsg);
+		if (err != SQLITE_OK) {
+			LOG("Error on select exec, msg: %s\n", zErrMsg);
+			return -1;
+		}
+
+		return 0;
+	}
+	return -1;
+}
 
 int db_get_parameters(Database_Parameters_t *list){
 	if(database != 0){

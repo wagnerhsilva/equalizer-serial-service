@@ -46,6 +46,7 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
                     Protocol_ImpedanceCmd_OutputVars *imp_vars, int id_db, int save_log);
 int db_get_addresses(Database_Addresses_t *list);
 int db_get_parameters(Database_Parameters_t *list);
+int db_set_macaddress(void);
 int db_update_average(unsigned short new_avg, unsigned int new_sum);
 
 #endif /* DATABASE_H_ */
