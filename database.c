@@ -36,6 +36,7 @@ static Database_Addresses_t	*addr_list;
 static Database_Parameters_t	*param_list;
 static sqlite3_stmt       	*baked_stmt;
 static sqlite3_stmt		*baked_stmt_rt;
+static char			mac_address[30];
 
 static int db_get_timestamp(char *timestamp){
 	time_t rawtime;
@@ -135,20 +136,22 @@ static int read_callback(void *data, int argc, char **argv, char **azColName){
 
 static int network_callback(void *data, int argc, char **argv, char **azColName){
 	int ret = 0;
-	char macaddr[18];
 
-	memset(macaddr,0,sizeof(macaddr));
+	memset(mac_address,0,sizeof(mac_address));
 
 	/* Em caso do banco de dados vir com problema, de forma a nao chegar
 	 * todos os parametros, eles serao carregados com valores padrao fixos */
 	if (argc != DATABASE_NETWORK_NB_ITEMS) {
 		LOG("Problemas na tabela - configura valor padrao 00:00:00:00:00:01\n");
 		LOG("argc=%d / %d\n",argc,DATABASE_NETWORK_NB_ITEMS);
-		system("ifconfig eth0 hw ether 00:00:00:00:00:01");
+		strcpy(mac_address,"00:00:00:00:00:01");
+		//system("ifconfig eth0 hw ether 00:00:00:00:00:01");
 	} else {
-		LOG("Atualizacao do MAC Address\n");
-		sprintf(macaddr,"ifconfig eth0 hw ether %s\0",argv[DATABASE_NETWORK_MAC_ADDR]);
-		system(macaddr);
+		LOG("Atualizacao do MAC Address ... ");
+		//sprintf(macaddr,"ifconfig eth0 hw ether %s\0",argv[DATABASE_NETWORK_MAC_ADDR]);
+		//system(macaddr);
+		memcpy(mac_address,argv[DATABASE_NETWORK_MAC_ADDR],17);
+		LOG("OK\n");
 	}
 
 	return ret;
@@ -368,6 +371,7 @@ int db_set_macaddress(void){
 	if(database != 0){
 		int err = 0;
 		char sql_message[500];
+		char system_cmd[100];
 		char *zErrMsg = 0;
 
 		sprintf(sql_message,
@@ -378,6 +382,11 @@ int db_set_macaddress(void){
 			LOG("Error on select exec, msg: %s\n", zErrMsg);
 			return -1;
 		}
+
+		LOG("Alterando MAC Address para %s ... ",mac_address);
+		sprintf(system_cmd,"ifconfig eth0 hw ether %s\0",mac_address);
+		system(system_cmd);
+		LOG("OK\n");
 
 		return 0;
 	}
