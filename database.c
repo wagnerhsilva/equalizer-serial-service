@@ -101,6 +101,11 @@ static int read_callback(void *data, int argc, char **argv, char **azColName){
 		addr_list->items = 0;
 		return ret;
 	}
+	if(!param_list){
+		LOG("We have a nullptr\n");
+		exit(0);
+	}
+
 
 	/*
 	 * Tudo OK - realiza o procedimento
@@ -109,8 +114,14 @@ static int read_callback(void *data, int argc, char **argv, char **azColName){
 		int i = 0, j = 0;
 		int bank_count = atoi(argv[BATTERY_STRINGS_ADDR]);
 		int batt_count = atoi(argv[BATTERY_COUNT_ADDR]);
-
 		int amount = bank_count * batt_count;
+
+		/* Quantidade de strings se encontra na tabela de parametros,
+		 * e deve ser atualizado a cada ciclo, de forma a saber quantos
+		 * strings possui a configuracao e, dessa forma, calcular de
+		 * forma correta a tensao de barramento */
+		param_list->num_banks = bank_count;
+		/* Preenche as estruturas para busca das informacoes dos sensores */
 		if(amount < DATABASE_MAX_ADDRESSES_LEN){
 			for(i = 0; i < bank_count; i++){
 				for(j = 0; j < batt_count; j++){

@@ -30,6 +30,7 @@ typedef struct {
 	unsigned short  num_cycles_var_read;
 	unsigned int	bus_sum; /* param 1 */
 	unsigned int	save_log_time;
+	unsigned int	num_banks; /* para calcular tensao barramento */
 } Database_Parameters_t;
 
 typedef struct {

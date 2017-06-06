@@ -265,9 +265,14 @@ int service_start(void) {
 			/*
 			 * Atualiza o valor de target e de tensao de barramento
 			 * na base de dados, apos a captura de todas as leituras de
-			 * sensores de uma string
+			 * sensores de uma string. Antes e feita a verificacao da
+			 * quantidade de bancos, de forma que o calculo seja feito
+			 * de forma correta
 			 */
 			if ((isFirstRead) || (vars_read_counter < params.num_cycles_var_read)) {
+				if (params.num_banks > 1) {
+					average_last = average_last / params.num_banks;
+				}
 				average_last = _compressFloat(f_average);
 				bus_sum_last = f_bus_sum;
 				db_update_average(average_last, f_bus_sum);
