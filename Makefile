@@ -1,4 +1,4 @@
-TARGETS=database.c main.c serial.c service.c protocol.c defs.c
+TARGETS=database.c main.c serial.c service.c protocol.c defs.c disk.c
 OUTPUT=service
 INC=-I . -lsqlite3 -lm
 OPT=-O2

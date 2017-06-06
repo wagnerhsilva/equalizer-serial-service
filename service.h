@@ -11,6 +11,7 @@
 #include <database.h>
 #include <protocol.h>
 #include <serial.h>
+#include <disk.h>
 #include <stdio.h>
 #include <string.h>
 #include <defs.h>
