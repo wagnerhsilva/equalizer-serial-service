@@ -109,14 +109,6 @@ int service_start(void) {
 	Protocol_ImpedanceCmd_OutputVars *pt_imp;
 
 	/*
-	 * Os parametros sao recuperados antes do inicio da execucao
-	 * do loop principal
-	 */
-	if (CHECK(db_get_parameters(&params))) {
-		return -1;
-	}
-
-	/*
 	 * Atualiza o endereco MAC da placa
 	 */
 	if (CHECK(db_set_macaddress())) {
@@ -140,10 +132,16 @@ int service_start(void) {
 			break;
 		}
 		/*
+		 * Atualiza a tabela de parametros, para o novo ciclo
+		 * de execucao
+		 */
+		if (CHECK(db_get_parameters(&params))) {
+			return -1;
+		}
+		/*
 		 * Atualiza a ultima media calculada armazenada na base de
 		 * dados
 		 */
-
 		if ((list.items > 0) && (list.items < MAX_STRING_LEN)) {
 			/*
 			 * Busca informacao de variaveis e de impedancia para cada item
