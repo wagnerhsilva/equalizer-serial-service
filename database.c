@@ -24,7 +24,8 @@
 #define DATABASE_PARAM_NUM_CYCLES_VAR_READ	6
 #define DATABASE_PARAM_BUS_SUM			7
 #define DATABASE_PARAM_SAVE_LOG_TIME		8
-#define DATABASE_PARAM_NB_ITEMS			18+1
+#define DATABASE_PARAM_DISK_CAPACITY		9
+#define DATABASE_PARAM_NB_ITEMS			19+1
 #define DATABASE_NETWORK_MAC_ADDR		1
 #define DATABASE_NETWORK_NB_ITEMS		14+1
 
@@ -102,7 +103,7 @@ static int read_callback(void *data, int argc, char **argv, char **azColName){
 		return ret;
 	}
 	if(!param_list){
-		LOG("We have a nullptr\n");
+		LOG("read_callback: We have a nullptr\n");
 		exit(0);
 	}
 
@@ -176,7 +177,7 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 	 * Sanity checks
 	 */
 	if(!param_list){
-		LOG("We have a nullptr\n");
+		LOG("param_callback:We have a nullptr\n");
 		exit(0);
 	}
 
@@ -190,6 +191,7 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 		param_list->index = 0x2600;
 		param_list->delay = 1;
 		param_list->num_cycles_var_read = 500;
+		param_list->disk_capacity = 0;
 	} else {
 		LOG("Leitura de valores da tabela de parametros\n");
 
@@ -201,6 +203,7 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 		param_list->num_cycles_var_read = (unsigned short) strtol(argv[DATABASE_PARAM_NUM_CYCLES_VAR_READ], &garbage, 0);
 		param_list->bus_sum = (unsigned int) strtol(argv[DATABASE_PARAM_BUS_SUM], &garbage, 0);
 		param_list->save_log_time = (unsigned int) strtol(argv[DATABASE_PARAM_SAVE_LOG_TIME], &garbage, 0);
+		param_list->disk_capacity = (unsigned int) strtol(argv[DATABASE_PARAM_DISK_CAPACITY], &garbage, 0);
 	}
 
 	LOG("Initing with:\n");
@@ -211,6 +214,7 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 	LOG("DELAY: %hu\n", param_list->delay);
 	LOG("NUM_CYCLES_VAR_READ: %hu\n", param_list->num_cycles_var_read);
 	LOG("BUS_SUM: %u\n",param_list->bus_sum);
+	LOG("DISK_CAPACITY: %u\n",param_list->disk_capacity);
 
 	return ret;
 }
@@ -259,7 +263,7 @@ int db_init(char *path) {
 
 	sqlite3_prepare_v2(database, "INSERT INTO DataLog (dataHora, string, bateria, temperatura, impedancia, tensao, equalizacao) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);", -1,
 			&baked_stmt, NULL);
-	sqlite3_prepare_v2(database, "UPDATE DataLogRT SET datahora = ?1, string = ?2, bateria = ?3, temperatura = ?4, impedancia = ?5, tensao = ?6, equalizacao = ?7, capacidade = ?9 WHERE id = ?8;", -1, &baked_stmt_rt, NULL);
+	sqlite3_prepare_v2(database, "UPDATE DataLogRT SET datahora = ?1, string = ?2, bateria = ?3, temperatura = ?4, impedancia = ?5, tensao = ?6, equalizacao = ?7 WHERE id = ?8;", -1, &baked_stmt_rt, NULL);
 
 	/*
 	 * Assumindo que as tabelas ja existam e estejam prontas para serem usadas.
@@ -280,7 +284,7 @@ int db_finish(void) {
 
 int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 		Protocol_ImpedanceCmd_OutputVars *imp_vars, int id_db, 
-		int capacity, int save_log)
+		int save_log)
 {
 	int err = 0;
 	char sql_message[500];
@@ -294,7 +298,6 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	char vbat[15]; sprintf(vbat, "%hu", read_vars->vbat);
 	char duty[15]; sprintf(duty, "%hu", read_vars->duty_cycle);
 	char id[15]; sprintf(id,"%hu", id_db);
-	char cap[15]; sprintf(cap,"%d", capacity);
 
 	//LOG("%d:%d:impedance = %d:%s\n",read_vars->addr_bank,read_vars->addr_batt,imp_vars->impedance,imped);
 
@@ -328,7 +331,6 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	sqlite3_bind_text(baked_stmt_rt, 6, vbat, -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(baked_stmt_rt, 7, duty, -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(baked_stmt_rt, 8, id, -1, SQLITE_TRANSIENT);
-	sqlite3_bind_text(baked_stmt_rt, 9, cap, -1, SQLITE_TRANSIENT);
 	sqlite3_step(baked_stmt_rt);
 	sqlite3_clear_bindings(baked_stmt_rt);
 	sqlite3_reset(baked_stmt_rt);
@@ -347,7 +349,7 @@ int db_add_impedance(unsigned char addr_bank, unsigned char addr_batt,
 	return 0;
 }
 
-int db_get_addresses(Database_Addresses_t *list){
+int db_get_addresses(Database_Addresses_t *list,Database_Parameters_t *p_list){
 	if(database != 0){
 		int err = 0;
 		char sql_message[500];
@@ -359,6 +361,7 @@ int db_get_addresses(Database_Addresses_t *list){
 		 */
 		addr_list = list;
 		addr_list->items = 0;
+		param_list = p_list;
 
 		/*
 		 * Controi a mensagem SQL para o banco de dados
@@ -439,14 +442,14 @@ int db_get_parameters(Database_Parameters_t *list){
 	return -1;
 }
 
-int db_update_average(unsigned short new_avg, unsigned int new_sum) {
+int db_update_average(unsigned short new_avg, unsigned int new_sum, unsigned int capacity) {
 	int err = 0;
 	char sql[256];
 	char *zErrMsg = 0;
 
 	if (database != 0) {
 		/*
-		 * TODO: Revisar a instrucao SQL com os valores corretos
+		 * Atualizacao da informacao da tabela da tensao de target (media das tensoes)
 		 */
 		sprintf(sql,"UPDATE %s set avg_last = '%d';",DATABASE_PARAMETERS_TABLE_NAME, new_avg);
 		err = sqlite3_exec(database,sql,write_callback,0,&zErrMsg);
@@ -454,11 +457,19 @@ int db_update_average(unsigned short new_avg, unsigned int new_sum) {
 			LOG("Error on update exec, msg: %s\n",zErrMsg);
 			return -1;
 		}
-
 		/*
-		 * TODO: Revisar a instrucao SQL com os valores corretos
+		 * Atualizacao da informacao da tabela da tensao de barramento (soma das tensoes)
 		 */
 		sprintf(sql,"UPDATE %s set bus_voltage = '%d';",DATABASE_PARAMETERS_TABLE_NAME, new_sum);
+		err = sqlite3_exec(database,sql,write_callback,0,&zErrMsg);
+		if (err != SQLITE_OK) {
+			LOG("Error on update exec, msg: %s\n",zErrMsg);
+			return -1;
+		}
+		/*
+		 * Atualizacao da informacao da tabela da capacidade ocupada de disco
+		 */
+		sprintf(sql,"UPDATE %s set disk_capacity = '%d';",DATABASE_PARAMETERS_TABLE_NAME, capacity);
 		err = sqlite3_exec(database,sql,write_callback,0,&zErrMsg);
 		if (err != SQLITE_OK) {
 			LOG("Error on update exec, msg: %s\n",zErrMsg);

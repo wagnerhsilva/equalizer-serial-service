@@ -30,6 +30,7 @@ typedef struct {
 	unsigned short  num_cycles_var_read;
 	unsigned int	bus_sum; /* param 1 */
 	unsigned int	save_log_time;
+	unsigned int	disk_capacity; /* porcentagem ocupada do disco */
 	unsigned int	num_banks; /* para calcular tensao barramento */
 } Database_Parameters_t;
 
@@ -45,10 +46,10 @@ int db_add_impedance(unsigned char addr_bank, unsigned char addr_batt, Protocol_
 
 int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
                     Protocol_ImpedanceCmd_OutputVars *imp_vars, int id_db, 
-                    int capacity, int save_log);
-int db_get_addresses(Database_Addresses_t *list);
+                    int save_log);
+int db_get_addresses(Database_Addresses_t *list,Database_Parameters_t *p_list);
 int db_get_parameters(Database_Parameters_t *list);
 int db_set_macaddress(void);
-int db_update_average(unsigned short new_avg, unsigned int new_sum);
+int db_update_average(unsigned short new_avg, unsigned int new_sum, unsigned int capacity);
 
 #endif /* DATABASE_H_ */
