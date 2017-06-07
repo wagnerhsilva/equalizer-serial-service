@@ -55,7 +55,7 @@ int disk_removeLogs(void) {
 	 * TODO: mudar essa funcao para que os caminhos venham por
 	 * linha de comando.
 	 */
-	sprintf(command,"rm -f /var/www/serial-service/debug.txt");
+	sprintf(command,"rm -f /var/www/serial_service/debug.txt");
 	system(command);
 
 	sprintf(command,"rm -f /var/www/equalizer-api/equalizer-api/debug_web.txt");
