@@ -129,7 +129,7 @@ int service_start(void) {
 		 * Recupera a lista de elementos a serem recuperados
 		 */
 
-		if(CHECK(db_get_addresses(&list))){
+		if(CHECK(db_get_addresses(&list,&params))){
 			break;
 		}
 		/*
@@ -248,14 +248,9 @@ int service_start(void) {
 					}
 				}
 				/*
-				 * Realiza a leitura da capacidade do disco, para 
-				 * enviar com as demais informacoes de tempo real
-				 */
-				capacity = disk_usedSpace("/");
-				/*
 				 * Envia informacoes para o banco de dados
 				 */
-				err = db_add_response(pt_vars, pt_imp, i+1, capacity, save_log_state);
+				err = db_add_response(pt_vars, pt_imp, i+1, save_log_state);
 				if (err != 0) {
 					break;
 				}
@@ -272,17 +267,23 @@ int service_start(void) {
 			/*
 			 * Atualiza o valor de target e de tensao de barramento
 			 * na base de dados, apos a captura de todas as leituras de
-			 * sensores de uma string. Antes e feita a verificacao da
-			 * quantidade de bancos, de forma que o calculo seja feito
-			 * de forma correta
+			 * sensores de uma string.
 			 */
 			if ((isFirstRead) || (vars_read_counter < params.num_cycles_var_read)) {
+				/* Realiza a checagem da quantidade de bancos, para realizar
+				 * o calculo da tensão de barramento corretamente */
 				if (params.num_banks > 1) {
-					average_last = average_last / params.num_banks;
+					f_bus_sum = f_bus_sum / params.num_banks;
 				}
+				/*
+				 * Realiza a leitura da capacidade do disco, para 
+				 * enviar com as demais informacoes de tempo real
+				 */
+				capacity = disk_usedSpace("/");
+				/* Formata os dados e atualiza o banco de dados */	
 				average_last = _compressFloat(f_average);
 				bus_sum_last = f_bus_sum;
-				db_update_average(average_last, f_bus_sum);
+				db_update_average(average_last, f_bus_sum, capacity);
 				//LOG("Storing average value : %g --> %u\n",f_average, average_last);
 			}
 			/*
