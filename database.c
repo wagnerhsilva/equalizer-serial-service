@@ -259,7 +259,7 @@ int db_init(char *path) {
 
 	sqlite3_prepare_v2(database, "INSERT INTO DataLog (dataHora, string, bateria, temperatura, impedancia, tensao, equalizacao) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);", -1,
 			&baked_stmt, NULL);
-	sqlite3_prepare_v2(database, "UPDATE DataLogRT SET datahora = ?1, string = ?2, bateria = ?3, temperatura = ?4, impedancia = ?5, tensao = ?6, equalizacao = ?7 WHERE id = ?8;", -1, &baked_stmt_rt, NULL);
+	sqlite3_prepare_v2(database, "UPDATE DataLogRT SET datahora = ?1, string = ?2, bateria = ?3, temperatura = ?4, impedancia = ?5, tensao = ?6, equalizacao = ?7, capacidade = ?9 WHERE id = ?8;", -1, &baked_stmt_rt, NULL);
 
 	/*
 	 * Assumindo que as tabelas ja existam e estejam prontas para serem usadas.
@@ -279,7 +279,8 @@ int db_finish(void) {
 }
 
 int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
-		Protocol_ImpedanceCmd_OutputVars *imp_vars, int id_db, int save_log)
+		Protocol_ImpedanceCmd_OutputVars *imp_vars, int id_db, 
+		int capacity, int save_log)
 {
 	int err = 0;
 	char sql_message[500];
@@ -293,6 +294,7 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	char vbat[15]; sprintf(vbat, "%hu", read_vars->vbat);
 	char duty[15]; sprintf(duty, "%hu", read_vars->duty_cycle);
 	char id[15]; sprintf(id,"%hu", id_db);
+	char cap[15]; sprintf(cap,"%d", capacity);
 
 	//LOG("%d:%d:impedance = %d:%s\n",read_vars->addr_bank,read_vars->addr_batt,imp_vars->impedance,imped);
 
@@ -326,6 +328,7 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	sqlite3_bind_text(baked_stmt_rt, 6, vbat, -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(baked_stmt_rt, 7, duty, -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(baked_stmt_rt, 8, id, -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_stmt_rt, 9, cap, -1, SQLITE_TRANSIENT);
 	sqlite3_step(baked_stmt_rt);
 	sqlite3_clear_bindings(baked_stmt_rt);
 	sqlite3_reset(baked_stmt_rt);

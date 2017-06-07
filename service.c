@@ -97,6 +97,7 @@ int service_start(void) {
 	int				 isFirstRead = 1;
 	int				 save_log_counter = 0;
 	int				 save_log_state = 1;
+	int				 capacity = 0;
 	Database_Addresses_t		 list;
 	Database_Parameters_t		 params;
 	Protocol_ReadCmd_InputVars 	 input_vars;
@@ -246,7 +247,15 @@ int service_start(void) {
 						pt_imp = &output_impedance;
 					}
 				}
-				err = db_add_response(pt_vars, pt_imp, i+1, save_log_state);
+				/*
+				 * Realiza a leitura da capacidade do disco, para 
+				 * enviar com as demais informacoes de tempo real
+				 */
+				capacity = disk_usedSpace("/");
+				/*
+				 * Envia informacoes para o banco de dados
+				 */
+				err = db_add_response(pt_vars, pt_imp, i+1, capacity, save_log_state);
 				if (err != 0) {
 					break;
 				}

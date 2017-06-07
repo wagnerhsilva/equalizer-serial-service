@@ -44,7 +44,8 @@ int db_add_vars(Protocol_ReadCmd_OutputVars *vars);
 int db_add_impedance(unsigned char addr_bank, unsigned char addr_batt, Protocol_ImpedanceCmd_OutputVars *vars);
 
 int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
-                    Protocol_ImpedanceCmd_OutputVars *imp_vars, int id_db, int save_log);
+                    Protocol_ImpedanceCmd_OutputVars *imp_vars, int id_db, 
+                    int capacity, int save_log);
 int db_get_addresses(Database_Addresses_t *list);
 int db_get_parameters(Database_Parameters_t *list);
 int db_set_macaddress(void);

@@ -1,5 +1,6 @@
 #include "disk.h"
 #include <sys/statvfs.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 double disk_getCapacity(char *dev_path) {
