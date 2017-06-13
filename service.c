@@ -10,6 +10,8 @@
 #include <string.h>
 #include <math.h>
 
+#define SERVICE_UPDATE_PARAM_INTERVAL 60
+
 Serial_t serial_comm;
 static int stop = 1;
 
@@ -94,6 +96,7 @@ int service_start(void) {
 	int 				 i = 0;
 	int 				 err = 0;
 	int				 vars_read_counter = 0;
+	int				 update_param_counter = 0;
 	int				 isFirstRead = 1;
 	int				 save_log_counter = 0;
 	int				 save_log_state = 1;
@@ -124,6 +127,15 @@ int service_start(void) {
 
 	LOG("INICIAL: save_log_state = %d\n",save_log_state);
 	LOG("INICIAL: save_log_counter = %d\n",save_log_counter);
+
+	/*
+	 * Atualiza a tabela de parametros, para o novo ciclo
+	 * de execucao
+	 */
+	if (CHECK(db_get_parameters(&params))) {
+		return -1;
+	}
+
 	while(!getStop()) {
 		/*
 		 * Recupera a lista de elementos a serem recuperados
@@ -132,13 +144,23 @@ int service_start(void) {
 		if(CHECK(db_get_addresses(&list,&params))){
 			break;
 		}
+
 		/*
-		 * Atualiza a tabela de parametros, para o novo ciclo
-		 * de execucao
+		 * Avalia necessidade de atualizacao de informacoes de
+		 * parametros.
 		 */
-		if (CHECK(db_get_parameters(&params))) {
-			return -1;
+		if (update_param_counter == SERVICE_UPDATE_PARAM_INTERVAL) {
+			/* Atualiza parametros */
+			if (CHECK(db_get_parameters(&params))) {
+				break;
+			}
+			/* reseta contador */
+			update_param_counter = 0;
+		} else {
+			/* incrementa o contador */
+			update_param_counter++;
 		}
+
 		/*
 		 * Atualiza a ultima media calculada armazenada na base de
 		 * dados
