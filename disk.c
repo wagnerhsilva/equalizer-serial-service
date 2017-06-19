@@ -2,6 +2,7 @@
 #include <sys/statvfs.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "defs.h"
 
 double disk_getCapacity(char *dev_path) {
         unsigned long long result = 0;
@@ -33,19 +34,15 @@ double disk_getFreeSpace(char *dev_path) {
 }
 
 int disk_usedSpace(char *dev_path) {
-	double capacity = 0.0;
-	double free_space = 0.0;
-	double used_space = 0.0;
+	struct statvfs sfs;
+	float result = 0.0;
 
-	/* Obtem a capacidade total do disco, em megabytes */	
-	capacity = disk_getCapacity(dev_path);
-	/* Obtem o espaco disponivel, em megabytes */
-	free_space = disk_getFreeSpace(dev_path);
-	/* Calcula o espaco ocupado, a partir da porcentagem
-	 * do espaco livre */
-	used_space = (1 - (free_space/capacity));
-	/* Retorna a informacao em inteiro */
-	return (int)(used_space * 100);
+	if (statvfs (dev_path, &sfs) != -1) {
+		result = (sfs.f_blocks - sfs.f_bfree) / (double)(sfs.f_blocks - sfs.f_bfree + sfs.f_bavail) * 100.0;
+		LOG("disk usage = %f\n",result);
+        }
+
+	return (int)result;
 }
 
 int disk_removeLogs(void) {
