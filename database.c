@@ -458,37 +458,6 @@ int db_update_average(unsigned short new_avg, unsigned int new_sum, unsigned int
 			return -1;
 		}
 		return 0;
-/* TODO: Retirar */
-#if 0
-		/*
-		 * Atualizacao da informacao da tabela da tensao de target (media das tensoes)
-		 */
-		sprintf(sql,"UPDATE %s set avg_last = '%d';",DATABASE_PARAMETERS_TABLE_NAME, new_avg);
-		err = sqlite3_exec(database,sql,write_callback,0,&zErrMsg);
-		if (err != SQLITE_OK) {
-			LOG("Error on update exec, msg: %s\n",zErrMsg);
-			return -1;
-		}
-		/*
-		 * Atualizacao da informacao da tabela da tensao de barramento (soma das tensoes)
-		 */
-		sprintf(sql,"UPDATE %s set bus_voltage = '%d';",DATABASE_PARAMETERS_TABLE_NAME, new_sum);
-		err = sqlite3_exec(database,sql,write_callback,0,&zErrMsg);
-		if (err != SQLITE_OK) {
-			LOG("Error on update exec, msg: %s\n",zErrMsg);
-			return -1;
-		}
-		/*
-		 * Atualizacao da informacao da tabela da capacidade ocupada de disco
-		 */
-		sprintf(sql,"UPDATE %s set disk_capacity = '%d';",DATABASE_PARAMETERS_TABLE_NAME, capacity);
-		err = sqlite3_exec(database,sql,write_callback,0,&zErrMsg);
-		if (err != SQLITE_OK) {
-			LOG("Error on update exec, msg: %s\n",zErrMsg);
-			return -1;
-		}
-		return 0;
-#endif
 	}
 	return -1;
 }
