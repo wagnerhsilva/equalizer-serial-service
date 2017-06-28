@@ -87,7 +87,10 @@ int ser_setup(Serial_t *ser_instance, int baud) {
         return -6;
     }
 
-    
+    /* Configura o timeout padrao */
+    ser_instance->read_timeout.tv_sec = PROTOCOL_TIMEOUT_VSEC;
+    ser_instance->read_timeout.tv_usec = PROTOCOL_TIMEOUT_USEC;
+
     return 0;
 }
 
@@ -133,7 +136,7 @@ static int ser_match_command(uint8_t *buffer, int bufferSize){
     return response;
 }
 
-int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len, struct timeval *timeout) {
+int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len) {
     fd_set set;
     int rv;
     
@@ -155,7 +158,7 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len, struct timeval 
     int timeoutReceived = 0;
 
     while(bytes_read < bytes_expected){
-        rv = select(ser_instance->fd + 1, &set, NULL, NULL, timeout);
+        rv = select(ser_instance->fd + 1, &set, NULL, NULL, &(ser_instance->read_timeout));
         if(rv == -1){
             LOG("Unnable to perform select, maybe you didn't run this as super user?\n");
             return -2;
@@ -203,3 +206,18 @@ int ser_write(Serial_t *ser_instance, uint8_t *data, int len) {
 
 	return 0;
 }
+
+int ser_setReadTimeout(Serial_t *ser_instance, unsigned int timeout) {
+    unsigned int to_sec = timeout / 1000000;
+    unsigned int to_usec = timeout % 1000000;
+
+    ser_instance->read_timeout.tv_sec = to_sec;
+    ser_instance->read_timeout.tv_usec = to_usec;
+
+    LOG("Set new timeout\n");
+    LOG("tv_sec = %d\n",ser_instance->read_timeout.tv_sec);
+    LOG("tv_usec = %d\n",ser_instance->read_timeout.tv_usec);
+
+    return 0;
+}
+
