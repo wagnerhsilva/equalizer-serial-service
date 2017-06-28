@@ -25,6 +25,7 @@
 #define DATABASE_PARAM_BUS_SUM			7
 #define DATABASE_PARAM_SAVE_LOG_TIME		8
 #define DATABASE_PARAM_DISK_CAPACITY		9
+#define DATABASE_PARAM_PARAM1_INTERBAT_DELAY	10
 #define DATABASE_PARAM_NB_ITEMS			19+1
 #define DATABASE_NETWORK_MAC_ADDR		1
 #define DATABASE_NETWORK_NB_ITEMS		14+1
@@ -192,6 +193,7 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 		param_list->delay = 1;
 		param_list->num_cycles_var_read = 500;
 		param_list->disk_capacity = 0;
+		param_list->param1_interbat_delay = 0;
 	} else {
 		LOG("Leitura de valores da tabela de parametros\n");
 
@@ -204,6 +206,7 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 		param_list->bus_sum = (unsigned int) strtol(argv[DATABASE_PARAM_BUS_SUM], &garbage, 0);
 		param_list->save_log_time = (unsigned int) strtol(argv[DATABASE_PARAM_SAVE_LOG_TIME], &garbage, 0);
 		param_list->disk_capacity = (unsigned int) strtol(argv[DATABASE_PARAM_DISK_CAPACITY], &garbage, 0);
+		param_list->param1_interbat_delay = (unsigned int) strtol(argv[DATABASE_PARAM_PARAM1_INTERBAT_DELAY], &garbage, 0);
 	}
 
 	LOG("Initing with:\n");
@@ -215,6 +218,7 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 	LOG("NUM_CYCLES_VAR_READ: %hu\n", param_list->num_cycles_var_read);
 	LOG("BUS_SUM: %u\n",param_list->bus_sum);
 	LOG("DISK_CAPACITY: %u\n",param_list->disk_capacity);
+	LOG("PARAM1_INTERBAT_DELAY: %u\n",param_list->param1_interbat_delay);
 
 	return ret;
 }

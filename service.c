@@ -285,6 +285,11 @@ int service_start(void) {
 					f_average += fvbat / fitems; 
 					f_bus_sum += (unsigned int)output_vars.vbat;
 				}
+
+				/*
+				 * Pausa entre as leituras das celulas
+				 */
+				usleep(params.param1_interbat_delay);
 			}
 			/*
 			 * Atualiza o valor de target e de tensao de barramento
