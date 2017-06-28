@@ -33,6 +33,7 @@ typedef struct {
 	unsigned int	disk_capacity; /* porcentagem ocupada do disco */
 	unsigned int	num_banks; /* para calcular tensao barramento */
 	unsigned int	param1_interbat_delay; /* param1 - intervalo, em microssegundos, entre leitura de bateria */
+	unsigned int	param2_serial_read_to; /* param2 - tempo de timeout, em microssegundos, de esperar de resposta do sensor pela serial */
 } Database_Parameters_t;
 
 typedef struct {
