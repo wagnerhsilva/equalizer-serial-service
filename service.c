@@ -135,6 +135,8 @@ int service_start(void) {
 	if (CHECK(db_get_parameters(&params))) {
 		return -1;
 	}
+	/* Atualiza o timeout de leitura de serial */
+	ser_setReadTimeout(&serial_comm,params.param2_serial_read_to);
 
 	while(!getStop()) {
 		/*
@@ -154,6 +156,8 @@ int service_start(void) {
 			if (CHECK(db_get_parameters(&params))) {
 				break;
 			}
+			/* Atualiza o timeout de leitura de serial */
+			ser_setReadTimeout(&serial_comm,params.param2_serial_read_to);
 			/* reseta contador */
 			update_param_counter = 0;
 		} else {
@@ -349,7 +353,7 @@ int service_start(void) {
 			 * Realiza uma pausa entre as leituras, com valores
 			 * lidos obtidos do banco de dados
 			 */
-			sleep(params.delay);
+			usleep(params.delay);
 			/*
 			 * Reinicia loop de aquisicao de dados de sensor
 			 */
