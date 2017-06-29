@@ -30,14 +30,14 @@ void signal_handler(int signo){
 	service_finish();
 }
 
-static void init_signal_handler(void){
-	struct sigaction new_action, old_action;
-	new_action.sa_handler = signal_handler;
-	sigemptyset(&new_action.sa_mask);
-	new_action.sa_flags = 0;
-
-	sigaction(SIGINT, &new_action, NULL);
-}
+//static void init_signal_handler(void){
+//	struct sigaction new_action;
+//	new_action.sa_handler = signal_handler;
+//	sigemptyset(&new_action.sa_mask);
+//	new_action.sa_flags = 0;
+//
+//	sigaction(SIGINT, &new_action, NULL);
+//}
 
 int service_init(char *dev_path, char *db_path) {
 	int err = 0;
@@ -92,7 +92,6 @@ int service_start(void) {
 	float 				 f_average = 0.0f; //let's be on the safe side
 	unsigned int			 f_bus_sum = 0;
 	unsigned short			 average_last = 0;
-	unsigned int			 bus_sum_last = 0;
 	int 				 i = 0;
 	int 				 err = 0;
 	int				 vars_read_counter = 0;
@@ -123,7 +122,6 @@ int service_start(void) {
 	 * Inicia a execucao principal
 	 */
 	average_last = params.average_last;
-	bus_sum_last = params.bus_sum;
 
 	LOG("INICIAL: save_log_state = %d\n",save_log_state);
 	LOG("INICIAL: save_log_counter = %d\n",save_log_counter);
@@ -180,12 +178,12 @@ int service_start(void) {
 			LOG("total de sensores = %d\n",list.items);
 			for (i=0;i<list.items;i++) {
 				/*
-				 * Inicializa as estrutura
+				 * Inicializa as estrutura. As estruturas de saida nao sao
+				 * zeradas, pois em caso de timeout o ultimo valor sera
+				 * preservado.
 				 */
 				memset(&input_vars,0,sizeof(input_vars));
-				memset(&output_vars,0,sizeof(output_vars));
 				memset(&input_impedance,0,sizeof(input_impedance));
-				memset(&output_impedance,0,sizeof(output_impedance));
 				/*
 				 * Preenche os campos necessarios para solicitar leitura das
 				 * variaveis
@@ -313,7 +311,6 @@ int service_start(void) {
 				capacity = disk_usedSpace("/");
 				/* Formata os dados e atualiza o banco de dados */	
 				average_last = _compressFloat(f_average);
-				bus_sum_last = f_bus_sum;
 				db_update_average(average_last, f_bus_sum, capacity);
 				//LOG("Storing average value : %g --> %u\n",f_average, average_last);
 			}
