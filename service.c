@@ -293,7 +293,7 @@ int service_start(void) {
 				/*
 				 * Pausa entre as leituras das celulas
 				 */
-				mdelay(params.param1_interbat_delay);
+				usleep(params.param1_interbat_delay);
 			}
 			/*
 			 * Atualiza o valor de target e de tensao de barramento
@@ -353,7 +353,7 @@ int service_start(void) {
 			 * Realiza uma pausa entre as leituras, com valores
 			 * lidos obtidos do banco de dados
 			 */
-			msleep(params.delay);
+			usleep(params.delay);
 			/*
 			 * Reinicia loop de aquisicao de dados de sensor
 			 */
