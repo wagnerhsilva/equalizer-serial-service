@@ -10,12 +10,14 @@
 #include "serial.h"
 #include <defs.h>
 
+#define SERIAL_LOG "SERIAL:"
+
 int ser_init(Serial_t *ser_instance, const char *ser_device) {
     int err = 0;
 
     ser_instance->fd = open(ser_device, O_RDWR | O_NOCTTY);
     if (ser_instance->fd < 0) {
-        LOG("Unnable to open serial, maybe you don't have permision or the port is incorrect?\n");
+        LOG(SERIAL_LOG "Unnable to open serial, maybe you don't have permision or the port is incorrect?\n");
         /* Erro de abertura da serial */
         err = -1;
     }
@@ -35,13 +37,13 @@ int ser_setup(Serial_t *ser_instance, int baud) {
      * Por hora so aceita a velocidade de 115200
      */
     if (baud != 115200) {
-        LOG("We can only handle baudrate as 115200\n");
+        LOG(SERIAL_LOG "We can only handle baudrate as 115200\n");
         return -2;
     }
 
     err = tcgetattr(ser_instance->fd, &ser_instance->old_termios);
     if (err != 0) {
-        LOG("Unnable to acquire terminal controll\n");
+        LOG(SERIAL_LOG "Unnable to acquire terminal controll\n");
         return -3;
     }
 
@@ -71,19 +73,19 @@ int ser_setup(Serial_t *ser_instance, int baud) {
 
     err = cfsetispeed(&ser_instance->new_termios, B115200);
     if (err != 0) {
-        LOG("Unnable to set input baudrate\n");
+        LOG(SERIAL_LOG "Unnable to set input baudrate\n");
         return -4;
     }
 
     err = cfsetospeed(&ser_instance->new_termios, B115200);
     if (err != 0) {
-        LOG("Unnable to set output baudrate\n");
+        LOG(SERIAL_LOG "Unnable to set output baudrate\n");
         return -5;
     }
 
     err = tcsetattr(ser_instance->fd, TCSANOW, &ser_instance->new_termios);
     if (err != 0) {
-        LOG("Unnable to take controll of terminal\n");
+        LOG(SERIAL_LOG "Unnable to take controll of terminal\n");
         return -6;
     }
 
@@ -160,10 +162,10 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len) {
     while(bytes_read < bytes_expected){
         rv = select(ser_instance->fd + 1, &set, NULL, NULL, &(ser_instance->read_timeout));
         if(rv == -1){
-            LOG("Unnable to perform select, maybe you didn't run this as super user?\n");
+            LOG(SERIAL_LOG "Unnable to perform select, maybe you didn't run this as super user?\n");
             return -2;
         }else if(rv == 0){
-            LOG("Battery timeout, maybe your battery is not connected or the port is not correct?\n");
+            LOG(SERIAL_LOG "Battery read timeout, maybe your battery is not connected or the port is not correct?\n");
             return -3;
         }else{
             int bread = read(ser_instance->fd, (void *)&(data[bytes_read]), bytes_expected);
@@ -183,7 +185,7 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len) {
     }
 
     char *buffer = toStrHexa(data, bytes_read);
-    //LOG("Got package: %s\n", buffer);
+    LOG(SERIAL_LOG "<== %s\n", buffer);
     free(buffer);
     return 0;
    
@@ -197,7 +199,7 @@ int ser_write(Serial_t *ser_instance, uint8_t *data, int len) {
 	}
     
     char *buffer = toStrHexa(data, len);
-    //LOG("Sending package: %s\n", buffer);
+    LOG(SERIAL_LOG "==> %s\n", buffer);
     free(buffer);
 	bytesSent = write(ser_instance->fd,data,len);
 	if (bytesSent != len) {
@@ -208,15 +210,11 @@ int ser_write(Serial_t *ser_instance, uint8_t *data, int len) {
 }
 
 int ser_setReadTimeout(Serial_t *ser_instance, unsigned int timeout) {
-    unsigned int to_sec = timeout / 1000000;
-    unsigned int to_usec = timeout % 1000000;
 
-    ser_instance->read_timeout.tv_sec = to_sec;
-    ser_instance->read_timeout.tv_usec = to_usec;
+    ser_instance->read_timeout.tv_sec = timeout;
+    ser_instance->read_timeout.tv_usec = 100;
 
-    LOG("Set new timeout\n");
-    LOG("tv_sec = %d\n",ser_instance->read_timeout.tv_sec);
-    LOG("tv_usec = %d\n",ser_instance->read_timeout.tv_usec);
+    LOG(SERIAL_LOG "Set new timeout: tv_sec=%d tv_usec=%d\n",ser_instance->read_timeout.tv_sec,ser_instance->read_timeout.tv_usec);
 
     return 0;
 }
