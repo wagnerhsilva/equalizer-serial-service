@@ -123,7 +123,6 @@ int ser_finish(Serial_t *ser_instance) {
 
 static int ser_match_command(uint8_t *buffer, int bufferSize){
     int response = 0;
-    int i = 0;
     int byte0 = buffer[0];
     int byte1 = buffer[1];
 
@@ -157,7 +156,6 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len) {
     int bytes_read = 0;
     int bytes_expected = exp_len;
     int foundPackage = 0;
-    int timeoutReceived = 0;
 
     while(bytes_read < bytes_expected){
         rv = select(ser_instance->fd + 1, &set, NULL, NULL, &(ser_instance->read_timeout));
@@ -193,7 +191,6 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len) {
 
 int ser_write(Serial_t *ser_instance, uint8_t *data, int len) {
 	int bytesSent = 0;
-    int i = 0;
 	if (ser_instance->fd < 0) {
 		return -1;
 	}
