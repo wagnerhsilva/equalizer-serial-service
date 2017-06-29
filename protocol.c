@@ -62,7 +62,7 @@ static uint8_t * prot_creat_readvar_request8(Protocol_ReadCmd_InputVars *in)
      */
 
     //adicionado free ao final de prot_read_vars e prot_read_impedance
-    //static arrays nÃo fornecem a mesma versalidade
+    //static arrays nï¿½o fornecem a mesma versalidade
     uint8_t *request8 = 0;
     request8 = (uint8_t*)malloc(sizeof(uint8_t)*PROTOCOL_FRAME_LEN);
     //static uint8_t request8[PROTOCOL_FRAME_LEN] = { 0 };
@@ -97,19 +97,23 @@ static int prot_treat_readvar_timeout_response8(Protocol_ReadCmd_InputVars *in,
 {
     int err = 0;
 
-    out->errcode = 0;
-    out->vbat = 0;
-    out->itemp = 0;
-    out->etemp = 0;
-    out->vsource = 0;
-    out->hw_ver = 0;
-    out->fw_ver = 0;
-    out->vbat_off = 0;
-    out->ibat_off = 0;
-    out->vref = 0;
-    out->duty_cycle = 0;
-    out->addr_bank = in->addr_bank;
-    out->addr_batt = in->addr_batt;
+    /* Anteriormente em caso de timeout era preciso retornar o valor
+     * zero de leitura. Isso se mostrou inapropriado. Nesta atualizacao,
+     * deve-se preservar o valor anterior. */
+
+//    out->errcode = 0;
+//    out->vbat = 0;
+//    out->itemp = 0;
+//    out->etemp = 0;
+//    out->vsource = 0;
+//    out->hw_ver = 0;
+//    out->fw_ver = 0;
+//    out->vbat_off = 0;
+//    out->ibat_off = 0;
+//    out->vref = 0;
+//    out->duty_cycle = 0;
+//    out->addr_bank = in->addr_bank;
+//    out->addr_batt = in->addr_batt;
     
     //////////////////////////////////////////////////////
     //LOG("ERRCODE: %04x\n", out->errcode);
@@ -131,7 +135,6 @@ static int prot_treat_readvar_timeout_response8(Protocol_ReadCmd_InputVars *in,
 
 static int prot_check_extract_readvar_response8(uint8_t * data,Protocol_ReadCmd_OutputVars *out)
 {
-    int err = 0;
     uint16_t markedChksum = bytes_to_u16(data[31], data[30]);
     uint16_t chksum = prot_calc_checksum(&data[0], 30);
    
@@ -151,7 +154,6 @@ static int prot_check_extract_readvar_response8(uint8_t * data,Protocol_ReadCmd_
         return -2;
     }
 
-    int pointer = 2;
     out->errcode = bytes_to_u16(data[3], data[2]);
     out->vbat = bytes_to_u16(data[5], data[4]);
     out->itemp = bytes_to_u16(data[7], data[6]);
@@ -206,7 +208,6 @@ static uint8_t * prot_creat_impedance_request8(Protocol_ImpedanceCmd_InputVars *
 static int prot_check_extract_impedance_response8(uint8_t * data,
                             Protocol_ImpedanceCmd_OutputVars *out)
 {
-    int err = 0;
     uint16_t markedChksum = bytes_to_u16(data[31], data[30]);
     uint16_t chksum = prot_calc_checksum(&data[0], 30);
 
@@ -242,9 +243,13 @@ static int prot_treat_impedance_timeout_response8(Protocol_ImpedanceCmd_InputVar
 {
     int err = 0;
 
-    out->errcode = 0;
-    out->impedance = 0;
-    out->current = 0;
+    /* Anteriormente em caso de timeout era preciso retornar o valor
+     * zero de leitura. Isso se mostrou inapropriado. Nesta atualizacao,
+     * deve-se preservar o valor anterior. */
+
+//    out->errcode = 0;
+//    out->impedance = 0;
+//    out->current = 0;
 
     ////////////////////////////////////////////////////
     //LOG("Impedance message response:\n");
@@ -276,9 +281,6 @@ static int prot_communicate(uint8_t *msg8)
 	 * direta na estrutura de serial e pode ser parametrizada externamente pelo
 	 * usuario. TODO: Retirar
 	 */
-	//struct timeval timeout;
-	//timeout.tv_sec = PROTOCOL_TIMEOUT_VSEC;
-	//timeout.tv_usec = PROTOCOL_TIMEOUT_USEC;
 	uint8_t *data = (uint8_t *)malloc(sizeof(uint8_t)*(PROTOCOL_FRAME_LEN+1));
 	err = ser_read(ser_instance, data, PROTOCOL_FRAME_LEN);
 	if (err == -3) {
@@ -365,6 +367,7 @@ int prot_read_impedance(Protocol_ImpedanceCmd_InputVars *in,
 	if (err == 0) {
 		err = prot_check_extract_impedance_response8(msg8, out);
 	} else if (err == -3) {
+		/* Timeout */
 		err = prot_treat_impedance_timeout_response8(in, out);
 	} else {
 		return -3;
