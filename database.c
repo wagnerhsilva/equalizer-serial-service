@@ -11,6 +11,7 @@
 #include "protocol.h"
 #include <defs.h>
 #include <string.h>
+
 #define DATABASE_VARS_TABLE_NAME	"DataLog"
 #define DATABASE_IMPEDANCE_TABLE_NAME	"impedance"
 #define DATABASE_ADDRESSES_NAME		"Modulo"
@@ -56,20 +57,20 @@ static int write_callback(void *data, int argc, char **argv, char **azColName){
 	return 0;
 }
 
-static unsigned char addr_to_int(char *addr){
-	char *end;
-	unsigned char response;
-	long i = 0;
-	char *str = &addr[1];
-	for(i = strtol(str, &end, 10); str != end; i = strtol(str, &end, 10)){ //grab last only
-		str = end;
-	}
-	if(i < 256 && i >= 0) 
-		response = (unsigned char) i;
-	else
-		response = 0;
-	return response;
-}
+//static unsigned char addr_to_int(char *addr){
+//	char *end;
+//	unsigned char response;
+//	long i = 0;
+//	char *str = &addr[1];
+//	for(i = strtol(str, &end, 10); str != end; i = strtol(str, &end, 10)){ //grab last only
+//		str = end;
+//	}
+//	if(i < 256 && i >= 0)
+//		response = (unsigned char) i;
+//	else
+//		response = 0;
+//	return response;
+//}
 
 static char * int_to_addr(int val, int isBank){
 	char * res = (char *)malloc(sizeof(char)*5); //at most 4 -> M255
@@ -235,7 +236,6 @@ int initCallback(void *notUsed, int argc, char **argv, char **azColName){
 
 int db_init(char *path) {
 	int err = 0;
-    int iterator = 0;
 	/*
 	 * O banco de dados e inicializado, na forma de um arquivo. Caso o arquivo
 	 * nao exista, ele e criado
@@ -284,7 +284,6 @@ int db_init(char *path) {
 }
 
 int db_finish(void) {
-	char *zErrMsg = 0;
 	sqlite3_close(database);
 	database = 0;
 	return 0;
@@ -294,12 +293,9 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 		Protocol_ImpedanceCmd_OutputVars *imp_vars, int id_db, 
 		int save_log)
 {
-	int err = 0;
-	char sql_message[500];
 	char timestamp[80];
-	char *zErrMsg = 0;
 
-	err = db_get_timestamp(timestamp);
+	db_get_timestamp(timestamp);
 
 	char etemp[15]; sprintf(etemp, "%hu", read_vars->etemp);
 	char imped[15]; sprintf(imped, "%d", imp_vars->impedance);
@@ -409,7 +405,8 @@ int db_set_macaddress(void){
 		}
 
 		LOG("Alterando MAC Address para %s ... ",mac_address);
-		sprintf(system_cmd,"ifconfig eth0 hw ether %s\0",mac_address);
+		memset(system_cmd,0,sizeof(system_cmd));
+		sprintf(system_cmd,"ifconfig eth0 hw ether %s",mac_address);
 		system(system_cmd);
 		LOG("OK\n");
 
