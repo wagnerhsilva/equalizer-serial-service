@@ -48,4 +48,5 @@ int LOG(const char *format, ...);
 int _check(int error, int line, const char *file);
 char * toStrHexa(unsigned char * data, int len);
 unsigned short _compressFloat(float a);
+void sleep_ms(int milliseconds);
 #endif

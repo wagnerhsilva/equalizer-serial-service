@@ -61,7 +61,7 @@ int LOG(const char *format, ...){
     return done;
 }
 
-char * toStrHexa(unsigned char *data, int len){
+char * toStrHexa(unsigned char *data, int len) {
     char *buffer = (char *)malloc(sizeof(char)*(2*len + 1));
     int i = 0;
     for(i = 0; i < len; i++){
@@ -70,4 +70,12 @@ char * toStrHexa(unsigned char *data, int len){
     
     buffer[2*len] = 0;
     return buffer;
+}
+
+void sleep_ms(int milliseconds)
+{
+    struct timespec ts;
+    ts.tv_sec = milliseconds / 1000;
+    ts.tv_nsec = (milliseconds % 1000) * 1000000;
+    nanosleep(&ts, NULL);
 }
