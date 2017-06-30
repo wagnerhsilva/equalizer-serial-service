@@ -8,7 +8,7 @@
 
 typedef struct {
 	int fd;
-	struct timeval read_timeout;
+	unsigned int read_timeout;
 	struct termios old_termios;
 	struct termios new_termios;
 } Serial_t;
