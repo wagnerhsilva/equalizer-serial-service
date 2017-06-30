@@ -12,11 +12,12 @@
 #include <defs.h>
 #include <string.h>
 
-#define DATABASE_VARS_TABLE_NAME	"DataLog"
+#define DATABASE_LOG					"DATABASE:"
+#define DATABASE_VARS_TABLE_NAME		"DataLog"
 #define DATABASE_IMPEDANCE_TABLE_NAME	"impedance"
-#define DATABASE_ADDRESSES_NAME		"Modulo"
+#define DATABASE_ADDRESSES_NAME			"Modulo"
 #define DATABASE_PARAMETERS_TABLE_NAME	"Parameters"
-#define DATABASE_NETWORK_TABLE_NAME	"RedeSeguranca"
+#define DATABASE_NETWORK_TABLE_NAME		"RedeSeguranca"
 #define DATABASE_PARAM_AVG_ADDR			1
 #define DATABASE_PARAM_DUTYMIN_ADDR		2
 #define DATABASE_PARAM_DUTYMAX_ADDR		3
@@ -101,12 +102,12 @@ static int read_callback(void *data, int argc, char **argv, char **azColName){
 	 * Sanity check
 	 */
 	if (argc < 6) {
-		LOG("Problema na coleta da lista de baterias: %d\n",argc);
+		LOG(DATABASE_LOG "Problema na coleta da lista de baterias: %d\n",argc);
 		addr_list->items = 0;
 		return ret;
 	}
 	if(!param_list){
-		LOG("read_callback: We have a nullptr\n");
+		LOG(DATABASE_LOG "read_callback: We have a nullptr\n");
 		exit(0);
 	}
 
@@ -143,7 +144,7 @@ static int read_callback(void *data, int argc, char **argv, char **azColName){
 			ret = 0;
 		}
 	}else{
-		LOG("Database unexpected result...\n");
+		LOG(DATABASE_LOG "Database unexpected result...\n");
 	}
 
 	return ret;
@@ -157,12 +158,12 @@ static int network_callback(void *data, int argc, char **argv, char **azColName)
 	/* Em caso do banco de dados vir com problema, de forma a nao chegar
 	 * todos os parametros, eles serao carregados com valores padrao fixos */
 	if (argc != DATABASE_NETWORK_NB_ITEMS) {
-		LOG("Problemas na tabela - configura valor padrao 00:00:00:00:00:01\n");
-		LOG("argc=%d / %d\n",argc,DATABASE_NETWORK_NB_ITEMS);
+		LOG(DATABASE_LOG "Problemas na tabela - configura valor padrao 00:00:00:00:00:01\n");
+		LOG(DATABASE_LOG "argc=%d / %d\n",argc,DATABASE_NETWORK_NB_ITEMS);
 		strcpy(mac_address,"00:00:00:00:00:01");
 		//system("ifconfig eth0 hw ether 00:00:00:00:00:01");
 	} else {
-		LOG("Atualizacao do MAC Address ... ");
+		LOG(DATABASE_LOG "Atualizacao do MAC Address ... ");
 		//sprintf(macaddr,"ifconfig eth0 hw ether %s\0",argv[DATABASE_NETWORK_MAC_ADDR]);
 		//system(macaddr);
 		memcpy(mac_address,argv[DATABASE_NETWORK_MAC_ADDR],17);
@@ -180,14 +181,14 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 	 * Sanity checks
 	 */
 	if(!param_list){
-		LOG("param_callback:We have a nullptr\n");
+		LOG(DATABASE_LOG "param_callback:We have a nullptr\n");
 		exit(0);
 	}
 
 	/* Em caso do banco de dados vir com problema, de forma a nao chegar
 	 * todos os parametros, eles serao carregados com valores padrao fixos */
 	if (argc != DATABASE_PARAM_NB_ITEMS) {
-		LOG("Problemas na tabela - carregando valores padrao: %d\n",argc);
+		LOG(DATABASE_LOG "Problemas na tabela - carregando valores padrao: %d\n",argc);
 		param_list->average_last = 13500;
 		param_list->duty_min = 0;
 		param_list->duty_max = 45000;
@@ -198,7 +199,7 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 		param_list->param1_interbat_delay = 0;
 		param_list->param2_serial_read_to = 0;
 	} else {
-		LOG("Leitura de valores da tabela de parametros\n");
+		LOG(DATABASE_LOG "Leitura de valores da tabela de parametros\n");
 
 		param_list->average_last = (unsigned short) strtol(argv[DATABASE_PARAM_AVG_ADDR], &garbage, 0);
 		param_list->duty_min = (unsigned short) strtol(argv[DATABASE_PARAM_DUTYMIN_ADDR], &garbage, 0);
@@ -213,17 +214,17 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 		param_list->param2_serial_read_to = (unsigned int) strtol(argv[DATABASE_PARAM_PARAM2_SERIAL_READ_TO], &garbage, 0);
 	}
 
-	LOG("Initing with:\n");
-	LOG("AVG_LAST: %hu\n", param_list->average_last);
-	LOG("DUTY_MIN: %hu\n", param_list->duty_min);
-	LOG("DUTY_MAX: %hu\n", param_list->duty_max);
-	LOG("INDEX: %hu\n", param_list->index);
-	LOG("DELAY: %hu\n", param_list->delay);
-	LOG("NUM_CYCLES_VAR_READ: %hu\n", param_list->num_cycles_var_read);
-	LOG("BUS_SUM: %u\n",param_list->bus_sum);
-	LOG("DISK_CAPACITY: %u\n",param_list->disk_capacity);
-	LOG("PARAM1_INTERBAT_DELAY: %u\n",param_list->param1_interbat_delay);
-	LOG("PARAM2_SERIAL_READ_TO: %u\n",param_list->param2_serial_read_to);
+	LOG(DATABASE_LOG "Initing with:\n");
+	LOG(DATABASE_LOG "AVG_LAST: %hu\n", param_list->average_last);
+	LOG(DATABASE_LOG "DUTY_MIN: %hu\n", param_list->duty_min);
+	LOG(DATABASE_LOG "DUTY_MAX: %hu\n", param_list->duty_max);
+	LOG(DATABASE_LOG "INDEX: %hu\n", param_list->index);
+	LOG(DATABASE_LOG "DELAY: %hu\n", param_list->delay);
+	LOG(DATABASE_LOG "NUM_CYCLES_VAR_READ: %hu\n", param_list->num_cycles_var_read);
+	LOG(DATABASE_LOG "BUS_SUM: %u\n",param_list->bus_sum);
+	LOG(DATABASE_LOG "DISK_CAPACITY: %u\n",param_list->disk_capacity);
+	LOG(DATABASE_LOG "PARAM1_INTERBAT_DELAY: %u\n",param_list->param1_interbat_delay);
+	LOG(DATABASE_LOG "PARAM2_SERIAL_READ_TO: %u\n",param_list->param2_serial_read_to);
 
 	return ret;
 }
@@ -242,7 +243,7 @@ int db_init(char *path) {
 	 */
 	err = sqlite3_open(path,&database);
 	if (err != 0) {
-        LOG("Unnable to open database, you might need to call support\n");
+        LOG(DATABASE_LOG "Unnable to open database, you might need to call support\n");
 		return -1;
 	}
 	
@@ -250,21 +251,21 @@ int db_init(char *path) {
 
 	err = sqlite3_exec(database, DATABASE_BUSY_TIMEOUT, 0, 0, &zErrMsg);
 	if(err != SQLITE_OK){
-		LOG("Unnable to set %s : %s\n",(char *)(DATABASE_BUSY_TIMEOUT), zErrMsg);
+		LOG(DATABASE_LOG "Unable to set %s : %s\n",(char *)(DATABASE_BUSY_TIMEOUT), zErrMsg);
 		sqlite3_close(database);
 		return -1; 
 	}
 
 	err = sqlite3_exec(database, DATABASE_JOURNAL_MODE, 0, 0, &zErrMsg);
 	if(err != SQLITE_OK){
-		LOG("Unnable to set %s : %s\n", (char *)(DATABASE_JOURNAL_MODE), zErrMsg);
+		LOG(DATABASE_LOG "Unable to set %s : %s\n", (char *)(DATABASE_JOURNAL_MODE), zErrMsg);
 		sqlite3_close(database);
 		return -1;
 	}
 
 	err = sqlite3_exec(database, "PRAGMA synchronous = OFF", 0, 0, &zErrMsg);
 	if(err != SQLITE_OK){
-		LOG("Unnable to turn synchorinzation off : %s\n", zErrMsg);
+		LOG(DATABASE_LOG "Unable to turn synchorinzation off : %s\n", zErrMsg);
 		sqlite3_close(database);
 		return -1;
 	}
@@ -309,7 +310,7 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	 * Inclui campos na tabela de registros completa
 	 */
 	if (save_log) {
-		LOG("Salvando DataLog ...");
+		LOG(DATABASE_LOG "Salvando DataLog ...");
 		sqlite3_bind_text(baked_stmt, 1, timestamp, -1, SQLITE_TRANSIENT);
 		sqlite3_bind_text(baked_stmt, 2, int_to_addr(read_vars->addr_bank, 1), -1, SQLITE_TRANSIENT);
 		sqlite3_bind_text(baked_stmt, 3, int_to_addr(read_vars->addr_batt, 0), -1, SQLITE_TRANSIENT);
@@ -326,7 +327,7 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	/*
 	 * Inclui campos na tabela de registros de tempo real
 	 */
-	LOG("Salvando DataLogRT ...");
+	LOG(DATABASE_LOG "Salvando DataLogRT ...");
 	sqlite3_bind_text(baked_stmt_rt, 1, timestamp, -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(baked_stmt_rt, 2, int_to_addr(read_vars->addr_bank, 1), -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(baked_stmt_rt, 3, int_to_addr(read_vars->addr_batt, 0), -1, SQLITE_TRANSIENT);
@@ -379,7 +380,7 @@ int db_get_addresses(Database_Addresses_t *list,Database_Parameters_t *p_list){
 				DATABASE_ADDRESSES_NAME);
 		err = sqlite3_exec(database,sql_message,read_callback,0,&zErrMsg);
 		if (err != SQLITE_OK) {
-			LOG("Error on select exec, msg: %s\n", zErrMsg);
+			LOG(DATABASE_LOG "Error on select exec, msg: %s\n", zErrMsg);
 			return -1;
 		}
 
@@ -400,11 +401,11 @@ int db_set_macaddress(void){
 				DATABASE_NETWORK_TABLE_NAME);
 		err = sqlite3_exec(database,sql_message,network_callback,0,&zErrMsg);
 		if (err != SQLITE_OK) {
-			LOG("Error on select exec, msg: %s\n", zErrMsg);
+			LOG(DATABASE_LOG "Error on select exec, msg: %s\n", zErrMsg);
 			return -1;
 		}
 
-		LOG("Alterando MAC Address para %s ... ",mac_address);
+		LOG(DATABASE_LOG "Alterando MAC Address para %s ... ",mac_address);
 		memset(system_cmd,0,sizeof(system_cmd));
 		sprintf(system_cmd,"ifconfig eth0 hw ether %s",mac_address);
 		system(system_cmd);
@@ -438,7 +439,7 @@ int db_get_parameters(Database_Parameters_t *list){
 				DATABASE_PARAMETERS_TABLE_NAME);
 		err = sqlite3_exec(database,sql_message,param_callback,0,&zErrMsg);
 		if (err != SQLITE_OK) {
-			LOG("Error on select exec, msg: %s\n", zErrMsg);
+			LOG(DATABASE_LOG "Error on select exec, msg: %s\n", zErrMsg);
 			return -1;
 		}
 
@@ -459,7 +460,7 @@ int db_update_average(unsigned short new_avg, unsigned int new_sum, unsigned int
 		sprintf(sql,"UPDATE %s set avg_last = '%d', bus_voltage = %d, disk_capacity = %d;",DATABASE_PARAMETERS_TABLE_NAME, new_avg, new_sum, capacity);
 		err = sqlite3_exec(database,sql,write_callback,0,&zErrMsg);
 		if (err != SQLITE_OK) {
-			LOG("Error on update exec, msg: %s\n",zErrMsg);
+			LOG(DATABASE_LOG "Error on update exec, msg: %s\n",zErrMsg);
 			return -1;
 		}
 		return 0;

@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include "defs.h"
 
+#define DISK_LOG "DISK:"
+
 double disk_getCapacity(char *dev_path) {
         unsigned long long result = 0;
         double f_cap = 0.0;
@@ -39,7 +41,7 @@ int disk_usedSpace(char *dev_path) {
 
 	if (statvfs (dev_path, &sfs) != -1) {
 		result = (sfs.f_blocks - sfs.f_bfree) / (double)(sfs.f_blocks - sfs.f_bfree + sfs.f_bavail) * 100.0;
-		LOG("disk usage = %f\n",result);
+		LOG(DISK_LOG "disk usage = %f\n",result);
         }
 
 	return (int)result;
