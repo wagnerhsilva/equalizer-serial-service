@@ -10,8 +10,8 @@
 #include <string.h>
 #include <math.h>
 
-#define SERVICE_UPDATE_PARAM_INTERVAL 60
-
+#define SERVICE_UPDATE_PARAM_INTERVAL 	60
+#define SERVICE_LOG						"SERVICE:"
 Serial_t serial_comm;
 static int stop = 1;
 
@@ -23,20 +23,11 @@ static int getStop(void) {
 	return stop;
 }
 
-void signal_handler(int signo){
-	const char *signame = strsignal(signo);
-	LOG("Received signal: %s\n", signame);
-	LOG("Ending service...\n");
-	service_finish();
-}
-
-//static void init_signal_handler(void){
-//	struct sigaction new_action;
-//	new_action.sa_handler = signal_handler;
-//	sigemptyset(&new_action.sa_mask);
-//	new_action.sa_flags = 0;
-//
-//	sigaction(SIGINT, &new_action, NULL);
+//void signal_handler(int signo){
+//	const char *signame = strsignal(signo);
+//	LOG("Received signal: %s\n", signame);
+//	LOG("Ending service...\n");
+//	service_finish();
 //}
 
 int service_init(char *dev_path, char *db_path) {
@@ -123,9 +114,6 @@ int service_start(void) {
 	 */
 	average_last = params.average_last;
 
-	LOG("INICIAL: save_log_state = %d\n",save_log_state);
-	LOG("INICIAL: save_log_counter = %d\n",save_log_counter);
-
 	/*
 	 * Atualiza a tabela de parametros, para o novo ciclo
 	 * de execucao
@@ -175,7 +163,7 @@ int service_start(void) {
 
 			f_average = 0;
 			f_bus_sum = 0;
-			LOG("total de sensores = %d\n",list.items);
+			LOG(SERVICE_LOG "total de sensores = %d\n",list.items);
 			for (i=0;i<list.items;i++) {
 				/*
 				 * Inicializa as estrutura. As estruturas de saida nao sao
@@ -317,8 +305,6 @@ int service_start(void) {
 			/*
 			 * Atualiza intervalo de registro na base de log
 			 */
-			LOG("save_log_state = %d\n",save_log_state);
-			LOG("save_log_counter = %d\n",save_log_counter);
 			if (save_log_state) {
 				/* Checa se e para registrar sempre */
 				if (params.save_log_time != 0) {
@@ -339,11 +325,10 @@ int service_start(void) {
 				//LOG("Primeira Leitura realizada\n");
 				isFirstRead = 0;
 			}
-			LOG("vars_read_counter = %d\n",vars_read_counter);
+			LOG(SERVICE_LOG "leitura %d realizada\n",vars_read_counter);
 			if (vars_read_counter < params.num_cycles_var_read) {
 				vars_read_counter++;
 			} else {
-				LOG("%d - zerando contador\n",vars_read_counter);
 				vars_read_counter = 0;
 			}
 			/*
