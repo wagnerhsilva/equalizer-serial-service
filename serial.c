@@ -119,28 +119,12 @@ int ser_finish(Serial_t *ser_instance) {
     return 0;
 }
 
-
-//static int ser_match_command(uint8_t *buffer, int bufferSize){
-//    int response = 0;
-//    int byte0 = buffer[0];
-//    int byte1 = buffer[1];
-//
-//    if((byte0 == PROTOCOL_READ_VAR_ARR[0] &&
-//       byte1 == PROTOCOL_READ_VAR_ARR[1])||
-//      (byte0 == PROTOCOL_IMPEDANCE_VAR_ARR[0] &&
-//       byte1 == PROTOCOL_IMPEDANCE_VAR_ARR[1]))
-//    {
-//       response = 1;
-//    }
-//
-//    return response;
-//}
-
 int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len) {
     fd_set set;
     int rv;
     int bread;
     int ret = -5;
+    int retries = 0;
     struct timeval timeout;
     
     /* Sanity check */
@@ -157,75 +141,42 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len) {
     FD_SET(ser_instance->fd,&set);
     timeout.tv_sec = ser_instance->read_timeout;
     timeout.tv_usec = 0;
+    retries = ser_instance->retries;
 
-    /* Usa o select() para verificar a disponibilidade de dados */
-    rv = select(ser_instance->fd + 1, &set, NULL, NULL, &timeout);
-    if (rv == 1) {
-    	/* Dados disponiveis */
-    	bread = read(ser_instance->fd, data, exp_len);
-    	if (bread == exp_len) {
-    		/* Sucesso */
-    		char *buffer = toStrHexa(data, bread);
-    		LOG(SERIAL_LOG "<== %s\n", buffer);
-    		free(buffer);
-    		ret = 0;
+    while (1) {
+    	/* Usa o select() para verificar a disponibilidade de dados */
+    	rv = select(ser_instance->fd + 1, &set, NULL, NULL, &timeout);
+    	if (rv == 1) {
+    		/* Dados disponiveis */
+    		bread = read(ser_instance->fd, data, exp_len);
+    		if (bread == exp_len) {
+    			/* Sucesso */
+    			char *buffer = toStrHexa(data, bread);
+    			LOG(SERIAL_LOG "<== %s\n", buffer);
+    			free(buffer);
+    			ret = 0;
+    			break; /* Sai do loop */
+    		} else {
+    			/* Erro */
+    			LOG(SERIAL_LOG "read ERROR retries = %d\n",retries);
+    			retries--;
+    			if (retries == 0) {
+    				ret = -4;
+    				break; /* Sai do loop */
+    			}
+    		}
+    	} else if (rv == 0) {
+    		LOG(SERIAL_LOG "read TIMEOUT\n");
+    		ret = -3;
+    		break; /* Sai do loop */
     	} else {
-    		/* Erro */
-    		LOG(SERIAL_LOG "read ERROR\n");
-    		ret = -4;
+    		LOG(SERIAL_LOG "select ERROR\n");
+    		ret = -2;
+    		break; /* Sai do loop */
     	}
-    } else if (rv == 0) {
-    	LOG(SERIAL_LOG "read TIMEOUT\n");
-    	ret = -3;
-    } else {
-    	LOG(SERIAL_LOG "select ERROR\n");
-    	ret = -2;
     }
 
     return ret;
-
-//    int bytes_read = 0;
-//    int bytes_expected = exp_len;
-//    int foundPackage = 0;
-//
-//
-//    while(bytes_read < bytes_expected){
-//    	struct timeval timeout;
-//    	timeout.tv_sec = 10;
-//    	timeout.tv_usec = 100;
-//    	LOG(SERIAL_LOG "read timeout: sec=%d usec=%d\n",timeout.tv_sec,timeout.tv_usec);
-//    	/* Checa a presenca de dados */
-//        rv = select(ser_instance->fd + 1, &set, NULL, NULL, &timeout);
-//        if(rv == -1){
-//            LOG(SERIAL_LOG "error select()\n");
-//            return -2;
-//        }else if(rv == 0){
-//            LOG(SERIAL_LOG "read TIMEOUT\n");
-//            return -3;
-//        }else{
-//            int bread = read(ser_instance->fd, (void *)&(data[bytes_read]), bytes_expected);
-//            bytes_read += bread;
-//            data[bytes_read] = 0;
-//            if(bytes_read == 1)
-//            	continue; //we need to wait for the header
-//            if(!foundPackage){
-//                int isMatch = ser_match_command(data, bytes_read);
-//                if(!isMatch){
-//                    bytes_read = 0;
-//                    data[0] = 0;
-//                }else{
-//                    foundPackage = 1;
-//                }
-//            }
-//        }
-//    }
-//
-//    char *buffer = toStrHexa(data, bytes_read);
-//    LOG(SERIAL_LOG "<== %s\n", buffer);
-//    free(buffer);
-//
-//    return 0;
-//
 }
 
 int ser_write(Serial_t *ser_instance, uint8_t *data, int len) {
@@ -254,3 +205,11 @@ int ser_setReadTimeout(Serial_t *ser_instance, unsigned int timeout) {
     return 0;
 }
 
+int ser_setReadRetries(Serial_t *ser_instance, unsigned int retries) {
+
+	ser_instance->retries = retries;
+
+	LOG(SERIAL_LOG "Set new read retries = %d\n",ser_instance->retries);
+
+	return 0;
+}
