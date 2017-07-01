@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdint.h>
 
+#define PROTOCOL_LOG				"PROTOCOL:"
 #define PROTOCOL_START_OF_FRAME		0x2321
 #define PROTOCOL_READ_VAR_COMMAND	0x10C0
 #define PROTOCOL_IMPEDANCE_COMMAND	0x10B0
@@ -133,15 +134,18 @@ static int prot_treat_readvar_timeout_response8(Protocol_ReadCmd_InputVars *in,
     return err;
 }
 
-static int prot_check_extract_readvar_response8(uint8_t * data,Protocol_ReadCmd_OutputVars *out)
+static int prot_check_extract_readvar_response8(uint8_t * data,
+		Protocol_ReadCmd_InputVars *in, Protocol_ReadCmd_OutputVars *out)
 {
+	uint8_t addr_bank = 0;
+	uint8_t addr_batt = 0;
     uint16_t markedChksum = bytes_to_u16(data[31], data[30]);
     uint16_t chksum = prot_calc_checksum(&data[0], 30);
    
     /* Em caso de timeout, o checksum calculado sera zero e o processo devera
        ter continuidade */ 
     if((markedChksum != chksum) && (markedChksum != 0)){
-        LOG("Invalid checksum, got: %d expected: %d\n",markedChksum, chksum);
+        LOG(PROTOCOL_LOG "Invalid checksum, got: %04x expected: %04x\n",markedChksum, chksum);
         return -1;
     }
    
@@ -150,8 +154,17 @@ static int prot_check_extract_readvar_response8(uint8_t * data,Protocol_ReadCmd_
        entregar valores zerados para a base de dados. */ 
     uint16_t cmd = bytes_to_u16(data[1], data[0]);
     if ((cmd != 0) && (cmd != PROTOCOL_READ_VAR_COMMAND)) {
-        LOG("Incorrect command response, got: %d expected: %d\n", cmd, PROTOCOL_READ_VAR_COMMAND);
+        LOG(PROTOCOL_LOG "Incorrect command response, got: %04x expected: %04x\n", cmd, PROTOCOL_READ_VAR_COMMAND);
         return -2;
+    }
+
+    /* Confere se a mensagem de retorno corresponde a mensagem solicitada */
+    addr_bank = data[22];
+    addr_batt = data[23];
+    if ((in->addr_bank != addr_bank) || (in->addr_batt != addr_batt)) {
+    	LOG(PROTOCOL_LOG "Invalid message:request %02x%02x response %02x%02x\n",
+    			in->addr_bank,in->addr_batt,addr_bank,addr_batt);
+    	return -3;
     }
 
     out->errcode = bytes_to_u16(data[3], data[2]);
@@ -167,7 +180,7 @@ static int prot_check_extract_readvar_response8(uint8_t * data,Protocol_ReadCmd_
     out->duty_cycle = bytes_to_u16(data[21], data[20]);
     out->addr_bank = data[22];
     out->addr_batt = data[23];
-    
+
     //////////////////////////////////////////////////////
     //LOG("ERRCODE: %04x\n", out->errcode);
     //LOG("VBAT: %04x\n", out->vbat);
@@ -183,6 +196,7 @@ static int prot_check_extract_readvar_response8(uint8_t * data,Protocol_ReadCmd_
     //LOG("ADDR_BANK: %02x\n", out->addr_bank);
     //LOG("ADDR_BATT: %02x\n", out->addr_batt);
     ///////////////////////////////////////////////////////
+
     return 0;
 }
 
@@ -206,7 +220,7 @@ static uint8_t * prot_creat_impedance_request8(Protocol_ImpedanceCmd_InputVars *
 }
 
 static int prot_check_extract_impedance_response8(uint8_t * data,
-                            Protocol_ImpedanceCmd_OutputVars *out)
+		Protocol_ImpedanceCmd_InputVars *in, Protocol_ImpedanceCmd_OutputVars *out)
 {
     uint16_t markedChksum = bytes_to_u16(data[31], data[30]);
     uint16_t chksum = prot_calc_checksum(&data[0], 30);
@@ -260,45 +274,45 @@ static int prot_treat_impedance_timeout_response8(Protocol_ImpedanceCmd_InputVar
     return err;
 }
 
-static int prot_communicate(uint8_t *msg8) 
-{
-	int err = 0;
-
-	/*
-	 * Envia a mensagem pela serial. A serializacao do quadro sera feita
-	 * atraves de cast do tipo
-	 */
-	err = ser_write(ser_instance, msg8 ,PROTOCOL_FRAME_LEN);
-	if (err != 0) {
-		return -1;
-	}
-
-	/*
-	 * Aguarda a chegada da mensagem de resposta. A serializacao do quadro sera
-	 * feita atraves de cast do tipo
-	 */
-	/* Retirada a implementacao de timeout deste ponto. E implementada de forma
-	 * direta na estrutura de serial e pode ser parametrizada externamente pelo
-	 * usuario. TODO: Retirar
-	 */
-	uint8_t *data = (uint8_t *)malloc(sizeof(uint8_t)*(PROTOCOL_FRAME_LEN+1));
-	err = ser_read(ser_instance, data, PROTOCOL_FRAME_LEN);
-	if (err == -3) {
-		/* Erro de timeout: retornar o codigo de erro especifico para
-		 * tratamento apropriado nas camadas superiores */
-		free(data);
-		return -3;
-	} else if (err == 0) {
-		/* Transfere a mensagem recebida para o buffer de retorno */
-		memcpy(msg8, data, sizeof(uint8_t)*(PROTOCOL_FRAME_LEN+1));
-	} else {
-		/* Erro */
-		free(data);
-		return -2;
-	}
-	free(data);
-	return 0;
-}
+//static int prot_communicate(uint8_t *msg8)
+//{
+//	int err = 0;
+//
+//	/*
+//	 * Envia a mensagem pela serial. A serializacao do quadro sera feita
+//	 * atraves de cast do tipo
+//	 */
+//	err = ser_write(ser_instance, msg8 ,PROTOCOL_FRAME_LEN);
+//	if (err != 0) {
+//		return -1;
+//	}
+//
+//	/*
+//	 * Aguarda a chegada da mensagem de resposta. A serializacao do quadro sera
+//	 * feita atraves de cast do tipo
+//	 */
+//	/* Retirada a implementacao de timeout deste ponto. E implementada de forma
+//	 * direta na estrutura de serial e pode ser parametrizada externamente pelo
+//	 * usuario. TODO: Retirar
+//	 */
+//	uint8_t *data = (uint8_t *)malloc(sizeof(uint8_t)*(PROTOCOL_FRAME_LEN+1));
+//	err = ser_read(ser_instance, data, PROTOCOL_FRAME_LEN);
+//	if (err == -3) {
+//		/* Erro de timeout: retornar o codigo de erro especifico para
+//		 * tratamento apropriado nas camadas superiores */
+//		free(data);
+//		return -3;
+//	} else if (err == 0) {
+//		/* Transfere a mensagem recebida para o buffer de retorno */
+//		memcpy(msg8, data, sizeof(uint8_t)*(PROTOCOL_FRAME_LEN+1));
+//	} else {
+//		/* Erro */
+//		free(data);
+//		return -2;
+//	}
+//	free(data);
+//	return 0;
+//}
 
 int prot_init(Serial_t *serial) {
 	int err = 0;
@@ -317,66 +331,184 @@ int prot_init(Serial_t *serial) {
 }
 
 int prot_read_vars(Protocol_ReadCmd_InputVars *in,
-		            Protocol_ReadCmd_OutputVars *out) 
+		            Protocol_ReadCmd_OutputVars *out,
+					int retries)
 {
 	int err = 0;
-	/* Constroi a mensagem */
+	int retry = retries;
+	int stop = 0;
+	uint8_t data[PROTOCOL_FRAME_LEN+1];
+
+	/*
+	 * Constroi a mensagem
+	 */
 	uint8_t *msg8 = prot_creat_readvar_request8(in); 
 	if (err != 0) {
 		return -1;
 	}
 
-	//LOG("V:");
-
-	/* Envia o request e aguarda a resposta */
-	err = prot_communicate(msg8); //in place response
-	if (err == 0) {
-		err = prot_check_extract_readvar_response8(msg8, out);
-	} else if (err == -3) {
-		/* Trata a situacao de timeout */
-		err = prot_treat_readvar_timeout_response8(in,out);	
-	} else {
-		free(msg8);
-		return -2;
-	}
-
-	/* Retorna o resultado */
+	/*
+	 * Envia a mensagem pela serial. A serializacao do quadro sera feita
+	 * atraves de cast do tipo
+	 */
+	err = ser_write(ser_instance, msg8 ,PROTOCOL_FRAME_LEN);
 	if (err != 0) {
-		free(msg8);
-		return -3;
+		return -1;
 	}
-        free(msg8);
-	return 0;
+
+	while ((retry > 0) && (stop == 0)) {
+		/*
+		 * Recebe o quadro pela serial
+		 */
+		err = ser_read(ser_instance, data, PROTOCOL_FRAME_LEN);
+		if (err == -3) {
+			/*
+			 * TIMEOUT - mantem os ultimos dados lidos
+			 */
+			err = prot_treat_readvar_timeout_response8(in,out);
+			/* Sai do loop */
+			break;
+		} else if (err == 0) {
+			/*
+			 * QUADRO RECEBIDO - Realiza a analise de integridade
+			 */
+			err = prot_check_extract_readvar_response8(data, in, out);
+			if (err == -3) {
+				/*
+				 * QUADRO INVALIDO - aguarda pelo próximo quadro
+				 */
+				LOG(PROTOCOL_LOG "Mensagem invalida, retries %d\n",retry);
+				retry--;
+			} else {
+				/*
+				 * Qualquer outra situacao - sai do loop corretamente
+				 * Em caso de erro de checksum ou de mensagem incorreta,
+				 * ambas são descartadas no tratamento.
+				 */
+				break;
+			}
+		} else {
+			/*
+			 * ERRO - sai do loop
+			 */
+			break;
+		}
+	}
+
+	if (retry == 0) {
+		err = -10;
+	}
+
+	/*
+	 * Libera a mensagem criada para transmissao
+	 */
+	free(msg8);
+
+	return err;
 }
 
 int prot_read_impedance(Protocol_ImpedanceCmd_InputVars *in,
-		                Protocol_ImpedanceCmd_OutputVars *out) 
+		                Protocol_ImpedanceCmd_OutputVars *out,
+						int retries)
 {
 	int err = 0;
-	/* Constroi a mensagem */
-    
-	uint8_t * msg8 = prot_creat_impedance_request8(in);
+	int retry = retries;
+	int stop = 0;
+	uint8_t data[PROTOCOL_FRAME_LEN+1];
+
+	/*
+	 * Constroi a mensagem
+	 */
+	uint8_t *msg8 = prot_creat_impedance_request8(in);
 	if (err != 0) {
-		return -3;
+		return -1;
 	}
 
-	//LOG("I:");
-
-	/* Envia o request e aguarda a resposta */
-	err = prot_communicate(msg8); //in place response
-	if (err == 0) {
-		err = prot_check_extract_impedance_response8(msg8, out);
-	} else if (err == -3) {
-		/* Timeout */
-		err = prot_treat_impedance_timeout_response8(in, out);
-	} else {
-		return -3;
-	}
-
-	/* Retorna o resultado */
+	/*
+	 * Envia a mensagem pela serial. A serializacao do quadro sera feita
+	 * atraves de cast do tipo
+	 */
+	err = ser_write(ser_instance, msg8 ,PROTOCOL_FRAME_LEN);
 	if (err != 0) {
-		return -3;
+		return -1;
 	}
+
+	while ((retry > 0) && (stop == 0)) {
+		/*
+		 * Recebe o quadro pela serial
+		 */
+		err = ser_read(ser_instance, data, PROTOCOL_FRAME_LEN);
+		if (err == -3) {
+			/*
+			 * TIMEOUT - mantem os ultimos dados lidos
+			 */
+			err = prot_treat_impedance_timeout_response8(in,out);
+			/* Sai do loop */
+			break;
+		} else if (err == 0) {
+			/*
+			 * QUADRO RECEBIDO - Realiza a analise de integridade
+			 */
+			err = prot_check_extract_impedance_response8(data, in, out);
+			if (err == -3) {
+				/*
+				 * QUADRO INVALIDO - aguarda pelo próximo quadro
+				 * (Foi implementado igual a leitura de variaveis, mas esta
+				 * situacao nunca sera obtida)
+				 */
+				LOG(PROTOCOL_LOG "Mensagem invalida, retries %d\n",retry);
+				retry--;
+			} else {
+				/*
+				 * Qualquer outra situacao - sai do loop corretamente
+				 * Em caso de erro de checksum ou de mensagem incorreta,
+				 * ambas são descartadas no tratamento.
+				 */
+				break;
+			}
+		} else {
+			/*
+			 * ERRO - sai do loop
+			 */
+			break;
+		}
+	}
+
+	if (retry == 0) {
+		err = -10;
+	}
+
+	/*
+	 * Libera a mensagem criada para transmissao
+	 */
 	free(msg8);
-	return 0;
+
+	return err;
+//	int err = 0;
+//	/* Constroi a mensagem */
+//
+//	uint8_t * msg8 = prot_creat_impedance_request8(in);
+//	if (err != 0) {
+//		return -3;
+//	}
+//
+//	//LOG("I:");
+//
+//	/* Envia o request e aguarda a resposta */
+//	err = prot_communicate(msg8); //in place response
+//	if (err == 0) {
+//		err = prot_check_extract_impedance_response8(msg8, out);
+//	} else if (err == -3) {
+//		/* Timeout */
+//		err = prot_treat_impedance_timeout_response8(in, out);
+//	} else {
+//		return -3;
+//	}
+//
+//	/* Retorna o resultado */
+//	if (err != 0) {
+//		return -3;
+//	}
+//	free(msg8);
+//	return 0;
 }
