@@ -18,30 +18,31 @@
 #define DATABASE_ADDRESSES_NAME			"Modulo"
 #define DATABASE_PARAMETERS_TABLE_NAME	"Parameters"
 #define DATABASE_NETWORK_TABLE_NAME		"RedeSeguranca"
-#define DATABASE_PARAM_AVG_ADDR			1
-#define DATABASE_PARAM_DUTYMIN_ADDR		2
-#define DATABASE_PARAM_DUTYMAX_ADDR		3
-#define DATABASE_PARAM_CTE_ADDR			4
-#define DATABASE_PARAM_DELAY_ADDR		5
-#define DATABASE_PARAM_NUM_CYCLES_VAR_READ	6
-#define DATABASE_PARAM_BUS_SUM			7
-#define DATABASE_PARAM_SAVE_LOG_TIME		8
-#define DATABASE_PARAM_DISK_CAPACITY		9
+#define DATABASE_PARAM_AVG_ADDR					1
+#define DATABASE_PARAM_DUTYMIN_ADDR				2
+#define DATABASE_PARAM_DUTYMAX_ADDR				3
+#define DATABASE_PARAM_CTE_ADDR					4
+#define DATABASE_PARAM_DELAY_ADDR				5
+#define DATABASE_PARAM_NUM_CYCLES_VAR_READ		6
+#define DATABASE_PARAM_BUS_SUM					7
+#define DATABASE_PARAM_SAVE_LOG_TIME			8
+#define DATABASE_PARAM_DISK_CAPACITY			9
 #define DATABASE_PARAM_PARAM1_INTERBAT_DELAY	10
 #define DATABASE_PARAM_PARAM2_SERIAL_READ_TO	11
-#define DATABASE_PARAM_NB_ITEMS			19+1
-#define DATABASE_NETWORK_MAC_ADDR		1
-#define DATABASE_NETWORK_NB_ITEMS		14+1
+#define DATABASE_PARAM_PARAM3_MESSAGES_WAIT		12
+#define DATABASE_PARAM_NB_ITEMS					19+1
+#define DATABASE_NETWORK_MAC_ADDR				1
+#define DATABASE_NETWORK_NB_ITEMS				14+1
 
 #define BATTERY_STRINGS_ADDR           4
 #define BATTERY_COUNT_ADDR             5
 
-static sqlite3 			*database;
-static Database_Addresses_t	*addr_list;
+static sqlite3 					*database;
+static Database_Addresses_t		*addr_list;
 static Database_Parameters_t	*param_list;
-static sqlite3_stmt       	*baked_stmt;
-static sqlite3_stmt		*baked_stmt_rt;
-static char			mac_address[30];
+static sqlite3_stmt       		*baked_stmt;
+static sqlite3_stmt				*baked_stmt_rt;
+static char						mac_address[30];
 
 static int db_get_timestamp(char *timestamp){
 	time_t rawtime;
@@ -57,21 +58,6 @@ static int db_get_timestamp(char *timestamp){
 static int write_callback(void *data, int argc, char **argv, char **azColName){
 	return 0;
 }
-
-//static unsigned char addr_to_int(char *addr){
-//	char *end;
-//	unsigned char response;
-//	long i = 0;
-//	char *str = &addr[1];
-//	for(i = strtol(str, &end, 10); str != end; i = strtol(str, &end, 10)){ //grab last only
-//		str = end;
-//	}
-//	if(i < 256 && i >= 0)
-//		response = (unsigned char) i;
-//	else
-//		response = 0;
-//	return response;
-//}
 
 static char * int_to_addr(int val, int isBank){
 	char * res = (char *)malloc(sizeof(char)*5); //at most 4 -> M255
@@ -110,7 +96,6 @@ static int read_callback(void *data, int argc, char **argv, char **azColName){
 		LOG(DATABASE_LOG "read_callback: We have a nullptr\n");
 		exit(0);
 	}
-
 
 	/*
 	 * Tudo OK - realiza o procedimento
@@ -198,6 +183,7 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 		param_list->disk_capacity = 0;
 		param_list->param1_interbat_delay = 0;
 		param_list->param2_serial_read_to = 0;
+		param_list->param3_messages_wait = 3;
 	} else {
 		LOG(DATABASE_LOG "Leitura de valores da tabela de parametros\n");
 
@@ -212,6 +198,7 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 		param_list->disk_capacity = (unsigned int) strtol(argv[DATABASE_PARAM_DISK_CAPACITY], &garbage, 0);
 		param_list->param1_interbat_delay = (unsigned int) strtol(argv[DATABASE_PARAM_PARAM1_INTERBAT_DELAY], &garbage, 0);
 		param_list->param2_serial_read_to = (unsigned int) strtol(argv[DATABASE_PARAM_PARAM2_SERIAL_READ_TO], &garbage, 0);
+		param_list->param3_messages_wait = (unsigned int) strtol(argv[DATABASE_PARAM_PARAM3_MESSAGES_WAIT], &garbage, 0);
 	}
 
 	LOG(DATABASE_LOG "Initing with:\n");
@@ -225,6 +212,7 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 	LOG(DATABASE_LOG "DISK_CAPACITY: %u\n",param_list->disk_capacity);
 	LOG(DATABASE_LOG "PARAM1_INTERBAT_DELAY: %u\n",param_list->param1_interbat_delay);
 	LOG(DATABASE_LOG "PARAM2_SERIAL_READ_TO: %u\n",param_list->param2_serial_read_to);
+	LOG(DATABASE_LOG "PARAM3_MESSAGES_WAIT: %u\n",param_list->param3_messages_wait);
 
 	return ret;
 }

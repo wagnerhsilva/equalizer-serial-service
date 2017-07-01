@@ -34,6 +34,7 @@ typedef struct {
 	unsigned int	num_banks; /* para calcular tensao barramento */
 	unsigned int	param1_interbat_delay; /* param1 - intervalo, em microssegundos, entre leitura de bateria */
 	unsigned int	param2_serial_read_to; /* param2 - tempo de timeout, em microssegundos, de esperar de resposta do sensor pela serial */
+	unsigned int	param3_messages_wait;
 } Database_Parameters_t;
 
 typedef struct {
