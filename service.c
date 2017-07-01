@@ -123,6 +123,7 @@ int service_start(void) {
 	}
 	/* Atualiza o timeout de leitura de serial */
 	ser_setReadTimeout(&serial_comm,params.param2_serial_read_to);
+	ser_setReadRetries(&serial_comm,params.param3_messages_wait);
 
 	while(!getStop()) {
 		/*
@@ -144,6 +145,7 @@ int service_start(void) {
 			}
 			/* Atualiza o timeout de leitura de serial */
 			ser_setReadTimeout(&serial_comm,params.param2_serial_read_to);
+			ser_setReadRetries(&serial_comm,params.param3_messages_wait);
 			/* reseta contador */
 			update_param_counter = 0;
 		} else {
@@ -203,13 +205,13 @@ int service_start(void) {
 					 * leitura das variaveis quanto a leitura da 
 					 * impedancia para toda a string
 					 */
-					err = prot_read_vars(&input_vars,&output_vars);
+					err = prot_read_vars(&input_vars,&output_vars, params.param3_messages_wait);
 					if (err != 0) {
 						break;
 					}
 					/* Salva a leitura feita */
 					memcpy((unsigned char *)&output_vars_last[i],(unsigned char *)&output_vars,sizeof(Protocol_ReadCmd_OutputVars));
-					err = prot_read_impedance(&input_impedance,&output_impedance);
+					err = prot_read_impedance(&input_impedance,&output_impedance, params.param3_messages_wait);
 					if (err != 0) {
 						break;
 					}
@@ -221,14 +223,14 @@ int service_start(void) {
 					 * impedancia
 					 */
 					if (vars_read_counter < params.num_cycles_var_read) {
-						err = prot_read_vars(&input_vars,&output_vars);
+						err = prot_read_vars(&input_vars,&output_vars, params.param3_messages_wait);
 						if (err != 0) {
 							break;
 						}
 						/* Salva a leitura feita */
 						memcpy((unsigned char *)&output_vars_last[i],(unsigned char *)&output_vars,sizeof(Protocol_ReadCmd_OutputVars));
 					} else {
-						err = prot_read_impedance(&input_impedance,&output_impedance);
+						err = prot_read_impedance(&input_impedance,&output_impedance, params.param3_messages_wait);
 						if (err != 0) {
 							break;
 						}
