@@ -158,12 +158,12 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len) {
     			break; /* Sai do loop */
     		} else {
     			/* Erro */
-    			LOG(SERIAL_LOG "read ERROR retries = %d\n",retries);
-    			retries--;
-    			if (retries == 0) {
-    				ret = -4;
-    				break; /* Sai do loop */
-    			}
+    			LOG(SERIAL_LOG "read ERROR\n",retries);
+//    			retries--;
+//    			if (retries == 0) {
+//    				ret = -4;
+//    				break; /* Sai do loop */
+//    			}
     		}
     	} else if (rv == 0) {
     		LOG(SERIAL_LOG "read TIMEOUT\n");
