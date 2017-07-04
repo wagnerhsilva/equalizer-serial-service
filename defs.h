@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 
-#define SOFTWARE_VERSION					"1.10"
+#define SOFTWARE_VERSION					"1.11"
 
 #define DEBUG_FILE "debug.txt"
 #define CHECK(r) _check((r), __LINE__, __FILE__)
@@ -26,10 +26,7 @@
 #define DATABASE_TRANSACTION_END            "END TRANSACTION"
 #define MAX_STRING_LEN                      256
 
-//#define DEFAULT_SERIAL_PATH                 "/dev/ttyUSB1" //debug
-//#define DEFAULT_SERIAL_PATH                 "/dev/ttyS0" //debug
 #define DEFAULT_DB_PATH                     "../equalizer-api/equalizer-api/equalizerdb"
-//#define DEFAULT_DB_PATH			      "equalizerdb"
 #define bytes_to_u16(LSB, MSB) (LSB | MSB << 8)
 #define bytes_to_u32(MSB0,MSB1,MSB2,LSB) ((MSB0 << 24) | (MSB1 << 16) \
                                          |(MSB2 << 8)  | (LSB))
