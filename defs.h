@@ -5,6 +5,8 @@
 #include <stdarg.h>
 #include <unistd.h>
 
+#define SOFTWARE_VERSION					"1.10"
+
 #define DEBUG_FILE "debug.txt"
 #define CHECK(r) _check((r), __LINE__, __FILE__)
 #define PROTOCOL_FRAME_LEN                  32

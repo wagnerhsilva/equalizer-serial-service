@@ -45,6 +45,7 @@ int LOG(const char *format, ...){
             time(&rawtime);
             timeinfo = localtime(&rawtime);
             char buffer[256];
+            strcat(buffer,"SOFTWARE BASICO V. " SOFTWARE_VERSION);
             strcat(buffer, "---[Invoked at: ");
             int s = strlen(buffer);
             strftime(&buffer[s], 100, "%Y-%m-%d %H:%M:%S", timeinfo);
