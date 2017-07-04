@@ -43,49 +43,45 @@ int ser_setup(Serial_t *ser_instance, int baud) {
 
     err = tcgetattr(ser_instance->fd, &ser_instance->old_termios);
     if (err != 0) {
-        LOG(SERIAL_LOG "Unnable to acquire terminal controll\n");
+        LOG(SERIAL_LOG "Unable to acquire terminal control\n");
         return -3;
     }
 
     memset(&ser_instance->new_termios, 0, sizeof(struct termios));
 
-    ser_instance->new_termios.c_iflag = IGNPAR;
-    ser_instance->new_termios.c_oflag = 0;
-    ser_instance->new_termios.c_cflag = CS8 | CREAD | CLOCAL | HUPCL;
-    ser_instance->new_termios.c_lflag = 0;
-    ser_instance->new_termios.c_cc[VINTR]    = 0;
-    ser_instance->new_termios.c_cc[VQUIT]    = 0;
-    ser_instance->new_termios.c_cc[VERASE]   = 0;
-    ser_instance->new_termios.c_cc[VKILL]    = 0;
-    ser_instance->new_termios.c_cc[VEOF]     = 4;
-    ser_instance->new_termios.c_cc[VTIME]    = 0;
-    ser_instance->new_termios.c_cc[VMIN]     = 1;
-    ser_instance->new_termios.c_cc[VSWTC]    = 0;
-    ser_instance->new_termios.c_cc[VSTART]   = 0;
-    ser_instance->new_termios.c_cc[VSTOP]    = 0;
-    ser_instance->new_termios.c_cc[VSUSP]    = 0;
-    ser_instance->new_termios.c_cc[VEOL]     = 0;
-    ser_instance->new_termios.c_cc[VREPRINT] = 0;
-    ser_instance->new_termios.c_cc[VDISCARD] = 0;
-    ser_instance->new_termios.c_cc[VWERASE]  = 0;
-    ser_instance->new_termios.c_cc[VLNEXT]   = 0;
-    ser_instance->new_termios.c_cc[VEOL2]    = 0;
+    ser_instance->new_termios.c_cflag &= ~PARENB; 					//No Parity
+    ser_instance->new_termios.c_cflag &= ~CSTOPB; 					//Stop Bits = 1
+    ser_instance->new_termios.c_cflag &= ~CSIZE; 					//Clear Mask
+    ser_instance->new_termios.c_cflag |=  CS8; 						//Set Data bits = 8
+    ser_instance->new_termios.c_cflag &= ~CRTSCTS; 					//No RTS and CTS
+    ser_instance->new_termios.c_cflag |= CREAD|CLOCAL;				//Turn ON Receiver
+    ser_instance->new_termios.c_iflag &= ~(IXON | IXOFF | IXANY); 	//No flow control
+    ser_instance->new_termios.c_iflag &= ~(ICANON|ECHO|ECHOE|ISIG);	//No flow control
+    ser_instance->new_termios.c_oflag &= ~OPOST; 					//No Output Processing
+    // Minicom Flags
+    ser_instance->new_termios.c_cflag &= ~(HUPCL);					//AFTER
+    ser_instance->new_termios.c_iflag &= ~(ICRNL);                 	//AFTER
+    ser_instance->new_termios.c_oflag &= ~(ONLCR);                 	//AFTER
+    ser_instance->new_termios.c_lflag &= ~(ISIG|ICANON|IEXTEN|ECHO|ECHOE|ECHOK|ECHOCTL|ECHOKE); //AFTER
+    // Minicom Flags
+    ser_instance->new_termios.c_cc[VMIN]=32;						//Read at least 32 chars
+    ser_instance->new_termios.c_cc[VTIME]=0;						//Wait indefitly
 
     err = cfsetispeed(&ser_instance->new_termios, B115200);
     if (err != 0) {
-        LOG(SERIAL_LOG "Unnable to set input baudrate\n");
+        LOG(SERIAL_LOG "Unable to set input baudrate\n");
         return -4;
     }
 
     err = cfsetospeed(&ser_instance->new_termios, B115200);
     if (err != 0) {
-        LOG(SERIAL_LOG "Unnable to set output baudrate\n");
+        LOG(SERIAL_LOG "Unable to set output baudrate\n");
         return -5;
     }
 
     err = tcsetattr(ser_instance->fd, TCSANOW, &ser_instance->new_termios);
     if (err != 0) {
-        LOG(SERIAL_LOG "Unnable to take controll of terminal\n");
+        LOG(SERIAL_LOG "Unable to take controll of terminal\n");
         return -6;
     }
 
@@ -124,13 +120,16 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len) {
     int rv;
     int bread;
     int ret = -5;
-    int retries = 0;
     struct timeval timeout;
     
     /* Sanity check */
     if (ser_instance->fd < 0) {
         return -1;
     }
+    /*
+     * Libera dados antigos
+     */
+    tcflush(ser_instance->fd,TCIFLUSH);
     /*
      * Preparando o conjunto para o select()
      * No caso, estamos assumindo somente uma serial usada
@@ -141,7 +140,6 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len) {
     FD_SET(ser_instance->fd,&set);
     timeout.tv_sec = ser_instance->read_timeout;
     timeout.tv_usec = 0;
-    retries = ser_instance->retries;
 
     while (1) {
     	/* Usa o select() para verificar a disponibilidade de dados */
@@ -157,16 +155,11 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len) {
     			ret = 0;
     			break; /* Sai do loop */
     		} else {
-    			/* Erro */
-    			LOG(SERIAL_LOG "read ERROR\n",retries);
-//    			retries--;
-//    			if (retries == 0) {
-//    				ret = -4;
-//    				break; /* Sai do loop */
-//    			}
+    			/* Erro, tenta novamente */
+    			LOG(SERIAL_LOG "read ERROR %d\n",bread);
     		}
     	} else if (rv == 0) {
-    		LOG(SERIAL_LOG "read TIMEOUT\n");
+    		LOG(SERIAL_LOG "select TIMEOUT\n");
     		ret = -3;
     		break; /* Sai do loop */
     	} else {
