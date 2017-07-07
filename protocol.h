@@ -7,7 +7,9 @@
 
 #ifndef PROTOCOL_H_
 #define PROTOCOL_H_
-
+#define CCK_ZERO_DEBUG_V(r) {_cck_zero_debug_vars((r), __LINE__, __FILE__);}
+#define CCK_ZERO_DEBUG_E(r) {_cck_zero_debug_impe((r), __LINE__, __FILE__);}
+#define CCK_ZERO_DEBUG_F(r, index) {_cck_zero_debug_vars_f((r), index, __LINE__, __FILE__);}
 #include <serial.h>
 
 typedef struct {
@@ -50,5 +52,9 @@ int prot_init(Serial_t *serial);
 int prot_read_vars(Protocol_ReadCmd_InputVars *in, Protocol_ReadCmd_OutputVars *out, int retries);
 int prot_read_impedance(Protocol_ImpedanceCmd_InputVars *in, Protocol_ImpedanceCmd_OutputVars *out, int retries);
 void prot_ext_print_info(Protocol_ReadCmd_OutputVars *vars);
+
+int _cck_zero_debug_vars(Protocol_ReadCmd_OutputVars *out, int line, const char *file);
+int _cck_zero_debug_impe(Protocol_ImpedanceCmd_InputVars *in, int line, const char *file);
+int _cck_zero_debug_vars_f(Protocol_ReadCmd_OutputVars *out, int index, int line, const char *file);
 
 #endif /* PROTOCOL_H_ */

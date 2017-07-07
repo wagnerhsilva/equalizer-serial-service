@@ -18,6 +18,7 @@ const int PROTOCOL_READ_VAR_ARR[2] = {PROTOCOL_READ_VAR_COMMAND_0,
 const int PROTOCOL_IMPEDANCE_VAR_ARR[2] = {PROTOCOL_IMPEDANCE_COMMAND_0,
                                           PROTOCOL_IMPEDANCE_COMMAND_1};
 
+
 int _check(int error, int line, const char *file){
     if(error != 0 && DEBUG){
         LOG("Error file %s on line %d with code %d\n", file, line, error);

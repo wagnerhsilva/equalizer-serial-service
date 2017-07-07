@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <unistd.h>
-
 #define SOFTWARE_VERSION					"1.11"
 
 #define DEBUG_FILE "debug.txt"

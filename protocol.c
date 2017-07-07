@@ -361,6 +361,7 @@ int prot_read_vars(Protocol_ReadCmd_InputVars *in,
 	 */
 	uint8_t *msg8 = prot_creat_readvar_request8(in);
 	if (err != 0) {
+		printf("prot_read_vars_RETURNING PREVIOUSLY!\n");
 		return -1;
 	}
 
@@ -370,6 +371,7 @@ int prot_read_vars(Protocol_ReadCmd_InputVars *in,
 	 */
 	err = ser_write(ser_instance, msg8 ,PROTOCOL_FRAME_LEN);
 	if (err != 0) {
+		printf("prot_read_vars_RETURNING PREVIOUSLY!\n");
 		return -1;
 	}
 
@@ -401,7 +403,7 @@ int prot_read_vars(Protocol_ReadCmd_InputVars *in,
 	}
 
 	free(msg8);
-
+	// CCK_ZERO_DEBUG_V(out);
 	return err;
 }
 
@@ -419,6 +421,7 @@ int prot_read_impedance(Protocol_ImpedanceCmd_InputVars *in,
 	 */
 	uint8_t *msg8 = prot_creat_impedance_request8(in);
 	if (err != 0) {
+		printf("prot_read_impedance_RETURNING PREVIOUSLY!\n");
 		return -1;
 	}
 
@@ -428,6 +431,7 @@ int prot_read_impedance(Protocol_ImpedanceCmd_InputVars *in,
 	 */
 	err = ser_write(ser_instance, msg8 ,PROTOCOL_FRAME_LEN);
 	if (err != 0) {
+		printf("prot_read_impedance_RETURNING PREVIOUSLY!\n");
 		return -1;
 	}
 
@@ -475,6 +479,36 @@ int prot_read_impedance(Protocol_ImpedanceCmd_InputVars *in,
 	 * Libera a mensagem criada para transmissao
 	 */
 	free(msg8);
-
+	// CCK_ZERO_DEBUG_E(in);
 	return err;
+}
+
+int _cck_zero_debug_vars_f(Protocol_ReadCmd_OutputVars *out, int index, int line, const char *file){
+  if(out->addr_batt == 0 || out->addr_bank == 0){
+    printf("Zero Value detected on line: %d of file: %s , index: %d\n",line, file, index);
+    LOG("Zero Value detected on line: %d of file: %s , index: %d\n",line, file, index);
+    EXT_PRINT("Zero Value detected on line: %d of file: %s , index: %d\n",line, file, index);
+    exit(0);
+  }
+  return 0;
+}
+
+int _cck_zero_debug_vars(Protocol_ReadCmd_OutputVars *out, int line, const char *file){
+  if(out->addr_batt == 0 || out->addr_bank == 0){
+    printf("Zero Value detected on line: %d of file: %s\n",line, file);
+    LOG("Zero Value detected on line: %d of file: %s\n", line, file);
+    EXT_PRINT("Zero Value detected on line: %d of file: %s\n", line, file);
+    exit(0);
+  }
+  return 0;
+}
+
+int _cck_zero_debug_impe(Protocol_ImpedanceCmd_InputVars *in, int line, const char *file){
+  if(in->addr_batt == 0 || in->addr_bank == 0){
+    printf("Zero Value detected on line: %d of file: %s\n",line, file);
+    LOG("Zero Value detected on line: %d of file: %s\n", line, file);
+    EXT_PRINT("Zero Value detected on line: %d of file: %s\n", line, file);
+    exit(0);
+  }
+  return 0;
 }

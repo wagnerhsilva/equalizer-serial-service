@@ -86,6 +86,7 @@ void service_preserved_copy(Protocol_ReadCmd_OutputVars * dest, Protocol_ReadCmd
 	memcpy((unsigned char *)&dest[0], (unsigned char *)&src[0],sizeof(Protocol_ReadCmd_OutputVars));
 	dest->addr_bank = bank;
 	dest->addr_batt = batt;
+	CCK_ZERO_DEBUG_V(dest);
 }
 
 
@@ -218,10 +219,11 @@ int service_start(void) {
 					err = prot_read_vars(&input_vars,&output_vars, params.param3_messages_wait);
 					if(err != 0){
 						service_preserved_copy(&output_vars, &output_vars_last[i]);
-					}else{
-						memcpy((unsigned char *)&output_vars_last[i], (unsigned char *)&output_vars, sizeof(Protocol_ReadCmd_OutputVars));
 					}
+					memcpy((unsigned char *)&output_vars_last[i], (unsigned char *)&output_vars, sizeof(Protocol_ReadCmd_OutputVars));
 
+					// CCK_ZERO_DEBUG_V(&output_vars);
+					// CCK_ZERO_DEBUG_F(&output_vars_last[i], i);
 					err = prot_read_impedance(&input_impedance,&output_impedance, params.param3_messages_wait);
 					if(err != 0){
 						memcpy((unsigned char *)&output_impedance, (unsigned char *)&output_impedance_last[i], sizeof(Protocol_ImpedanceCmd_OutputVars));
@@ -229,6 +231,7 @@ int service_start(void) {
 						/* Salva a leitura feira */
 						memcpy((unsigned char *)&output_impedance_last[i],(unsigned char *)&output_impedance,sizeof(Protocol_ImpedanceCmd_OutputVars));
 					}
+					// CCK_ZERO_DEBUG_E(&input_impedance);
 				} else {
 					/* Seleciona a captura de informacoes, entre
 					 * a busca por variaveis e a busca pela
@@ -238,11 +241,12 @@ int service_start(void) {
 						err = prot_read_vars(&input_vars,&output_vars, params.param3_messages_wait);
 						if(err != 0){
 							service_preserved_copy(&output_vars, &output_vars_last[i]);
-						}else{
-							memcpy((unsigned char *)&output_vars_last[i], (unsigned char *)&output_vars, sizeof(Protocol_ReadCmd_OutputVars));
 						}
+
 						/* Salva a leitura feita */
 						memcpy((unsigned char *)&output_vars_last[i],(unsigned char *)&output_vars,sizeof(Protocol_ReadCmd_OutputVars));
+						// CCK_ZERO_DEBUG_V(&output_vars);
+						// CCK_ZERO_DEBUG_F(&output_vars_last[i], i);
 					} else {
 						err = prot_read_impedance(&input_impedance,&output_impedance, params.param3_messages_wait);
 						if(err != 0){
@@ -251,6 +255,7 @@ int service_start(void) {
 							/* Salva a leitura feira */
 							memcpy((unsigned char *)&output_impedance_last[i],(unsigned char *)&output_impedance,sizeof(Protocol_ImpedanceCmd_OutputVars));
 						}
+						// CCK_ZERO_DEBUG_E(&input_impedance);
 					}
 				}
 
@@ -277,6 +282,7 @@ int service_start(void) {
 			for (i=0;i<list.items;i++) {
 				pt_vars = &output_vars_last[i];
 				pt_imp = &output_impedance_last[i];
+				// CCK_ZERO_DEBUG_V(pt_vars);
 				err = db_add_response(pt_vars, pt_imp, i+1, save_log_state);
 				if(err != 0){
 					LOG("Erro na escrita do banco!\n");

@@ -282,6 +282,7 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 		Protocol_ImpedanceCmd_OutputVars *imp_vars, int id_db,
 		int save_log)
 {
+	// CCK_ZERO_DEBUG_V(read_vars);
 	char timestamp[80];
 
 	db_get_timestamp(timestamp);
@@ -316,13 +317,6 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	 * Inclui campos na tabela de registros de tempo real
 	 */
 	LOG(DATABASE_LOG "Salvando DataLogRT ...");
-	if(read_vars->addr_bank == 0 || read_vars->addr_batt == 0){
-		LOG("Unstable condition found!\n");
-		EXT_PRINT("Error state:\n");
-		prot_ext_print_info(read_vars);
-		printf("Found an error!\n");
-		exit(0);
-	}
 	sqlite3_bind_text(baked_stmt_rt, 1, timestamp, -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(baked_stmt_rt, 2, int_to_addr(read_vars->addr_bank, 1), -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(baked_stmt_rt, 3, int_to_addr(read_vars->addr_batt, 0), -1, SQLITE_TRANSIENT);
