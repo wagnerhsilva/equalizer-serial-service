@@ -234,14 +234,14 @@ int db_init(char *path) {
         LOG(DATABASE_LOG "Unnable to open database, you might need to call support\n");
 		return -1;
 	}
-	
+
     char *zErrMsg = 0;
 
 	err = sqlite3_exec(database, DATABASE_BUSY_TIMEOUT, 0, 0, &zErrMsg);
 	if(err != SQLITE_OK){
 		LOG(DATABASE_LOG "Unable to set %s : %s\n",(char *)(DATABASE_BUSY_TIMEOUT), zErrMsg);
 		sqlite3_close(database);
-		return -1; 
+		return -1;
 	}
 
 	err = sqlite3_exec(database, DATABASE_JOURNAL_MODE, 0, 0, &zErrMsg);
@@ -279,7 +279,7 @@ int db_finish(void) {
 }
 
 int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
-		Protocol_ImpedanceCmd_OutputVars *imp_vars, int id_db, 
+		Protocol_ImpedanceCmd_OutputVars *imp_vars, int id_db,
 		int save_log)
 {
 	char timestamp[80];
@@ -316,6 +316,13 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	 * Inclui campos na tabela de registros de tempo real
 	 */
 	LOG(DATABASE_LOG "Salvando DataLogRT ...");
+	if(read_vars->addr_bank == 0 || read_vars->addr_batt == 0){
+		LOG("Unstable condition found!\n");
+		EXT_PRINT("Error state:\n");
+		prot_ext_print_info(read_vars);
+		printf("Found an error!\n");
+		exit(0);
+	}
 	sqlite3_bind_text(baked_stmt_rt, 1, timestamp, -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(baked_stmt_rt, 2, int_to_addr(read_vars->addr_bank, 1), -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(baked_stmt_rt, 3, int_to_addr(read_vars->addr_batt, 0), -1, SQLITE_TRANSIENT);
@@ -396,7 +403,10 @@ int db_set_macaddress(void){
 		LOG(DATABASE_LOG "Alterando MAC Address para %s ... ",mac_address);
 		memset(system_cmd,0,sizeof(system_cmd));
 		sprintf(system_cmd,"ifconfig eth0 hw ether %s",mac_address);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
 		system(system_cmd);
+#pragma GCC diagnostic pop
 		LOG("OK\n");
 
 		return 0;
@@ -455,4 +465,3 @@ int db_update_average(unsigned short new_avg, unsigned int new_sum, unsigned int
 	}
 	return -1;
 }
-

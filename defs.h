@@ -8,6 +8,9 @@
 #define SOFTWARE_VERSION					"1.11"
 
 #define DEBUG_FILE "debug.txt"
+/******************************************/
+#define EXT_PRINT_FILE "debug_print.txt"
+/*****************************************/
 #define CHECK(r) _check((r), __LINE__, __FILE__)
 #define PROTOCOL_FRAME_LEN                  32
 #define PROTOCOL_FRAME_LEN_SHORT            (PROTOCOL_FRAME_LEN / 2)
@@ -37,13 +40,14 @@
 extern const int PROTOCOL_READ_VAR_ARR[2];
 extern const int PROTOCOL_IMPEDANCE_VAR_ARR[2];
 
-enum bool{ 
+enum bool{
     false = 0, true = !false
 };
 
 typedef enum bool bool;
 
 int LOG(const char *format, ...);
+int EXT_PRINT(const char *format, ...);
 int _check(int error, int line, const char *file);
 char * toStrHexa(unsigned char * data, int len);
 unsigned short _compressFloat(float a);

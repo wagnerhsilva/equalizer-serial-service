@@ -36,7 +36,7 @@ int service_init(char *dev_path, char *db_path) {
 	/*
 	 * Checa o caminho para inicio da execucao
 	 */
-	if(dev_path == NULL){ 
+	if(dev_path == NULL){
 		LOG("Invalid device path\n");
 		return -1;
 	}
@@ -78,6 +78,16 @@ int service_init(char *dev_path, char *db_path) {
 
 	return 0;
 }
+
+//copy persisting address
+void service_preserved_copy(Protocol_ReadCmd_OutputVars * dest, Protocol_ReadCmd_OutputVars * src){
+	unsigned char bank = dest->addr_bank;
+	unsigned char batt = dest->addr_batt;
+	memcpy((unsigned char *)&dest[0], (unsigned char *)&src[0],sizeof(Protocol_ReadCmd_OutputVars));
+	dest->addr_bank = bank;
+	dest->addr_batt = batt;
+}
+
 
 int service_start(void) {
 	float 				 f_average = 0.0f; //let's be on the safe side
@@ -166,7 +176,7 @@ int service_start(void) {
 			f_average = 0;
 			f_bus_sum = 0;
 			LOG(SERVICE_LOG "total de sensores = %d\n",list.items);
-			for (i=0;i<list.items;i++) {
+			for (i=0;i<list.items;i++){
 				/*
 				 * Inicializa as estrutura. As estruturas de saida nao sao
 				 * zeradas, pois em caso de timeout o ultimo valor sera
@@ -201,22 +211,24 @@ int service_start(void) {
 
 				if (isFirstRead) {
 					/*
-					 * Se for a primeira leitura, realiza tanto a 
-					 * leitura das variaveis quanto a leitura da 
+					 * Se for a primeira leitura, realiza tanto a
+					 * leitura das variaveis quanto a leitura da
 					 * impedancia para toda a string
 					 */
 					err = prot_read_vars(&input_vars,&output_vars, params.param3_messages_wait);
-					if (err != 0) {
-						break;
+					if(err != 0){
+						service_preserved_copy(&output_vars, &output_vars_last[i]);
+					}else{
+						memcpy((unsigned char *)&output_vars_last[i], (unsigned char *)&output_vars, sizeof(Protocol_ReadCmd_OutputVars));
 					}
-					/* Salva a leitura feita */
-					memcpy((unsigned char *)&output_vars_last[i],(unsigned char *)&output_vars,sizeof(Protocol_ReadCmd_OutputVars));
+
 					err = prot_read_impedance(&input_impedance,&output_impedance, params.param3_messages_wait);
-					if (err != 0) {
-						break;
+					if(err != 0){
+						memcpy((unsigned char *)&output_impedance, (unsigned char *)&output_impedance_last[i], sizeof(Protocol_ImpedanceCmd_OutputVars));
+					}else{
+						/* Salva a leitura feira */
+						memcpy((unsigned char *)&output_impedance_last[i],(unsigned char *)&output_impedance,sizeof(Protocol_ImpedanceCmd_OutputVars));
 					}
-					/* Salva a leitura feira */
-					memcpy((unsigned char *)&output_impedance_last[i],(unsigned char *)&output_impedance,sizeof(Protocol_ImpedanceCmd_OutputVars));
 				} else {
 					/* Seleciona a captura de informacoes, entre
 					 * a busca por variaveis e a busca pela
@@ -224,57 +236,35 @@ int service_start(void) {
 					 */
 					if (vars_read_counter < params.num_cycles_var_read) {
 						err = prot_read_vars(&input_vars,&output_vars, params.param3_messages_wait);
-						if (err != 0) {
-							break;
+						if(err != 0){
+							service_preserved_copy(&output_vars, &output_vars_last[i]);
+						}else{
+							memcpy((unsigned char *)&output_vars_last[i], (unsigned char *)&output_vars, sizeof(Protocol_ReadCmd_OutputVars));
 						}
 						/* Salva a leitura feita */
 						memcpy((unsigned char *)&output_vars_last[i],(unsigned char *)&output_vars,sizeof(Protocol_ReadCmd_OutputVars));
 					} else {
 						err = prot_read_impedance(&input_impedance,&output_impedance, params.param3_messages_wait);
-						if (err != 0) {
-							break;
+						if(err != 0){
+							memcpy((unsigned char *)&output_impedance, (unsigned char *)&output_impedance_last[i], sizeof(Protocol_ImpedanceCmd_OutputVars));
+						}else{
+							/* Salva a leitura feira */
+							memcpy((unsigned char *)&output_impedance_last[i],(unsigned char *)&output_impedance,sizeof(Protocol_ImpedanceCmd_OutputVars));
 						}
-						/* Salva a leitura feira */
-						memcpy((unsigned char *)&output_impedance_last[i],(unsigned char *)&output_impedance,sizeof(Protocol_ImpedanceCmd_OutputVars));
-
 					}
 				}
 
 				/*
 				 * Armazena as informacoes recebidas no banco de dados
 				 */
-				if (isFirstRead) {
-					//LOG("isFirstRead:output_vars:output_impedance\n");
-					/* Na primeira leitura, as duas leituras sao realizadas e armazenadas */
-					pt_vars = &output_vars;
-					pt_imp = &output_impedance;
-				} else {
-					if (vars_read_counter < params.num_cycles_var_read) {
-						//LOG("notFirst:output_vars:output_impedance_last\n");
-						/* Registra ultima leitura de impedancia */
-						pt_vars = &output_vars;
-						pt_imp = &output_impedance_last[i];
-					} else {
-						//LOG("notFirst:output_vars_last:output_impedance\n");
-						/* Registra ultima leitura de variavel */
-						pt_vars = &output_vars_last[i];
-						pt_imp = &output_impedance;
-					}
-				}
-				/*
-				 * Envia informacoes para o banco de dados
-				 */
-				err = db_add_response(pt_vars, pt_imp, i+1, save_log_state);
-				if (err != 0) {
-					break;
-				}
+
 				/*
 				 * Calcula a media atualizada de vref
 				 */
 				if ((isFirstRead) || (vars_read_counter < params.num_cycles_var_read)) {
 					float fvbat = (float)(output_vars.vbat);
 					float fitems = (float)(list.items);
-					f_average += fvbat / fitems; 
+					f_average += fvbat / fitems;
 					f_bus_sum += (unsigned int)output_vars.vbat;
 				}
 
@@ -283,6 +273,16 @@ int service_start(void) {
 				 */
 				sleep_ms(params.param1_interbat_delay);
 			}
+
+			for (i=0;i<list.items;i++) {
+				pt_vars = &output_vars_last[i];
+				pt_imp = &output_impedance_last[i];
+				err = db_add_response(pt_vars, pt_imp, i+1, save_log_state);
+				if(err != 0){
+					LOG("Erro na escrita do banco!\n");
+				}
+			}
+
 			/*
 			 * Atualiza o valor de target e de tensao de barramento
 			 * na base de dados, apos a captura de todas as leituras de
@@ -295,11 +295,11 @@ int service_start(void) {
 					f_bus_sum = f_bus_sum / params.num_banks;
 				}
 				/*
-				 * Realiza a leitura da capacidade do disco, para 
+				 * Realiza a leitura da capacidade do disco, para
 				 * enviar com as demais informacoes de tempo real
 				 */
 				capacity = disk_usedSpace("/");
-				/* Formata os dados e atualiza o banco de dados */	
+				/* Formata os dados e atualiza o banco de dados */
 				average_last = _compressFloat(f_average);
 				db_update_average(average_last, f_bus_sum, capacity);
 				//LOG("Storing average value : %g --> %u\n",f_average, average_last);
@@ -371,4 +371,3 @@ int service_finish(void) {
 	LOG("closed.");
 	return 0;
 }
-

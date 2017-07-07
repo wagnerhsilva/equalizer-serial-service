@@ -49,5 +49,6 @@ typedef struct {
 int prot_init(Serial_t *serial);
 int prot_read_vars(Protocol_ReadCmd_InputVars *in, Protocol_ReadCmd_OutputVars *out, int retries);
 int prot_read_impedance(Protocol_ImpedanceCmd_InputVars *in, Protocol_ImpedanceCmd_OutputVars *out, int retries);
+void prot_ext_print_info(Protocol_ReadCmd_OutputVars *vars);
 
 #endif /* PROTOCOL_H_ */

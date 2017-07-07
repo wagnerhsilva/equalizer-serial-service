@@ -36,7 +36,7 @@ Serial_t *ser_instance;
 static uint16_t prot_calc_checksum(uint8_t *data, int len) {
 	int i = 0;
 	uint16_t chksum = 0;
-        
+
 
 	/*
 	 * Soma todos as words do buffer fornecido
@@ -45,9 +45,9 @@ static uint16_t prot_calc_checksum(uint8_t *data, int len) {
         uint16_t value = bytes_to_u16(data[i+1], data[i]);
 		chksum += value;
 	}
-    
+
     chksum = (~chksum) + 1;
-	
+
 	return chksum;
 }
 
@@ -63,22 +63,22 @@ static uint8_t * prot_creat_readvar_request8(Protocol_ReadCmd_InputVars *in)
      */
 
     //adicionado free ao final de prot_read_vars e prot_read_impedance
-    //static arrays n�o fornecem a mesma versalidade
+    //static arrays n�o fornecem a mesma versatilidade
     uint8_t *request8 = 0;
     request8 = (uint8_t*)malloc(sizeof(uint8_t)*PROTOCOL_FRAME_LEN);
     //static uint8_t request8[PROTOCOL_FRAME_LEN] = { 0 };
     int pointer = 0;
-    
+
     request8[pointer++] = u16_MSB(PROTOCOL_START_OF_FRAME); //0x23
     request8[pointer++] = u16_LSB(PROTOCOL_START_OF_FRAME); //0x21
     request8[pointer++] = in->addr_bank; //bank
     request8[pointer++] = in->addr_batt; //batt
-    
+
     request8[pointer++] = PROTOCOL_READ_VAR_COMMAND_0; //0x10
     request8[pointer++] = PROTOCOL_READ_VAR_COMMAND_1; //0xC0
 
     memset((void *)&(request8[pointer]), 0, PROTOTOL_FRAME_REQUEST_DATA_LEN); //clear data
-   
+
     request8[pointer++] = u16_MSB(in->vref);
     request8[pointer++] = u16_LSB(in->vref);
     request8[pointer++] = u16_MSB(in->duty_max);
@@ -93,11 +93,20 @@ static uint8_t * prot_creat_readvar_request8(Protocol_ReadCmd_InputVars *in)
     return request8;
 }
 
+void prot_ext_print_info(Protocol_ReadCmd_OutputVars *vars){
+	EXT_PRINT("State: \n");
+	EXT_PRINT("ERRCODE: %hu\n", vars->errcode);
+	EXT_PRINT("VBAT: %hu\n", vars->vbat);
+	EXT_PRINT("ETEMP: %hu\n", vars->etemp);
+	EXT_PRINT("VSOURCE: %hu\n", vars->vsource);
+	EXT_PRINT("ADDR_BANK: %d\n", vars->addr_bank);
+	EXT_PRINT("ADDR_BATT: %d\n", vars->addr_batt);
+}
+
 static int prot_treat_readvar_timeout_response8(Protocol_ReadCmd_InputVars *in,
 		            Protocol_ReadCmd_OutputVars *out)
 {
-    int err = 0;
-
+    int err = -3;
     /* Anteriormente em caso de timeout era preciso retornar o valor
      * zero de leitura. Isso se mostrou inapropriado. Nesta atualizacao,
      * deve-se preservar o valor anterior. */
@@ -113,14 +122,15 @@ static int prot_treat_readvar_timeout_response8(Protocol_ReadCmd_InputVars *in,
 //    out->ibat_off = 0;
 //    out->vref = 0;
 //    out->duty_cycle = 0;
-//    out->addr_bank = in->addr_bank;
-//    out->addr_batt = in->addr_batt;
-    
+  //  out->addr_bank = in->addr_bank;
+  //  out->addr_batt = in->addr_batt;
+	//  EXT_PRINT("DATA: %d <> %d\n", out->addr_bank, out->addr_batt);
+
     //////////////////////////////////////////////////////
     //LOG("ERRCODE: %04x\n", out->errcode);
     //LOG("VBAT: %04x\n", out->vbat);
     //LOG("ITEMP: %04x\n", out->itemp);
-    //LOG("ETEMP: %04x\n", out->etemp);   
+    //LOG("ETEMP: %04x\n", out->etemp);
     //LOG("VSOURCE: %04x\n", out->vsource);
     //LOG("HWVER: %02x\n", out->hw_ver);
     //LOG("FWVER: %02x\n", out->fw_ver);
@@ -141,17 +151,17 @@ static int prot_check_extract_readvar_response8(uint8_t * data,
 	uint8_t addr_batt = 0;
     uint16_t markedChksum = bytes_to_u16(data[31], data[30]);
     uint16_t chksum = prot_calc_checksum(&data[0], 30);
-   
+
     /* Em caso de timeout, o checksum calculado sera zero e o processo devera
-       ter continuidade */ 
+       ter continuidade */
     if((markedChksum != chksum) && (markedChksum != 0)){
         LOG(PROTOCOL_LOG "Invalid checksum, got: %04x expected: %04x\n",markedChksum, chksum);
         return -1;
     }
-   
+
     /* Em caso de tratamento de mensagens de timeout, o comando recebido sera 0.
        Neste caso, o processamento deve seguir seu tratamento natural, que sera
-       entregar valores zerados para a base de dados. */ 
+       entregar valores zerados para a base de dados. */
     uint16_t cmd = bytes_to_u16(data[1], data[0]);
     if ((cmd != 0) && (cmd != PROTOCOL_READ_VAR_COMMAND)) {
         LOG(PROTOCOL_LOG "Incorrect command response, got: %04x expected: %04x\n", cmd, PROTOCOL_READ_VAR_COMMAND);
@@ -185,7 +195,7 @@ static int prot_check_extract_readvar_response8(uint8_t * data,
     //LOG("ERRCODE: %04x\n", out->errcode);
     //LOG("VBAT: %04x\n", out->vbat);
     //LOG("ITEMP: %04x\n", out->itemp);
-    //LOG("ETEMP: %04x\n", out->etemp);   
+    //LOG("ETEMP: %04x\n", out->etemp);
     //LOG("VSOURCE: %04x\n", out->vsource);
     //LOG("HWVER: %02x\n", out->hw_ver);
     //LOG("FWVER: %02x\n", out->fw_ver);
@@ -204,14 +214,14 @@ static uint8_t * prot_creat_impedance_request8(Protocol_ImpedanceCmd_InputVars *
 {
     uint8_t *request8 = (uint8_t *)malloc(sizeof(uint8_t)*PROTOCOL_FRAME_LEN);
     int pointer = 0;
-    
+
     request8[pointer++] = u16_MSB(PROTOCOL_START_OF_FRAME);
     request8[pointer++] = u16_LSB(PROTOCOL_START_OF_FRAME);
     request8[pointer++] = in->addr_bank;
     request8[pointer++] = in->addr_batt;
     request8[pointer++] = PROTOCOL_IMPEDANCE_COMMAND_0;
     request8[pointer++] = PROTOCOL_IMPEDANCE_COMMAND_1;
-    
+
     memset((void *)&(request8[pointer]), 0, PROTOTOL_FRAME_REQUEST_DATA_LEN);
     uint16_t chksum = prot_calc_checksum(&request8[2], 28);
     request8[30] = u16_MSB(chksum);
@@ -232,7 +242,7 @@ static int prot_check_extract_impedance_response8(uint8_t * data,
 
     /* Em caso de tratamento de mensagens de timeout, o comando recebido sera 0.
        Neste caso, o processamento deve seguir seu tratamento natural, que sera
-       entregar valores zerados para a base de dados. */ 
+       entregar valores zerados para a base de dados. */
     uint16_t cmd = bytes_to_u16(data[1], data[0]);
     if((cmd != 0) && (cmd != PROTOCOL_IMPEDANCE_COMMAND)){
         LOG("Incorrect command response, got: %d expected: %d\n", cmd, PROTOCOL_IMPEDANCE_COMMAND);
@@ -330,6 +340,13 @@ int prot_init(Serial_t *serial) {
 	return 0;
 }
 
+void prot_gen_nill_out(Protocol_ReadCmd_InputVars *in,
+		            Protocol_ReadCmd_OutputVars *out)
+{
+	out->addr_bank = in->addr_bank;
+	out->addr_batt = in->addr_batt;
+}
+
 int prot_read_vars(Protocol_ReadCmd_InputVars *in,
 		            Protocol_ReadCmd_OutputVars *out,
 					int retries)
@@ -342,7 +359,7 @@ int prot_read_vars(Protocol_ReadCmd_InputVars *in,
 	/*
 	 * Constroi a mensagem
 	 */
-	uint8_t *msg8 = prot_creat_readvar_request8(in); 
+	uint8_t *msg8 = prot_creat_readvar_request8(in);
 	if (err != 0) {
 		return -1;
 	}
@@ -357,41 +374,25 @@ int prot_read_vars(Protocol_ReadCmd_InputVars *in,
 	}
 
 	while ((retry > 0) && (stop == 0)) {
-		/*
-		 * Recebe o quadro pela serial
-		 */
 		err = ser_read(ser_instance, data, PROTOCOL_FRAME_LEN);
-		if (err == -3) {
-			/*
-			 * TIMEOUT - mantem os ultimos dados lidos
-			 */
-			err = prot_treat_readvar_timeout_response8(in,out);
-			/* Sai do loop */
+		if (err != 0){
+			prot_gen_nill_out(in, out);
 			break;
-		} else if (err == 0) {
+		}
+		else {
 			/*
 			 * QUADRO RECEBIDO - Realiza a analise de integridade
 			 */
 			err = prot_check_extract_readvar_response8(data, in, out);
-			if (err == -3) {
+			if (err < 0) { // todos erros entram em retry
 				/*
 				 * QUADRO INVALIDO - aguarda pelo próximo quadro
 				 */
 				LOG(PROTOCOL_LOG "Mensagem invalida, retries %d\n",retry);
 				retry--;
-			} else {
-				/*
-				 * Qualquer outra situacao - sai do loop corretamente
-				 * Em caso de erro de checksum ou de mensagem incorreta,
-				 * ambas são descartadas no tratamento.
-				 */
+			}else{
 				break;
 			}
-		} else {
-			/*
-			 * ERRO - sai do loop
-			 */
-			break;
 		}
 	}
 
@@ -399,9 +400,6 @@ int prot_read_vars(Protocol_ReadCmd_InputVars *in,
 		err = -10;
 	}
 
-	/*
-	 * Libera a mensagem criada para transmissao
-	 */
 	free(msg8);
 
 	return err;
@@ -438,19 +436,19 @@ int prot_read_impedance(Protocol_ImpedanceCmd_InputVars *in,
 		 * Recebe o quadro pela serial
 		 */
 		err = ser_read(ser_instance, data, PROTOCOL_FRAME_LEN);
-		if (err == -3) {
+		if (err != 0) {
 			/*
 			 * TIMEOUT - mantem os ultimos dados lidos
 			 */
-			err = prot_treat_impedance_timeout_response8(in,out);
+			 err = prot_treat_impedance_timeout_response8(in,out);
 			/* Sai do loop */
 			break;
-		} else if (err == 0) {
+		} else {
 			/*
 			 * QUADRO RECEBIDO - Realiza a analise de integridade
 			 */
 			err = prot_check_extract_impedance_response8(data, in, out);
-			if (err == -3) {
+			if (err == -3) { //nunca executa
 				/*
 				 * QUADRO INVALIDO - aguarda pelo próximo quadro
 				 * (Foi implementado igual a leitura de variaveis, mas esta
@@ -466,11 +464,6 @@ int prot_read_impedance(Protocol_ImpedanceCmd_InputVars *in,
 				 */
 				break;
 			}
-		} else {
-			/*
-			 * ERRO - sai do loop
-			 */
-			break;
 		}
 	}
 
@@ -484,31 +477,4 @@ int prot_read_impedance(Protocol_ImpedanceCmd_InputVars *in,
 	free(msg8);
 
 	return err;
-//	int err = 0;
-//	/* Constroi a mensagem */
-//
-//	uint8_t * msg8 = prot_creat_impedance_request8(in);
-//	if (err != 0) {
-//		return -3;
-//	}
-//
-//	//LOG("I:");
-//
-//	/* Envia o request e aguarda a resposta */
-//	err = prot_communicate(msg8); //in place response
-//	if (err == 0) {
-//		err = prot_check_extract_impedance_response8(msg8, out);
-//	} else if (err == -3) {
-//		/* Timeout */
-//		err = prot_treat_impedance_timeout_response8(in, out);
-//	} else {
-//		return -3;
-//	}
-//
-//	/* Retorna o resultado */
-//	if (err != 0) {
-//		return -3;
-//	}
-//	free(msg8);
-//	return 0;
 }

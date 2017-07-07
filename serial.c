@@ -9,6 +9,7 @@
 #include <sys/select.h>
 #include "serial.h"
 #include <defs.h>
+#include <errno.h>
 
 #define SERIAL_LOG "SERIAL:"
 
@@ -121,10 +122,11 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len) {
     int bread;
     int ret = -5;
     struct timeval timeout;
-    
+
+    LOG("Instance: %d\n", ser_instance->fd);
     /* Sanity check */
     if (ser_instance->fd < 0) {
-        return -1;
+      return -1;
     }
     /*
      * Libera dados antigos
@@ -140,7 +142,6 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len) {
     FD_SET(ser_instance->fd,&set);
     timeout.tv_sec = ser_instance->read_timeout;
     timeout.tv_usec = 0;
-
     while (1) {
     	/* Usa o select() para verificar a disponibilidade de dados */
     	rv = select(ser_instance->fd + 1, &set, NULL, NULL, &timeout);
@@ -177,7 +178,7 @@ int ser_write(Serial_t *ser_instance, uint8_t *data, int len) {
 	if (ser_instance->fd < 0) {
 		return -1;
 	}
-    
+
     char *buffer = toStrHexa(data, len);
     LOG(SERIAL_LOG "==> %s\n", buffer);
     free(buffer);

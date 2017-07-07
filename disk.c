@@ -55,11 +55,16 @@ int disk_removeLogs(void) {
 	 * linha de comando.
 	 */
 	sprintf(command,"rm -f /var/www/serial_service/debug.txt");
-	system(command);
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wunused-result"
+  		system(command);
+  #pragma GCC diagnostic pop
 
 	sprintf(command,"rm -f /var/www/equalizer-api/equalizer-api/debug_web.txt");
-	system(command);
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wunused-result"
+  		system(command);
+  #pragma GCC diagnostic pop
 
 	return 0;
 }
-

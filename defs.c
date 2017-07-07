@@ -6,8 +6,11 @@
 #include <string.h>
 
 FILE *fp = NULL;
+FILE *ext_fp = NULL;
 int DEBUG = 1;
+int EXT_PR = 0;
 static int firstpass = 1;
+static int ext_first = 1;
 
 const int PROTOCOL_READ_VAR_ARR[2] = {PROTOCOL_READ_VAR_COMMAND_0,
                                      PROTOCOL_READ_VAR_COMMAND_1};
@@ -33,8 +36,37 @@ unsigned short _compressFloat(float a){
     return (unsigned short)(z);
 }
 
+int EXT_PRINT(const char *format, ...){
+  int done = -1;
+  if(EXT_PR){
+    if(!ext_fp){
+        ext_fp = fopen(EXT_PRINT_FILE, "w+");
+    }
+    if(ext_first == 1){
+        time_t rawtime;
+        struct tm * timeinfo;
+        time(&rawtime);
+        timeinfo = localtime(&rawtime);
+        char buffer[256];
+        strcat(buffer,"SOFTWARE BASICO V. " SOFTWARE_VERSION);
+        strcat(buffer, "---[Invoked at: ");
+        int s = strlen(buffer);
+        strftime(&buffer[s], 100, "%Y-%m-%d %H:%M:%S", timeinfo);
+        strcat(buffer, "]---\n");
+        ext_first = 0;
+        fwrite(buffer, strlen(buffer), 1, ext_fp);
+    }
+    va_list arg;
+    va_start(arg, format);
+    done = vfprintf(ext_fp, format, arg);
+    va_end(arg);
+    fflush(ext_fp);
+  }
+  return done;
+}
+
 int LOG(const char *format, ...){
-    int done = -1;  
+    int done = -1;
     if(DEBUG){
         if(!fp){
             fp = fopen(DEBUG_FILE, "a+");
@@ -68,7 +100,7 @@ char * toStrHexa(unsigned char *data, int len) {
     for(i = 0; i < len; i++){
         sprintf(buffer + (i * 2), "%02x", data[i]);
     }
-    
+
     buffer[2*len] = 0;
     return buffer;
 }
