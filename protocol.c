@@ -103,47 +103,6 @@ void prot_ext_print_info(Protocol_ReadCmd_OutputVars *vars){
 	EXT_PRINT("ADDR_BATT: %d\n", vars->addr_batt);
 }
 
-static int prot_treat_readvar_timeout_response8(Protocol_ReadCmd_InputVars *in,
-		            Protocol_ReadCmd_OutputVars *out)
-{
-    int err = -3;
-    /* Anteriormente em caso de timeout era preciso retornar o valor
-     * zero de leitura. Isso se mostrou inapropriado. Nesta atualizacao,
-     * deve-se preservar o valor anterior. */
-
-//    out->errcode = 0;
-//    out->vbat = 0;
-//    out->itemp = 0;
-//    out->etemp = 0;
-//    out->vsource = 0;
-//    out->hw_ver = 0;
-//    out->fw_ver = 0;
-//    out->vbat_off = 0;
-//    out->ibat_off = 0;
-//    out->vref = 0;
-//    out->duty_cycle = 0;
-  //  out->addr_bank = in->addr_bank;
-  //  out->addr_batt = in->addr_batt;
-	//  EXT_PRINT("DATA: %d <> %d\n", out->addr_bank, out->addr_batt);
-
-    //////////////////////////////////////////////////////
-    //LOG("ERRCODE: %04x\n", out->errcode);
-    //LOG("VBAT: %04x\n", out->vbat);
-    //LOG("ITEMP: %04x\n", out->itemp);
-    //LOG("ETEMP: %04x\n", out->etemp);
-    //LOG("VSOURCE: %04x\n", out->vsource);
-    //LOG("HWVER: %02x\n", out->hw_ver);
-    //LOG("FWVER: %02x\n", out->fw_ver);
-    //LOG("VBAT_OFF: %04x\n", out->vbat_off);
-    //LOG("IBAT_OFF: %04x\n", out->ibat_off);
-    //LOG("VREF: %04x\n", out->vref);
-    //LOG("DUTY_CYCLE: %04x\n", out->duty_cycle);
-    //LOG("ADDR_BANK: %02x\n", out->addr_bank);
-    //LOG("ADDR_BATT: %02x\n", out->addr_batt);
-    ///////////////////////////////////////////////////////
-    return err;
-}
-
 static int prot_check_extract_readvar_response8(uint8_t * data,
 		Protocol_ReadCmd_InputVars *in, Protocol_ReadCmd_OutputVars *out)
 {

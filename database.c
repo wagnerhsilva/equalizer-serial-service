@@ -40,8 +40,10 @@
 static sqlite3 					*database;
 static Database_Addresses_t		*addr_list;
 static Database_Parameters_t	*param_list;
+static Database_Alarmconfig_t	*alarmconfig_list;
 static sqlite3_stmt       		*baked_stmt;
 static sqlite3_stmt				*baked_stmt_rt;
+static sqlite3_stmt				*baked_alarmlog;
 static char						mac_address[30];
 
 static int db_get_timestamp(char *timestamp){
@@ -217,11 +219,52 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 	return ret;
 }
 
+static int alarmconfig_callback(void *data, int argc, char **argv, char **azColName){
+	int ret = 0;
+	char *garbage = 0;
+
+	/*
+	 * Sanity checks
+	 */
+	if(!alarmconfig_list){
+		LOG(DATABASE_LOG "alarmconfig_callback:We have a nullptr\n");
+		exit(0);
+	}
+
+	/* Em caso do banco de dados vir com problema, de forma a nao chegar
+	 * todos os parametros, eles serao carregados com valores padrao fixos */
+	if (argc != 6) {
+		LOG(DATABASE_LOG "Problemas na tabela Alarmconfig - carregando valores padrao: %d\n",argc);
+		alarmconfig_list->impedancia_max = 0;
+		alarmconfig_list->impedancia_min = 0;
+		alarmconfig_list->tensao_max = 0;
+		alarmconfig_list->tensao_min = 0;
+		alarmconfig_list->temperatura_max = 0;
+		alarmconfig_list->temperatura_min = 0;
+	} else {
+		LOG(DATABASE_LOG "Leitura de valores da tabela de parametros\n");
+		alarmconfig_list->tensao_max = (unsigned int)(strtof(argv[0],&garbage) * 1000);
+		alarmconfig_list->tensao_min = (unsigned int)(strtof(argv[1],&garbage) * 1000);
+		alarmconfig_list->temperatura_max = (int)(strtof(argv[2],&garbage) * 10);
+		alarmconfig_list->temperatura_min = (int)(strtof(argv[3],&garbage) * 10);
+		alarmconfig_list->impedancia_max = (unsigned int)(strtof(argv[4],&garbage) * 100);
+		alarmconfig_list->impedancia_min = (unsigned int)(strtof(argv[5],&garbage) * 100);
+	}
+
+	LOG(DATABASE_LOG "Initing with:\n");
+	LOG(DATABASE_LOG "TENSAO_MAX: %d\n", alarmconfig_list->tensao_max);
+	LOG(DATABASE_LOG "TENSAO_MIN: %d\n", alarmconfig_list->tensao_min);
+	LOG(DATABASE_LOG "TEMPERATURA_MAX: %d\n", alarmconfig_list->temperatura_max);
+	LOG(DATABASE_LOG "TEMPERATURA_MIN: %d\n", alarmconfig_list->temperatura_min);
+	LOG(DATABASE_LOG "IMPEDANCIA_MAX: %d\n", alarmconfig_list->impedancia_max);
+	LOG(DATABASE_LOG "IMPEDANCIA_MIN: %d\n", alarmconfig_list->impedancia_min);
+
+	return ret;
+}
+
 int initCallback(void *notUsed, int argc, char **argv, char **azColName){
     return 0;
 }
-
-
 
 int db_init(char *path) {
 	int err = 0;
@@ -258,9 +301,9 @@ int db_init(char *path) {
 		return -1;
 	}
 
-	sqlite3_prepare_v2(database, "INSERT INTO DataLog (dataHora, string, bateria, temperatura, impedancia, tensao, equalizacao) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);", -1,
-			&baked_stmt, NULL);
+	sqlite3_prepare_v2(database, "INSERT INTO DataLog (dataHora, string, bateria, temperatura, impedancia, tensao, equalizacao) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);", -1, &baked_stmt, NULL);
 	sqlite3_prepare_v2(database, "UPDATE DataLogRT SET datahora = ?1, string = ?2, bateria = ?3, temperatura = ?4, impedancia = ?5, tensao = ?6, equalizacao = ?7 WHERE id = ?8;", -1, &baked_stmt_rt, NULL);
+	sqlite3_prepare_v2(database, "INSERT INTO AlarmLog (dataHora, descricao, emailEnviado, n_ocorrencias) VALUES (?1, ?2, ?3, ?4);", -1, &baked_alarmlog, NULL);
 
 	/*
 	 * Assumindo que as tabelas ja existam e estejam prontas para serem usadas.
@@ -279,7 +322,9 @@ int db_finish(void) {
 }
 
 int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
-		Protocol_ImpedanceCmd_OutputVars *imp_vars, int id_db,
+		Protocol_ImpedanceCmd_OutputVars *imp_vars,
+		Protocol_States *states,
+		int id_db,
 		int save_log)
 {
 	// CCK_ZERO_DEBUG_V(read_vars);
@@ -292,6 +337,9 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	char vbat[15]; sprintf(vbat, "%hu", read_vars->vbat);
 	char duty[15]; sprintf(duty, "%hu", read_vars->duty_cycle);
 	char id[15]; sprintf(id,"%hu", id_db);
+	char s_tensao[15]; sprintf(s_tensao, "%d", states->tensao);
+	char s_temperatura[15]; sprintf(s_temperatura, "%d", states->temperatura);
+	char s_impedancia[15]; sprintf(s_impedancia, "%d", states->impedancia);
 
 	//LOG("%d:%d:impedance = %d:%s\n",read_vars->addr_bank,read_vars->addr_batt,imp_vars->impedance,imped);
 
@@ -325,6 +373,9 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	sqlite3_bind_text(baked_stmt_rt, 6, vbat, -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(baked_stmt_rt, 7, duty, -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(baked_stmt_rt, 8, id, -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_stmt_rt, 9, s_tensao, -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_stmt_rt, 10, s_temperatura, -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_stmt_rt, 11, s_impedancia, -1, SQLITE_TRANSIENT);
 	sqlite3_step(baked_stmt_rt);
 	sqlite3_clear_bindings(baked_stmt_rt);
 	sqlite3_reset(baked_stmt_rt);
@@ -333,13 +384,110 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	return 0;
 }
 
+int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
+		Protocol_ImpedanceCmd_OutputVars *imp_vars,
+		Protocol_States *states,
+		Database_Alarmconfig_t *alarmconfig,
+		Protocol_States_e tipo)
+{
+	// CCK_ZERO_DEBUG_V(read_vars);
+	char timestamp[80];
+	char message[256];
+	char l_min[15];
+	char l_max[15];
+	char l_medida[15];
 
-int db_add_vars(Protocol_ReadCmd_OutputVars *vars) {
-	return 0;
-}
+	db_get_timestamp(timestamp);
 
-int db_add_impedance(unsigned char addr_bank, unsigned char addr_batt,
-		Protocol_ImpedanceCmd_OutputVars *vars) {
+	/*
+	 * Construcao da mensagem de alarme
+	 */
+	switch(tipo) {
+	case TENSAO:
+		if (states->tensao == 1) {
+			sprintf(l_medida,"%3.3f",(float)(read_vars->vbat/1000));
+			sprintf(l_min,"%3.3f",(float)(alarmconfig->tensao_min/1000));
+			sprintf(message,"Alerta de tensao em %s-%s, Minima %s de %s",
+					int_to_addr(read_vars->addr_bank, 1),
+					int_to_addr(read_vars->addr_batt, 0),
+					l_medida,l_min);
+		} else if (states->tensao == 2) {
+			sprintf(l_medida,"%3.3f",(float)(read_vars->vbat/1000));
+			sprintf(message,"Alerta de tensao em %s-%s, dentro da faixa %s",
+					int_to_addr(read_vars->addr_bank, 1),
+					int_to_addr(read_vars->addr_batt, 0),
+					l_medida);
+		} else if (states->tensao == 3) {
+			sprintf(l_medida,"%3.3f",(float)(read_vars->vbat/1000));
+			sprintf(l_max,"%3.3f",(float)(alarmconfig->tensao_max/1000));
+			sprintf(message,"Alerta de tensao em %s-%s, Maxima %s de %s",
+					int_to_addr(read_vars->addr_bank, 1),
+					int_to_addr(read_vars->addr_batt, 0),
+					l_medida,l_max);
+		}
+		break;
+	case TEMPERATURA:
+		if (states->temperatura == 1) {
+			sprintf(l_medida,"%3.1f",(float)(read_vars->etemp/10));
+			sprintf(l_min,"%3.1f",(float)(alarmconfig->temperatura_min/10));
+			sprintf(message,"Alerta de temperatura em %s-%s, Minima %s de %s",
+					int_to_addr(read_vars->addr_bank, 1),
+					int_to_addr(read_vars->addr_batt, 0),
+					l_medida,l_min);
+		} else if (states->temperatura == 2) {
+			sprintf(l_medida,"%3.1f",(float)(read_vars->etemp/10));
+			sprintf(message,"Alerta de temperatura em %s-%s, dentro da faixa %s",
+					int_to_addr(read_vars->addr_bank, 1),
+					int_to_addr(read_vars->addr_batt, 0),
+					l_medida);
+		} else if (states->temperatura == 3) {
+			sprintf(l_medida,"%3.1f",(float)(read_vars->etemp/10));
+			sprintf(l_max,"%3.1f",(float)(alarmconfig->temperatura_max/1000));
+			sprintf(message,"Alerta de temperatura em %s-%s, Maxima %s de %s",
+					int_to_addr(read_vars->addr_bank, 1),
+					int_to_addr(read_vars->addr_batt, 0),
+					l_medida,l_max);
+		}
+		break;
+	case IMPEDANCIA:
+		if (states->impedancia == 1) {
+			sprintf(l_medida,"%3.2f",(float)(imp_vars->impedance/100));
+			sprintf(l_min,"%3.2f",(float)(alarmconfig->impedancia_min/100));
+			sprintf(message,"Alerta de impedancia em %s-%s, Minima %s de %s",
+					int_to_addr(read_vars->addr_bank, 1),
+					int_to_addr(read_vars->addr_batt, 0),
+					l_medida,l_min);
+		} else if (states->impedancia == 2) {
+			sprintf(l_medida,"%3.2f",(float)(imp_vars->impedance/100));
+			sprintf(message,"Alerta de impedancia em %s-%s, dentro da faixa %s",
+					int_to_addr(read_vars->addr_bank, 1),
+					int_to_addr(read_vars->addr_batt, 0),
+					l_medida);
+		} else if (states->impedancia == 3) {
+			sprintf(l_medida,"%3.2f",(float)(imp_vars->impedance/100));
+			sprintf(l_max,"%3.2f",(float)(alarmconfig->impedancia_max/100));
+			sprintf(message,"Alerta de impedancia em %s-%s, Maxima %s de %s",
+					int_to_addr(read_vars->addr_bank, 1),
+					int_to_addr(read_vars->addr_batt, 0),
+					l_medida,l_max);
+		}
+		break;
+	}
+
+	/*
+	 * Inclui campos na tabela de registros de tempo real
+	 */
+	LOG(DATABASE_LOG "Registrando alarme ...\n");
+	LOG(DATABASE_LOG "Mensagem: %s\n", message);
+	sqlite3_bind_text(baked_alarmlog, 1, timestamp, -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_alarmlog, 2, message, -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_alarmlog, 3, "0", -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_alarmlog, 4, "1", -1, SQLITE_TRANSIENT);
+	sqlite3_step(baked_alarmlog);
+	sqlite3_clear_bindings(baked_alarmlog);
+	sqlite3_reset(baked_alarmlog);
+	LOG("Alarme registrado\n");
+
 	return 0;
 }
 
@@ -408,7 +556,7 @@ int db_set_macaddress(void){
 	return -1;
 }
 
-int db_get_parameters(Database_Parameters_t *list){
+int db_get_parameters(Database_Parameters_t *list, Database_Alarmconfig_t *alarmconfig){
 	if(database != 0){
 		int err = 0;
 		char sql_message[500];
@@ -419,13 +567,11 @@ int db_get_parameters(Database_Parameters_t *list){
 		 * pois será preenchido novamente
 		 */
 		param_list = list;
+		alarmconfig_list = alarmconfig;
 
 		/*
-		 * Controi a mensagem SQL para o banco de dados
-		 *
-		 * TODO: Colocar a tabela e os parametros corretos
+		 * Busca informacoes da tabela de parametros
 		 */
-
 		sprintf(sql_message,
 				"SELECT * FROM %s ",
 				DATABASE_PARAMETERS_TABLE_NAME);
@@ -433,6 +579,18 @@ int db_get_parameters(Database_Parameters_t *list){
 		if (err != SQLITE_OK) {
 			LOG(DATABASE_LOG "Error on select exec, msg: %s\n", zErrMsg);
 			return -1;
+		}
+
+		/*
+		 * Busca informacoes da tabela alarmconfig
+		 */
+		sprintf(sql_message,
+				"SELECT alarme_nivel_tensao_max, alarme_nivel_tensao_min,alarme_nivel_temp_max,"
+				"alarme_nivel_temp_min,alarme_nivel_imped_max,alarme_nivel_imped_min FROM AlarmeConfig");
+		err = sqlite3_exec(database,sql_message,alarmconfig_callback,0,&zErrMsg);
+		if (err != SQLITE_OK) {
+			LOG(DATABASE_LOG "Error on select exec, msg: %s\n", zErrMsg);
+			return -2;
 		}
 
 		return 0;

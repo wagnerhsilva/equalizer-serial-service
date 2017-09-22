@@ -48,6 +48,18 @@ typedef struct {
 	unsigned int	current;
 } Protocol_ImpedanceCmd_OutputVars;
 
+typedef struct {
+	unsigned int temperatura;
+	unsigned int tensao;
+	unsigned int impedancia;
+} Protocol_States;
+
+typedef enum {
+	TENSAO,
+	TEMPERATURA,
+	IMPEDANCIA
+} Protocol_States_e;
+
 int prot_init(Serial_t *serial);
 int prot_read_vars(Protocol_ReadCmd_InputVars *in, Protocol_ReadCmd_OutputVars *out, int retries);
 int prot_read_impedance(Protocol_ImpedanceCmd_InputVars *in, Protocol_ImpedanceCmd_OutputVars *out, int retries);

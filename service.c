@@ -23,12 +23,49 @@ static int getStop(void) {
 	return stop;
 }
 
-//void signal_handler(int signo){
-//	const char *signame = strsignal(signo);
-//	LOG("Received signal: %s\n", signame);
-//	LOG("Ending service...\n");
-//	service_finish();
-//}
+static int evaluate_states(
+		Database_Alarmconfig_t *params,
+		Protocol_ReadCmd_OutputVars *read_vars,
+		Protocol_ImpedanceCmd_OutputVars *imp_vars,
+		Protocol_States *states) {
+
+	/*
+	 * Tensao
+	 */
+	if (read_vars->vbat < params->tensao_min) {
+		states->tensao = 1;
+	} else if (read_vars->vbat > params->tensao_max) {
+		states->tensao = 3;
+	} else {
+		states->tensao = 2;
+	}
+
+	/*
+	 * Temperatura: o valor e com sinal (e possivel ter valores negativos)
+	 * Com isso, o cast e necessario, uma vez que o dado recebido e tratado
+	 * em numero bruto, sem considerar a sinalizacao (16 bits)
+	 */
+	if ((int)read_vars->etemp < params->temperatura_min) {
+		states->temperatura = 1;
+	} else if ((int)read_vars->etemp > params->temperatura_max) {
+		states->temperatura = 3;
+	} else {
+		states->temperatura = 2;
+	}
+
+	/*
+	 * Impedancia
+	 */
+	if (imp_vars->impedance < params->impedancia_min) {
+		states->impedancia = 1;
+	} else if (imp_vars->impedance > params->impedancia_max) {
+		states->impedancia = 3;
+	} else {
+		states->impedancia = 2;
+	}
+
+	return 0;
+}
 
 int service_init(char *dev_path, char *db_path) {
 	int err = 0;
@@ -104,6 +141,7 @@ int service_start(void) {
 	int				 capacity = 0;
 	Database_Addresses_t		 list;
 	Database_Parameters_t		 params;
+	Database_Alarmconfig_t		 alarmconfig;
 	Protocol_ReadCmd_InputVars 	 input_vars;
 	Protocol_ImpedanceCmd_InputVars	 input_impedance;
 	Protocol_ReadCmd_OutputVars	 output_vars;
@@ -112,6 +150,10 @@ int service_start(void) {
 	Protocol_ImpedanceCmd_OutputVars output_impedance;
 	Protocol_ImpedanceCmd_OutputVars output_impedance_last[MAX_STRING_LEN];
 	Protocol_ImpedanceCmd_OutputVars *pt_imp;
+	Protocol_States states[MAX_STRING_LEN];
+	Protocol_States states_last[MAX_STRING_LEN];
+	Protocol_States *pt_state_current;
+	Protocol_States *pt_state_last;
 
 	/*
 	 * Atualiza o endereco MAC da placa
@@ -129,7 +171,7 @@ int service_start(void) {
 	 * Atualiza a tabela de parametros, para o novo ciclo
 	 * de execucao
 	 */
-	if (CHECK(db_get_parameters(&params))) {
+	if (CHECK(db_get_parameters(&params,&alarmconfig))) {
 		return -1;
 	}
 	/* Atualiza o timeout de leitura de serial */
@@ -151,7 +193,7 @@ int service_start(void) {
 		 */
 		if (update_param_counter == SERVICE_UPDATE_PARAM_INTERVAL) {
 			/* Atualiza parametros */
-			if (CHECK(db_get_parameters(&params))) {
+			if (CHECK(db_get_parameters(&params,&alarmconfig))) {
 				break;
 			}
 			/* Atualiza o timeout de leitura de serial */
@@ -279,14 +321,59 @@ int service_start(void) {
 				sleep_ms(params.param1_interbat_delay);
 			}
 
+			/*
+			 * Salva as informacoes no banco de dados e calcula o estado das leituras
+			 */
 			for (i=0;i<list.items;i++) {
 				pt_vars = &output_vars_last[i];
 				pt_imp = &output_impedance_last[i];
+				pt_state_current = &states[i];
+				/*
+				 * Calcula o estado das leituras
+				 */
+				evaluate_states(&alarmconfig,pt_vars,pt_imp,pt_state_current);
+				/*
+				 * Armazena cada leitura no banco de dados
+				 */
 				// CCK_ZERO_DEBUG_V(pt_vars);
-				err = db_add_response(pt_vars, pt_imp, i+1, save_log_state);
+				err = db_add_response(pt_vars, pt_imp, pt_state_current, i+1, save_log_state);
 				if(err != 0){
 					LOG("Erro na escrita do banco!\n");
 				}
+			}
+
+			/*
+			 * Checa se novos alarmes devem ser gerados
+			 */
+			for (i=0;i<list.items;i++) {
+				pt_vars = &output_vars_last[i];
+				pt_imp = &output_impedance_last[i];
+				pt_state_current = &states[i];
+				pt_state_last = &states_last[i];
+
+				if (!isFirstRead) {
+					/*
+					 * Podem ser gerados ate 3 alarmes por leitura, sendo um para cada leitura critica
+					 */
+					if (pt_state_current->tensao != pt_state_last->tensao) {
+						/* Registra alarme de mudanca de tensao */
+						db_add_alarm(pt_vars,pt_imp,pt_state_current,&alarmconfig,TENSAO);
+					}
+					if (pt_state_current->temperatura != pt_state_last->temperatura) {
+						/* Registra alarme de mudanca de tensao */
+						db_add_alarm(pt_vars,pt_imp,pt_state_current,&alarmconfig,TEMPERATURA);
+					}
+					if (pt_state_current->impedancia != pt_state_last->impedancia) {
+						/* Registra alarme de mudanca de tensao */
+						db_add_alarm(pt_vars,pt_imp,pt_state_current,&alarmconfig,IMPEDANCIA);
+					}
+				}
+				/*
+				 * Atualiza os valores antigos
+				 */
+				pt_state_last->tensao = pt_state_current->tensao;
+				pt_state_last->temperatura = pt_state_current->temperatura;
+				pt_state_last->impedancia = pt_state_current->impedancia;
 			}
 
 			/*
