@@ -123,7 +123,6 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len) {
     int ret = -5;
     struct timeval timeout;
 
-    LOG("Instance: %d\n", ser_instance->fd);
     /* Sanity check */
     if (ser_instance->fd < 0) {
       return -1;
