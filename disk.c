@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "defs.h"
 
+#define DATABASE_SYSTEM_OFFSET 12
 #define DISK_LOG "DISK:"
 
 double disk_getCapacity(char *dev_path) {
@@ -40,7 +41,7 @@ int disk_usedSpace(char *dev_path) {
 	float result = 0.0;
 
 	if (statvfs (dev_path, &sfs) != -1) {
-		result = (sfs.f_blocks - sfs.f_bfree) / (double)(sfs.f_blocks - sfs.f_bfree + sfs.f_bavail) * 100.0;
+		result = ((sfs.f_blocks - sfs.f_bfree) / (double)(sfs.f_blocks - sfs.f_bfree + sfs.f_bavail) * 100.0) - DATABASE_SYSTEM_OFFSET;
 		LOG(DISK_LOG "disk usage = %f\n",result);
         }
 
