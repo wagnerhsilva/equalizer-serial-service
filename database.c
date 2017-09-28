@@ -373,9 +373,9 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	sqlite3_bind_text(baked_stmt_rt, 6, vbat, -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(baked_stmt_rt, 7, duty, -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(baked_stmt_rt, 8, id, -1, SQLITE_TRANSIENT);
-	sqlite3_bind_text(baked_stmt_rt, 9, s_tensao, -1, SQLITE_TRANSIENT);
-	sqlite3_bind_text(baked_stmt_rt, 10, s_temperatura, -1, SQLITE_TRANSIENT);
-	sqlite3_bind_text(baked_stmt_rt, 11, s_impedancia, -1, SQLITE_TRANSIENT);
+//	sqlite3_bind_text(baked_stmt_rt, 9, s_tensao, -1, SQLITE_TRANSIENT);
+//	sqlite3_bind_text(baked_stmt_rt, 10, s_temperatura, -1, SQLITE_TRANSIENT);
+//	sqlite3_bind_text(baked_stmt_rt, 11, s_impedancia, -1, SQLITE_TRANSIENT);
 	sqlite3_step(baked_stmt_rt);
 	sqlite3_clear_bindings(baked_stmt_rt);
 	sqlite3_reset(baked_stmt_rt);
