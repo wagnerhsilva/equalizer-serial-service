@@ -405,21 +405,21 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 	switch(tipo) {
 	case TENSAO:
 		if (states->tensao == 1) {
-			sprintf(l_medida,"%3.3f",(float)(read_vars->vbat/1000));
-			sprintf(l_min,"%3.3f",(float)(alarmconfig->tensao_min/1000));
+			sprintf(l_medida,"%3d.%3d",(read_vars->vbat/1000),(read_vars->vbat%1000));
+			sprintf(l_min,"%3d.%3d",(alarmconfig->tensao_min/1000),(alarmconfig->tensao_min%1000));
 			sprintf(message,"Alerta de tensao em %s-%s, Minima %s de %s",
 					int_to_addr(read_vars->addr_bank, 1),
 					int_to_addr(read_vars->addr_batt, 0),
 					l_medida,l_min);
 		} else if (states->tensao == 2) {
-			sprintf(l_medida,"%3.3f",(float)(read_vars->vbat/1000));
+			sprintf(l_medida,"%3d.%3d",(read_vars->vbat/1000),(read_vars->vbat%1000));
 			sprintf(message,"Alerta de tensao em %s-%s, dentro da faixa %s",
 					int_to_addr(read_vars->addr_bank, 1),
 					int_to_addr(read_vars->addr_batt, 0),
 					l_medida);
 		} else if (states->tensao == 3) {
-			sprintf(l_medida,"%3.3f",(float)(read_vars->vbat/1000));
-			sprintf(l_max,"%3.3f",(float)(alarmconfig->tensao_max/1000));
+			sprintf(l_medida,"%3d.%3d",(read_vars->vbat/1000),(read_vars->vbat%1000));
+			sprintf(l_max,"%3d.%3d",(alarmconfig->tensao_max/1000),(alarmconfig->tensao_max%1000));
 			sprintf(message,"Alerta de tensao em %s-%s, Maxima %s de %s",
 					int_to_addr(read_vars->addr_bank, 1),
 					int_to_addr(read_vars->addr_batt, 0),
@@ -428,21 +428,21 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 		break;
 	case TEMPERATURA:
 		if (states->temperatura == 1) {
-			sprintf(l_medida,"%3.1f",(float)(read_vars->etemp/10));
-			sprintf(l_min,"%3.1f",(float)(alarmconfig->temperatura_min/10));
+			sprintf(l_medida,"%3d.%1d",(read_vars->etemp/10),(read_vars->etemp%10));
+			sprintf(l_min,"%3d.%1d",(alarmconfig->temperatura_min/10),(alarmconfig->temperatura_min%10));
 			sprintf(message,"Alerta de temperatura em %s-%s, Minima %s de %s",
 					int_to_addr(read_vars->addr_bank, 1),
 					int_to_addr(read_vars->addr_batt, 0),
 					l_medida,l_min);
 		} else if (states->temperatura == 2) {
-			sprintf(l_medida,"%3.1f",(float)(read_vars->etemp/10));
+			sprintf(l_medida,"%3d.%1d",(read_vars->etemp/10),(read_vars->etemp%10));
 			sprintf(message,"Alerta de temperatura em %s-%s, dentro da faixa %s",
 					int_to_addr(read_vars->addr_bank, 1),
 					int_to_addr(read_vars->addr_batt, 0),
 					l_medida);
 		} else if (states->temperatura == 3) {
-			sprintf(l_medida,"%3.1f",(float)(read_vars->etemp/10));
-			sprintf(l_max,"%3.1f",(float)(alarmconfig->temperatura_max/1000));
+			sprintf(l_medida,"%3d.%1d",(read_vars->etemp/10),(read_vars->etemp%10));
+			sprintf(l_max,"%3d.%1d",(alarmconfig->temperatura_max/10),(alarmconfig->temperatura_max%10));
 			sprintf(message,"Alerta de temperatura em %s-%s, Maxima %s de %s",
 					int_to_addr(read_vars->addr_bank, 1),
 					int_to_addr(read_vars->addr_batt, 0),
@@ -451,21 +451,21 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 		break;
 	case IMPEDANCIA:
 		if (states->impedancia == 1) {
-			sprintf(l_medida,"%3.2f",(float)(imp_vars->impedance/100));
-			sprintf(l_min,"%3.2f",(float)(alarmconfig->impedancia_min/100));
+			sprintf(l_medida,"%3d.2d",(imp_vars->impedance/100),(imp_vars->impedance%100));
+			sprintf(l_min,"%3d.%2d",(alarmconfig->impedancia_min/100),(alarmconfig->impedancia_min%100));
 			sprintf(message,"Alerta de impedancia em %s-%s, Minima %s de %s",
 					int_to_addr(read_vars->addr_bank, 1),
 					int_to_addr(read_vars->addr_batt, 0),
 					l_medida,l_min);
 		} else if (states->impedancia == 2) {
-			sprintf(l_medida,"%3.2f",(float)(imp_vars->impedance/100));
+			sprintf(l_medida,"%3d.%2d",(imp_vars->impedance/100),(imp_vars->impedance%100));
 			sprintf(message,"Alerta de impedancia em %s-%s, dentro da faixa %s",
 					int_to_addr(read_vars->addr_bank, 1),
 					int_to_addr(read_vars->addr_batt, 0),
 					l_medida);
 		} else if (states->impedancia == 3) {
-			sprintf(l_medida,"%3.2f",(float)(imp_vars->impedance/100));
-			sprintf(l_max,"%3.2f",(float)(alarmconfig->impedancia_max/100));
+			sprintf(l_medida,"%3d.%2d",(imp_vars->impedance/100),(imp_vars->impedance%100));
+			sprintf(l_max,"%3d.%2d",(alarmconfig->impedancia_max/100),(alarmconfig->impedancia_max%100));
 			sprintf(message,"Alerta de impedancia em %s-%s, Maxima %s de %s",
 					int_to_addr(read_vars->addr_bank, 1),
 					int_to_addr(read_vars->addr_batt, 0),
