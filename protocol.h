@@ -52,12 +52,18 @@ typedef struct {
 	unsigned int temperatura;
 	unsigned int tensao;
 	unsigned int impedancia;
+	unsigned int barramento;
+	unsigned int target;
+	unsigned int disk;
 } Protocol_States;
 
 typedef enum {
 	TENSAO,
 	TEMPERATURA,
-	IMPEDANCIA
+	IMPEDANCIA,
+	BARRAMENTO,
+	TARGET,
+	DISK
 } Protocol_States_e;
 
 int prot_init(Serial_t *serial);

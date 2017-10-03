@@ -44,6 +44,10 @@ typedef struct {
 	unsigned int tensao_max;
 	unsigned int impedancia_min;
 	unsigned int impedancia_max;
+	unsigned int barramento_min;
+	unsigned int barramento_max;
+	unsigned int target_min;
+	unsigned int target_max;
 } Database_Alarmconfig_t;
 
 typedef struct {

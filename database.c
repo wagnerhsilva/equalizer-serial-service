@@ -241,6 +241,10 @@ static int alarmconfig_callback(void *data, int argc, char **argv, char **azColN
 		alarmconfig_list->tensao_min = 0;
 		alarmconfig_list->temperatura_max = 0;
 		alarmconfig_list->temperatura_min = 0;
+		alarmconfig_list->barramento_max = 0;
+		alarmconfig_list->barramento_min = 0;
+		alarmconfig_list->target_max = 0;
+		alarmconfig_list->target_min = 0;
 	} else {
 		LOG(DATABASE_LOG "Leitura de valores da tabela de parametros\n");
 		alarmconfig_list->tensao_max = (unsigned int)(strtof(argv[0],&garbage) * 1000);
@@ -249,6 +253,10 @@ static int alarmconfig_callback(void *data, int argc, char **argv, char **azColN
 		alarmconfig_list->temperatura_min = (int)(strtof(argv[3],&garbage) * 10);
 		alarmconfig_list->impedancia_max = (unsigned int)(strtof(argv[4],&garbage) * 100);
 		alarmconfig_list->impedancia_min = (unsigned int)(strtof(argv[5],&garbage) * 100);
+		alarmconfig_list->barramento_max = (unsigned int)(strtof(argv[6],&garbage) * 1000);
+		alarmconfig_list->barramento_min = (unsigned int)(strtof(argv[7],&garbage) * 1000);
+		alarmconfig_list->target_max = (unsigned int)(strtof(argv[8],&garbage) * 1000);
+		alarmconfig_list->target_min = (unsigned int)(strtof(argv[9],&garbage) * 1000);
 	}
 
 	LOG(DATABASE_LOG "Initing with:\n");
@@ -258,6 +266,10 @@ static int alarmconfig_callback(void *data, int argc, char **argv, char **azColN
 	LOG(DATABASE_LOG "TEMPERATURA_MIN: %d\n", alarmconfig_list->temperatura_min);
 	LOG(DATABASE_LOG "IMPEDANCIA_MAX: %d\n", alarmconfig_list->impedancia_max);
 	LOG(DATABASE_LOG "IMPEDANCIA_MIN: %d\n", alarmconfig_list->impedancia_min);
+	LOG(DATABASE_LOG "BARRAMENTO_MAX: %d\n", alarmconfig_list->barramento_max);
+	LOG(DATABASE_LOG "BARRAMENTO_MIN: %d\n", alarmconfig_list->barramento_min);
+	LOG(DATABASE_LOG "TARGET_MAX: %d\n", alarmconfig_list->target_max);
+	LOG(DATABASE_LOG "TARGET_MIN: %d\n", alarmconfig_list->target_min);
 
 	return ret;
 }
@@ -383,6 +395,86 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 
 	return 0;
 }
+
+int db_add_alarm_results(unsigned int value,
+		Protocol_States *states,
+		Database_Alarmconfig_t *alarmconfig,
+		Protocol_States_e tipo)
+{
+	// CCK_ZERO_DEBUG_V(read_vars);
+	char timestamp[80];
+	char message[256];
+	char l_min[15];
+	char l_max[15];
+	char l_medida[15];
+
+	db_get_timestamp(timestamp);
+
+	/*
+	 * Construcao da mensagem de alarme
+	 */
+	switch(tipo) {
+	case BARRAMENTO:
+		if (states->barramento == 1) {
+			sprintf(l_medida,"%3d.%3d",(value/1000),(value%1000));
+			sprintf(l_min,"%3d.%3d",(alarmconfig->barramento_min/1000),(alarmconfig->barramento_min%1000));
+			sprintf(message,"Alerta de tensao no barramento, Minima %s de %s",
+					l_medida,l_min);
+		} else if (states->barramento == 2) {
+			sprintf(l_medida,"%3d.%3d",(value/1000),(value%1000));
+			sprintf(message,"Alerta de tensao no barramento, dentro da faixa %s",
+					l_medida);
+		} else if (states->barramento == 3) {
+			sprintf(l_medida,"%3d.%3d",(value/1000),(value%1000));
+			sprintf(l_max,"%3d.%3d",(alarmconfig->barramento_max/1000),(alarmconfig->barramento_max%1000));
+			sprintf(message,"Alerta de tensao no barramento, Maxima %s de %s",
+					l_medida,l_max);
+		}
+		break;
+	case TARGET:
+		if (states->target == 1) {
+			sprintf(l_medida,"%3d.%3d",(value/1000),(value%1000));
+			sprintf(l_min,"%3d.%3d",(alarmconfig->target_min/1000),(alarmconfig->target_min%1000));
+			sprintf(message,"Alerta de target, Minima %s de %s",
+					l_medida,l_min);
+		} else if (states->target == 2) {
+			sprintf(l_medida,"%3d.%3d",(value/1000),(value%1000));
+			sprintf(message,"Alerta de target, dentro da faixa %s",
+					l_medida);
+		} else if (states->target == 3) {
+			sprintf(l_medida,"%3d.%3d",(value/1000),(value%1000));
+			sprintf(l_max,"%3d.%3d",(alarmconfig->target_max/1000),(alarmconfig->target_max%1000));
+			sprintf(message,"Alerta de target, Maxima %s de %s",
+					l_medida,l_max);
+		}
+		break;
+	case DISK:
+		if (states->disk == 2) {
+			sprintf(message,"Alerta de capacidade de disco, abaixo de 95%");
+		} else if (states->disk == 3) {
+			sprintf(message,"Alerta de capacidade de disco, acima de 95%");
+		}
+		break;
+	}
+
+	/*
+	 * Inclui campos na tabela de registros de tempo real
+	 */
+	LOG(DATABASE_LOG "Registrando alarme ...\n");
+	LOG(DATABASE_LOG "Mensagem: %s\n", message);
+	sqlite3_bind_text(baked_alarmlog, 1, timestamp, -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_alarmlog, 2, message, -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_alarmlog, 3, "0", -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(baked_alarmlog, 4, "1", -1, SQLITE_TRANSIENT);
+	sqlite3_step(baked_alarmlog);
+	sqlite3_clear_bindings(baked_alarmlog);
+	sqlite3_reset(baked_alarmlog);
+	LOG("Alarme registrado\n");
+
+	return 0;
+}
+
+
 
 int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 		Protocol_ImpedanceCmd_OutputVars *imp_vars,
@@ -585,8 +677,13 @@ int db_get_parameters(Database_Parameters_t *list, Database_Alarmconfig_t *alarm
 		 * Busca informacoes da tabela alarmconfig
 		 */
 		sprintf(sql_message,
-				"SELECT alarme_nivel_tensao_max, alarme_nivel_tensao_min,alarme_nivel_temp_max,"
-				"alarme_nivel_temp_min,alarme_nivel_imped_max,alarme_nivel_imped_min FROM AlarmeConfig");
+				"SELECT "
+				"alarme_nivel_tensao_max, alarme_nivel_tensao_min,"
+				"alarme_nivel_temp_max, alarme_nivel_temp_min,"
+				"alarme_nivel_imped_max,alarme_nivel_imped_min,"
+				"alarme_nivel_tensaoBarr_max, alarme_nivel_tensaoBarr_min,"
+				"alarme_nivel_target_max, alarme_nivel_target_min "
+				" FROM AlarmeConfig");
 		err = sqlite3_exec(database,sql_message,alarmconfig_callback,0,&zErrMsg);
 		if (err != SQLITE_OK) {
 			LOG(DATABASE_LOG "Error on select exec, msg: %s\n", zErrMsg);

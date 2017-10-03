@@ -67,6 +67,49 @@ static int evaluate_states(
 	return 0;
 }
 
+static int evaluate_states_results(
+		Database_Alarmconfig_t *params,
+		unsigned int target,
+		unsigned int bus,
+		unsigned int disk_capacity,
+		Protocol_States *states) {
+
+	/*
+	 * Tensao de barramento (bus)
+	 */
+	if (bus < params->barramento_min) {
+		states->barramento = 1;
+	} else if (bus > params->barramento_max) {
+		states->barramento = 3;
+	} else {
+		states->barramento = 2;
+	}
+
+	/*
+	 * Tensao Target
+	 */
+	if (target < params->target_min) {
+		states->target = 1;
+	} else if (target > params->target_max) {
+		states->target = 3;
+	} else {
+		states->target = 2;
+	}
+
+	/*
+	 * Capacidade de disco
+	 */
+	if (disk_capacity > 95) {
+		states->disk = 3; 
+	} else {
+		states->disk = 2;
+	}
+
+	return 0;
+}
+
+
+
 int service_init(char *dev_path, char *db_path) {
 	int err = 0;
 	char *l_db = DEFAULT_DB_PATH;
@@ -394,8 +437,42 @@ int service_start(void) {
 				capacity = disk_usedSpace("/");
 				/* Formata os dados e atualiza o banco de dados */
 				average_last = _compressFloat(f_average);
+				/*
+				 * Processa os estados dos resultados calculados
+				 */
+				evaluate_states_results(&alarmconfig,average_last,f_bus_sum, capacity,pt_state_current);
+				/*
+				 * Armazena os resultados obtidos em banco de dados
+				 */
 				db_update_average(average_last, f_bus_sum, capacity);
 				//LOG("Storing average value : %g --> %u\n",f_average, average_last);
+				/*
+				 * Analisa a necessidade de geracao de alarmes dos resultados
+				 */
+				if (!isFirstRead) {
+					/*
+					 * Podem ser gerados ate 3 alarmes por leitura, sendo um para cada leitura critica
+					 */
+					if (pt_state_current->barramento != pt_state_last->barramento) {
+						/* Registra alarme de mudanca de tensao de barramento */
+						db_add_alarm_results(f_bus_sum,pt_state_current,&alarmconfig,BARRAMENTO);
+					}
+					if (pt_state_current->target != pt_state_last->target) {
+						/* Registra alarme de mudanca de tensao target */
+						db_add_alarm_results(average_last,pt_state_current,&alarmconfig,TARGET);
+					}
+					if (pt_state_current->disk != pt_state_last->disk) {
+						/* Registra alarme de capacidade de disco */
+						db_add_alarm_results(capacity,pt_state_current,&alarmconfig,DISK);
+					}
+				}
+				/*
+				 * Atualiza os valores antigos
+				 */
+				pt_state_last->barramento = pt_state_current->barramento;
+				pt_state_last->target = pt_state_current->target;
+				pt_state_last->disk = pt_state_current->disk;
+
 			}
 			/*
 			 * Atualiza intervalo de registro na base de log
