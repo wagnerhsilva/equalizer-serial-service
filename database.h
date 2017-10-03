@@ -71,6 +71,10 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 		Protocol_States *states,
 		Database_Alarmconfig_t *alarmconfig,
 		Protocol_States_e tipo);
+int db_add_alarm_results(unsigned int value,
+		Protocol_States *states,
+		Database_Alarmconfig_t *alarmconfig,
+		Protocol_States_e tipo);
 int db_get_addresses(Database_Addresses_t *list,Database_Parameters_t *p_list);
 int db_get_parameters(Database_Parameters_t *list, Database_Alarmconfig_t *alarmconfig);
 int db_set_macaddress(void);

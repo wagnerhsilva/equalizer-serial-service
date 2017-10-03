@@ -233,7 +233,7 @@ static int alarmconfig_callback(void *data, int argc, char **argv, char **azColN
 
 	/* Em caso do banco de dados vir com problema, de forma a nao chegar
 	 * todos os parametros, eles serao carregados com valores padrao fixos */
-	if (argc != 6) {
+	if (argc != 10) {
 		LOG(DATABASE_LOG "Problemas na tabela Alarmconfig - carregando valores padrao: %d\n",argc);
 		alarmconfig_list->impedancia_max = 0;
 		alarmconfig_list->impedancia_min = 0;
