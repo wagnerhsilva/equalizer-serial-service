@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#define OUTPUT_CONSOLE 1
+
 FILE *fp = NULL;
 FILE *ext_fp = NULL;
 int DEBUG = 1;
@@ -77,7 +79,7 @@ int LOG(const char *format, ...){
             struct tm * timeinfo;
             time(&rawtime);
             timeinfo = localtime(&rawtime);
-            char buffer[256];
+            char buffer[256] = {0};
             strcat(buffer,"SOFTWARE BASICO V. " SOFTWARE_VERSION);
             strcat(buffer, "---[Invoked at: ");
             int s = strlen(buffer);
@@ -85,12 +87,21 @@ int LOG(const char *format, ...){
             strcat(buffer, "]---\n");
             firstpass = 0;
             fwrite(buffer, strlen(buffer), 1, fp);
+            if(OUTPUT_CONSOLE){
+                printf("%s", buffer);
+            }
         }
+        char obuffer[256] = {0};
         va_list arg;
         va_start(arg, format);
-        done = vfprintf(fp, format, arg);
+        done = vsnprintf(obuffer, 256, format, arg);
         va_end(arg);
+        fwrite(obuffer, strlen(obuffer), 1, fp);
         fflush(fp);
+        if(OUTPUT_CONSOLE){
+            printf("%s", obuffer);
+            fflush(stdout);
+        }
     }
     return done;
 }

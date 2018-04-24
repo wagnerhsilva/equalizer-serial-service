@@ -114,7 +114,7 @@ static int prot_check_extract_readvar_response8(uint8_t * data,
     /* Em caso de timeout, o checksum calculado sera zero e o processo devera
        ter continuidade */
     if((markedChksum != chksum) && (markedChksum != 0)){
-        LOG(PROTOCOL_LOG "Invalid checksum, got: %04x expected: %04x\n",markedChksum, chksum);
+        // LOG(PROTOCOL_LOG "Invalid checksum, got: %04x expected: %04x\n",markedChksum, chksum);
         return -1;
     }
 
@@ -195,7 +195,7 @@ static int prot_check_extract_impedance_response8(uint8_t * data,
     uint16_t chksum = prot_calc_checksum(&data[0], 30);
 
     if(markedChksum != chksum){
-        LOG("Invalid checksum, got: %d expected: %d\n", markedChksum, chksum);
+        // LOG("Invalid checksum, got: %d expected: %d\n", markedChksum, chksum);
         return -1;
     }
 
@@ -349,7 +349,7 @@ int prot_read_vars(Protocol_ReadCmd_InputVars *in,
 				/*
 				 * QUADRO INVALIDO - aguarda pelo próximo quadro
 				 */
-				LOG(PROTOCOL_LOG "Mensagem invalida, retries %d\n",retry);
+				// LOG(PROTOCOL_LOG "Mensagem invalida, retries %d\n",retry);
 				retry--;
 			}else{
 				break;
@@ -417,7 +417,7 @@ int prot_read_impedance(Protocol_ImpedanceCmd_InputVars *in,
 				 * (Foi implementado igual a leitura de variaveis, mas esta
 				 * situacao nunca sera obtida)
 				 */
-				LOG(PROTOCOL_LOG "Mensagem invalida, retries %d\n",retry);
+				// LOG(PROTOCOL_LOG "Mensagem invalida, retries %d\n",retry);
 				retry--;
 			} else {
 				/*

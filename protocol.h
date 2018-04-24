@@ -63,7 +63,8 @@ typedef enum {
 	IMPEDANCIA,
 	BARRAMENTO,
 	TARGET,
-	DISK
+	DISK,
+	STRING
 } Protocol_States_e;
 
 int prot_init(Serial_t *serial);

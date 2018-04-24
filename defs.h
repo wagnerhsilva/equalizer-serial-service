@@ -35,6 +35,15 @@
 #define u16_LSB(u16) (u16 & 0xFF)
 #define u16_MSB(u16) ((u16 >> 8) & 0xFF)
 
+typedef struct{
+	float average;
+	unsigned int bus_sum;
+}StringAvg_t;
+
+typedef struct{
+	int i1, i2, i3;
+}int3;
+
 //defined in defs.c
 extern const int PROTOCOL_READ_VAR_ARR[2];
 extern const int PROTOCOL_IMPEDANCE_VAR_ARR[2];

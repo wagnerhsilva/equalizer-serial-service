@@ -150,7 +150,7 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len) {
     		if (bread == exp_len) {
     			/* Sucesso */
     			char *buffer = toStrHexa(data, bread);
-    			LOG(SERIAL_LOG "<== %s\n", buffer);
+    			// LOG(SERIAL_LOG "<== %s\n", buffer);
     			free(buffer);
     			ret = 0;
     			break; /* Sai do loop */
@@ -179,7 +179,7 @@ int ser_write(Serial_t *ser_instance, uint8_t *data, int len) {
 	}
 
     char *buffer = toStrHexa(data, len);
-    LOG(SERIAL_LOG "==> %s\n", buffer);
+    // LOG(SERIAL_LOG "==> %s\n", buffer);
     free(buffer);
 	bytesSent = write(ser_instance->fd,data,len);
 	if (bytesSent != len) {

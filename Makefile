@@ -1,9 +1,19 @@
-TARGETS=database.c main.c serial.c service.c protocol.c defs.c disk.c
-OUTPUT=service
+TARGETS=database.o main.o serial.o service.o protocol.o defs.o disk.o
 INC=-I . -lsqlite3 -lm
 OPT=-O2
 DEBUG=-g
-all:
-	${CC} $(OPT) $(TARGETS) -o $(OUTPUT) $(INC) $(DEBUG)
+
+.PHONY: all clean rebuild
+
+all: service
+
+rebuild: clean service
+
+%.o: %.c
+	$(CC) $(INC) $(OPT) $(DEBUG) -c $^
+
+service: $(TARGETS)
+	$(CC) $(OPT) $^ -o service $(INC) $(DEBUG)
+
 clean:
 	rm -rf *o service
