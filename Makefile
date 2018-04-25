@@ -16,4 +16,4 @@ service: $(TARGETS)
 	$(CC) $(OPT) $^ -o service $(INC) $(DEBUG)
 
 clean:
-	rm -rf *o service
+	rm -rf *o *.txt service
