@@ -44,6 +44,14 @@ typedef struct{
 	int i1, i2, i3;
 }int3;
 
+#define autofree __attribute__((cleanup(free_stack)))
+
+__attribute__ ((always_inline))
+inline void free_stack(void *ptr) {
+	printf("Freeing %s\n", (const char *)(ptr));
+    free(*(void **) ptr);
+}
+
 //defined in defs.c
 extern const int PROTOCOL_READ_VAR_ARR[2];
 extern const int PROTOCOL_IMPEDANCE_VAR_ARR[2];
