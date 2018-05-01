@@ -322,7 +322,7 @@ int db_init(char *path) {
 		return -1;
 	}
 
-	sqlite3_prepare_v2(database, "INSERT INTO DataLog (dataHora, string, bateria, temperatura, impedancia, tensao, equalizacao) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);", -1, &baked_stmt, NULL);
+	sqlite3_prepare_v2(database, "INSERT INTO DataLog (dataHora, string, bateria, temperatura, impedancia, tensao, equalizacao, target) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8);", -1, &baked_stmt, NULL);
 	sqlite3_prepare_v2(database, "INSERT OR IGNORE INTO DataLogRT (id, datahora, string, bateria, temperatura, impedancia, tensao, equalizacao, batstatus) VALUES (?8, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?9); UPDATE DataLogRT SET datahora = ?1, string = ?2, bateria = ?3, temperatura = ?4, impedancia = ?5, tensao = ?6, equalizacao = ?7, batstatus = ?9 WHERE id = ?8;", -1, &baked_stmt_rt, NULL);
 	sqlite3_prepare_v2(database, "INSERT INTO AlarmLog (dataHora, descricao, emailEnviado, n_ocorrencias) VALUES (?1, ?2, ?3, ?4);", -1, &baked_alarmlog, NULL);
 
@@ -347,7 +347,8 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 		Protocol_States *states,
 		int id_db,
 		int save_log,
-		int ok)
+		int ok,
+		unsigned int str_target)
 {
 	// CCK_ZERO_DEBUG_V(read_vars);
 	char *zErrMsg = 0;
@@ -363,6 +364,7 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	char s_tensao[15]; sprintf(s_tensao, "%d", states->tensao);
 	char s_temperatura[15]; sprintf(s_temperatura, "%d", states->temperatura);
 	char s_impedancia[15]; sprintf(s_impedancia, "%d", states->impedancia);
+	char chr_str_targ[15]; sprintf(chr_str_targ, "%hu", str_target);
 
 	//LOG("%d:%d:impedance = %d:%s\n",read_vars->addr_bank,read_vars->addr_batt,imp_vars->impedance,imped);
 
@@ -378,6 +380,7 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 		sqlite3_bind_text(baked_stmt, 5, imped, -1, SQLITE_TRANSIENT);
 		sqlite3_bind_text(baked_stmt, 6, vbat, -1, SQLITE_TRANSIENT);
 		sqlite3_bind_text(baked_stmt, 7, duty, -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(baked_stmt, 8, chr_str_targ, -1, SQLITE_TRANSIENT);
 		sqlite3_step(baked_stmt);
 		sqlite3_clear_bindings(baked_stmt);
 		sqlite3_reset(baked_stmt);
@@ -728,7 +731,7 @@ int db_update_average(unsigned short new_avg, unsigned int new_sum, int id) {
 		 */
 		sprintf(sql,"INSERT OR IGNORE INTO Medias (id, tensao, target) VALUES (%u, %u, %d);"
 					" UPDATE Medias SET tensao=%u, target=%u WHERE id=%d;",
-		 	   id, new_avg, new_sum, new_avg, new_sum, id);
+		 	   id, new_sum, new_avg, new_sum, new_avg, id);
 
 		err = sqlite3_exec(database,sql,write_callback,0,&zErrMsg);
 		if (err != SQLITE_OK) {

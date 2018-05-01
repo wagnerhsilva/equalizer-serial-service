@@ -3,9 +3,11 @@ INC=-I . -lsqlite3 -lm
 OPT=-O2
 DEBUG=-g
 
-.PHONY: all clean rebuild
+.PHONY: all clean rebuild release
 
 all: service
+
+release: rebuild clean_partial
 
 rebuild: clean service
 
@@ -17,3 +19,6 @@ service: $(TARGETS)
 
 clean:
 	rm -rf *o *.txt service
+
+clean_partial:
+	rm -rf *o *.txt

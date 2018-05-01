@@ -362,23 +362,23 @@ int service_start(void) {
 						 * a busca por variaveis e a busca pela
 						 * impedancia
 						 */
-						if (vars_read_counter < params.num_cycles_var_read) {
-							err = prot_read_vars(&input_vars,&output_vars, params.param3_messages_wait);
-							if(err != 0){
-								if(stringOK != 0){
-									stringOK = 0;
-									read_ok[ix].i1 = err;
-									read_ok[ix].i2 = ix;
-									read_ok[ix].i3 = j;
-									service_preserved_copy(&output_vars, &output_vars_last[i]);
-								}
+						
+						err = prot_read_vars(&input_vars,&output_vars, params.param3_messages_wait);
+						if(err != 0){
+							if(stringOK != 0){
+								stringOK = 0;
+								read_ok[ix].i1 = err;
+								read_ok[ix].i2 = ix;
+								read_ok[ix].i3 = j;
+								service_preserved_copy(&output_vars, &output_vars_last[i]);
 							}
+						}
 
-							/* Salva a leitura feita */
-							memcpy((unsigned char *)&output_vars_last[i],(unsigned char *)&output_vars,sizeof(Protocol_ReadCmd_OutputVars));
-							// CCK_ZERO_DEBUG_V(&output_vars);
-							// CCK_ZERO_DEBUG_F(&output_vars_last[i], i);
-						} else {
+						/* Salva a leitura feita */
+						memcpy((unsigned char *)&output_vars_last[i],(unsigned char *)&output_vars,sizeof(Protocol_ReadCmd_OutputVars));
+						// CCK_ZERO_DEBUG_V(&output_vars);
+						// CCK_ZERO_DEBUG_F(&output_vars_last[i], i);
+						if (vars_read_counter >= params.num_cycles_var_read) {
 							err = prot_read_impedance(&input_impedance,&output_impedance, params.param3_messages_wait);
 							if(err != 0){
 								if(stringOK != 0){
@@ -399,12 +399,12 @@ int service_start(void) {
 					/*
 					 * Calcula a media atualizada de vref
 					 */
-					if ((isFirstRead) || (vars_read_counter < params.num_cycles_var_read)) {
-						float fvbat = (float)(output_vars.vbat);
-						float fitems = (float)(list.batteries);
-						string_avg[ix].average += fvbat / fitems;
-						string_avg[ix].bus_sum += (unsigned int)output_vars.vbat;
-					}
+					// if ((isFirstRead) || (vars_read_counter < params.num_cycles_var_read)) {
+					float fvbat = (float)(output_vars.vbat);
+					float fitems = (float)(list.batteries);
+					string_avg[ix].average += fvbat / fitems;
+					string_avg[ix].bus_sum += (unsigned int)output_vars.vbat;
+					// }
 				}
 			}
 
@@ -412,6 +412,8 @@ int service_start(void) {
 			 * Salva as informacoes no banco de dados e calcula o estado das leituras
 			 */
 			for(int ix = 0; ix < list.strings; ix += 1){
+				
+				unsigned int uaverage = _compressFloat(string_avg[ix].average);
 
 				for(int j = 0; j < list.batteries; j += 1){
 					i = j + list.batteries * ix;
@@ -427,13 +429,13 @@ int service_start(void) {
 					 * Armazena cada leitura no banco de dados
 					 */
 					// CCK_ZERO_DEBUG_V(pt_vars);
-					err = db_add_response(pt_vars, pt_imp, pt_state_current, i+1, save_log_state, read_ok[ix].i1);
+					err = db_add_response(pt_vars, pt_imp, pt_state_current, i+1, save_log_state,
+										  read_ok[ix].i1, uaverage);
 					if(err != 0){
 						LOG("Erro na escrita do banco!\n");
 					}
 				}
 
-				unsigned int uaverage = _compressFloat(string_avg[ix].average);
 				db_update_average(uaverage, string_avg[ix].bus_sum, ix);
 			}
 			/*
