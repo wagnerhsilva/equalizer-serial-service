@@ -141,6 +141,9 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len) {
     FD_SET(ser_instance->fd,&set);
     timeout.tv_sec = ser_instance->read_timeout;
     timeout.tv_usec = 0;
+
+    
+
     while (1) {
     	/* Usa o select() para verificar a disponibilidade de dados */
     	rv = select(ser_instance->fd + 1, &set, NULL, NULL, &timeout);

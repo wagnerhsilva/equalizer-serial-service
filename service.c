@@ -405,6 +405,12 @@ int service_start(void) {
 					string_avg[ix].average += fvbat / fitems;
 					string_avg[ix].bus_sum += (unsigned int)output_vars.vbat;
 					// }
+					
+					/*
+					* Pausa entre as leituras das celulas
+					*/
+					sleep_ms(params.param1_interbat_delay);
+
 				}
 			}
 

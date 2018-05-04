@@ -1,6 +1,6 @@
 TARGETS=database.o main.o serial.o service.o protocol.o defs.o disk.o
 INC=-I . -lsqlite3 -lm
-OPT=-O2
+OPT=-O0
 DEBUG=-g
 
 .PHONY: all clean rebuild release
