@@ -351,6 +351,8 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 		unsigned int str_target)
 {
 	// CCK_ZERO_DEBUG_V(read_vars);
+
+
 	char *zErrMsg = 0;
 	char timestamp[80];
 
@@ -372,7 +374,7 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	 * Inclui campos na tabela de registros completa
 	 */
 	if (save_log) {
-		LOG(DATABASE_LOG "Salvando DataLog ...");
+		// LOG(DATABASE_LOG "Salvando DataLog ...");
 		sqlite3_bind_text(baked_stmt, 1, timestamp, -1, SQLITE_TRANSIENT);
 		sqlite3_bind_text(baked_stmt, 2, int_to_addr(read_vars->addr_bank, 1), -1, SQLITE_TRANSIENT);
 		sqlite3_bind_text(baked_stmt, 3, int_to_addr(read_vars->addr_batt, 0), -1, SQLITE_TRANSIENT);
@@ -391,7 +393,7 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	 * TODO: Corrigir implementação
 	 * Inclui campos na tabela de registros de tempo real
 	 */
-	LOG(DATABASE_LOG "Salvando DataLogRT ...");
+	// LOG(DATABASE_LOG "Salvando DataLogRT ...");
 	char sql[2048];
 	snprintf(sql, 2048, "INSERT OR IGNORE INTO DataLogRT "
 		"(id, datahora, string, bateria, temperatura, impedancia, tensao, equalizacao, batstatus) "
@@ -402,11 +404,12 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 		etemp, imped, vbat, duty, ok, id);
 
 	int err = sqlite3_exec(database,sql,write_callback,0,&zErrMsg);
+
 	if(err != SQLITE_OK){
 		LOG("Erro %s\nSQL: %s\n", zErrMsg, sql);
-		exit(1);
+		// exit(1);
 	}
-	LOG("OK\n");
+	// LOG("OK\n");
 
 	return 0;
 }

@@ -1,4 +1,5 @@
-TARGETS=database.o main.o serial.o service.o protocol.o defs.o disk.o
+TARGETS=database.o main.o serial.o service.o protocol.o\
+defs.o disk.o component.o manager.o
 INC=-I . -lsqlite3 -lm
 OPT=-O0
 DEBUG=-g

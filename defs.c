@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define OUTPUT_CONSOLE 0
+#define OUTPUT_CONSOLE 1
 
 FILE *fp = NULL;
 FILE *ext_fp = NULL;
