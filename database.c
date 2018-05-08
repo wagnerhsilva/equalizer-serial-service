@@ -61,9 +61,9 @@ static int write_callback(void *data, int argc, char **argv, char **azColName){
 	return 0;
 }
 
-static char * int_to_addr(int val, int isBank){
-	char * res = (char *)malloc(sizeof(char)*5); //at most 4 -> M255
-	char *number = (char *)malloc(sizeof(char)*4);
+static void int_to_addr(int val, int isBank, char *target){
+	char res[5];
+	char number[4];
 	if(isBank){
 		res[0] = 'S';
 	}else{
@@ -73,10 +73,8 @@ static char * int_to_addr(int val, int isBank){
 
 	snprintf(number, 4, "%d", val);
 	strcat(res, number);
-	free(number);
-	return res;
+	memcpy(target, res, sizeof(char)*5);
 }
-
 
 static int read_callback(void *data, int argc, char **argv, char **azColName){
 	/*
@@ -357,6 +355,8 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	char timestamp[80];
 
 	db_get_timestamp(timestamp);
+	char bank[5]; 
+	char batt[5]; 
 
 	char etemp[15]; sprintf(etemp, "%hu", read_vars->etemp);
 	char imped[15]; sprintf(imped, "%d", imp_vars->impedance);
@@ -375,9 +375,11 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	 */
 	if (save_log) {
 		// LOG(DATABASE_LOG "Salvando DataLog ...");
+		int_to_addr(read_vars->addr_bank, 1, &bank[0]);
+		int_to_addr(read_vars->addr_batt, 0, &batt[0]);
 		sqlite3_bind_text(baked_stmt, 1, timestamp, -1, SQLITE_TRANSIENT);
-		sqlite3_bind_text(baked_stmt, 2, int_to_addr(read_vars->addr_bank, 1), -1, SQLITE_TRANSIENT);
-		sqlite3_bind_text(baked_stmt, 3, int_to_addr(read_vars->addr_batt, 0), -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(baked_stmt, 2, bank, -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(baked_stmt, 3, batt, -1, SQLITE_TRANSIENT);
 		sqlite3_bind_text(baked_stmt, 4, etemp, -1, SQLITE_TRANSIENT);
 		sqlite3_bind_text(baked_stmt, 5, imped, -1, SQLITE_TRANSIENT);
 		sqlite3_bind_text(baked_stmt, 6, vbat, -1, SQLITE_TRANSIENT);
@@ -386,7 +388,7 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 		sqlite3_step(baked_stmt);
 		sqlite3_clear_bindings(baked_stmt);
 		sqlite3_reset(baked_stmt);
-		LOG("OK\n");
+		// LOG("OK\n");
 	}
 
 	/*
@@ -394,14 +396,14 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	 * Inclui campos na tabela de registros de tempo real
 	 */
 	// LOG(DATABASE_LOG "Salvando DataLogRT ...");
+	int_to_addr(read_vars->addr_bank, 1, &bank[0]);
+	int_to_addr(read_vars->addr_batt, 0, &batt[0]);
 	char sql[2048];
 	snprintf(sql, 2048, "INSERT OR IGNORE INTO DataLogRT "
 		"(id, datahora, string, bateria, temperatura, impedancia, tensao, equalizacao, batstatus) "
 		"VALUES (%s, '%s', '%s', '%s', %s, %s, %s, %s, %d); UPDATE DataLogRT SET datahora = '%s', string = '%s', "
 		"bateria = '%s', temperatura = %s, impedancia = %s, tensao = %s, equalizacao = %s, batstatus = %d WHERE id = %s;", id,
-		timestamp, int_to_addr(read_vars->addr_bank, 1), int_to_addr(read_vars->addr_batt, 0), 
-		etemp, imped, vbat, duty, ok, timestamp, int_to_addr(read_vars->addr_bank, 1), int_to_addr(read_vars->addr_batt, 0), 
-		etemp, imped, vbat, duty, ok, id);
+		timestamp, bank, batt, etemp, imped, vbat, duty, ok, timestamp, bank, batt, etemp, imped, vbat, duty, ok, id);
 
 	int err = sqlite3_exec(database,sql,write_callback,0,&zErrMsg);
 
@@ -507,6 +509,8 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 	char l_min[15];
 	char l_max[15];
 	char l_medida[15];
+	char batt[5]; int_to_addr(read_vars->addr_batt, 0, &batt[0]);
+	char bank[5]; int_to_addr(read_vars->addr_bank, 1, &bank[0]);
 
 	db_get_timestamp(timestamp);
 
@@ -519,21 +523,21 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 			sprintf(l_medida,"%3d.%3d",(read_vars->vbat/1000),(read_vars->vbat%1000));
 			sprintf(l_min,"%3d.%3d",(alarmconfig->tensao_min/1000),(alarmconfig->tensao_min%1000));
 			sprintf(message,"Alerta de tensao em %s-%s, Minima %s de %s",
-					int_to_addr(read_vars->addr_bank, 1),
-					int_to_addr(read_vars->addr_batt, 0),
+					bank,
+					batt,
 					l_medida,l_min);
 		} else if (states->tensao == 2) {
 			sprintf(l_medida,"%3d.%3d",(read_vars->vbat/1000),(read_vars->vbat%1000));
 			sprintf(message,"Alerta de tensao em %s-%s, dentro da faixa %s",
-					int_to_addr(read_vars->addr_bank, 1),
-					int_to_addr(read_vars->addr_batt, 0),
+					bank,
+					batt,
 					l_medida);
 		} else if (states->tensao == 3) {
 			sprintf(l_medida,"%3d.%3d",(read_vars->vbat/1000),(read_vars->vbat%1000));
 			sprintf(l_max,"%3d.%3d",(alarmconfig->tensao_max/1000),(alarmconfig->tensao_max%1000));
 			sprintf(message,"Alerta de tensao em %s-%s, Maxima %s de %s",
-					int_to_addr(read_vars->addr_bank, 1),
-					int_to_addr(read_vars->addr_batt, 0),
+					bank,
+					batt,
 					l_medida,l_max);
 		}
 		break;
@@ -542,21 +546,21 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 			sprintf(l_medida,"%3d.%1d",(read_vars->etemp/10),(read_vars->etemp%10));
 			sprintf(l_min,"%3d.%1d",(alarmconfig->temperatura_min/10),(alarmconfig->temperatura_min%10));
 			sprintf(message,"Alerta de temperatura em %s-%s, Minima %s de %s",
-					int_to_addr(read_vars->addr_bank, 1),
-					int_to_addr(read_vars->addr_batt, 0),
+					bank,
+					batt,
 					l_medida,l_min);
 		} else if (states->temperatura == 2) {
 			sprintf(l_medida,"%3d.%1d",(read_vars->etemp/10),(read_vars->etemp%10));
 			sprintf(message,"Alerta de temperatura em %s-%s, dentro da faixa %s",
-					int_to_addr(read_vars->addr_bank, 1),
-					int_to_addr(read_vars->addr_batt, 0),
+					bank,
+					batt,
 					l_medida);
 		} else if (states->temperatura == 3) {
 			sprintf(l_medida,"%3d.%1d",(read_vars->etemp/10),(read_vars->etemp%10));
 			sprintf(l_max,"%3d.%1d",(alarmconfig->temperatura_max/10),(alarmconfig->temperatura_max%10));
 			sprintf(message,"Alerta de temperatura em %s-%s, Maxima %s de %s",
-					int_to_addr(read_vars->addr_bank, 1),
-					int_to_addr(read_vars->addr_batt, 0),
+					bank,
+					batt,
 					l_medida,l_max);
 		}
 		break;
@@ -565,31 +569,30 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 			sprintf(l_medida,"%3d.%2d",(imp_vars->impedance/100),(imp_vars->impedance%100));
 			sprintf(l_min,"%3d.%2d",(alarmconfig->impedancia_min/100),(alarmconfig->impedancia_min%100));
 			sprintf(message,"Alerta de impedancia em %s-%s, Minima %s de %s",
-					int_to_addr(read_vars->addr_bank, 1),
-					int_to_addr(read_vars->addr_batt, 0),
+					bank,
+					batt,
 					l_medida,l_min);
 		} else if (states->impedancia == 2) {
 			sprintf(l_medida,"%3d.%2d",(imp_vars->impedance/100),(imp_vars->impedance%100));
 			sprintf(message,"Alerta de impedancia em %s-%s, dentro da faixa %s",
-					int_to_addr(read_vars->addr_bank, 1),
-					int_to_addr(read_vars->addr_batt, 0),
+					bank,
+					batt,
 					l_medida);
 		} else if (states->impedancia == 3) {
 			sprintf(l_medida,"%3d.%2d",(imp_vars->impedance/100),(imp_vars->impedance%100));
 			sprintf(l_max,"%3d.%2d",(alarmconfig->impedancia_max/100),(alarmconfig->impedancia_max%100));
 			sprintf(message,"Alerta de impedancia em %s-%s, Maxima %s de %s",
-					int_to_addr(read_vars->addr_bank, 1),
-					int_to_addr(read_vars->addr_batt, 0),
+					bank,
+					batt,
 					l_medida,l_max);
 		}
 		break;
 	case STRING:{
-			char *p0 = int_to_addr(read_st.i2+1, 1);
-			char *p1 = int_to_addr(read_st.i3+1, 0);
+
+			int_to_addr(read_st.i2+1, 1, &bank[0]);
+			int_to_addr(read_st.i3+1, 0, &batt[0]);
 			snprintf(message, 256, "Alerta de erro de leitura em %s-%s com erro: %d",
-						p0, p1, read_st.i1);
-			free(p0);
-			free(p1);
+						bank, batt, read_st.i1);
 		}
 		break;
 	}

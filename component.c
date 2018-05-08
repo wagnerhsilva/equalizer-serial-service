@@ -8,14 +8,14 @@
 /*
  * checks if a pointer is initialized or not, immediatly returns false if not
 */
-#define PTR_VALID(x) { if(!(x)){ printf("[COMPONENT] Not a valid pointer[%s]::%d\n", (char *)#x, __LINE__); return false; }}
+#define PTR_VALID(x) { if(!(x)){ LOG("COMPONENT:Not a valid pointer[%s]::%d\n", (char *)#x, __LINE__); return false; }}
 
 /*
  * make a pointer attribution, y should be the address of the pointer
  * and x is the operation. To be used with (m,re,c)alloc functions
  * immediatly returns false if the operation failed
 */
-#define PTR_ATT(y, x) { (*y) = (x); if((*y) == nullptr) { printf("[COMPONENT] No Memory for %s=%s::%d\n", (char *)#y, (char*)#x, __LINE__); return false; } }
+#define PTR_ATT(y, x) { (*y) = (x); if((*y) == nullptr) { LOG("COMPONENT:No Memory for %s=%s::%d\n", (char *)#y, (char*)#x, __LINE__); return false; } }
 
 
 /*
