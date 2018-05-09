@@ -89,9 +89,9 @@ int service_start(void) {
 	/*
 	 * Atualiza o endereco MAC da placa
 	 */
-	// if (CHECK(db_set_macaddress())) {
-	// 	return -1;
-	// }
+	if (CHECK(db_set_macaddress())) {
+		return -1;
+	}
 
 	/*
 	 * Atualiza a tabela de parametros, para o novo ciclo
