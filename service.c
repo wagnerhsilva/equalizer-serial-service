@@ -89,9 +89,9 @@ int service_start(void) {
 	/*
 	 * Atualiza o endereco MAC da placa
 	 */
-	if (CHECK(db_set_macaddress())) {
-		return -1;
-	}
+	// if (CHECK(db_set_macaddress())) {
+	// 	return -1;
+	// }
 
 	/*
 	 * Atualiza a tabela de parametros, para o novo ciclo
@@ -178,7 +178,7 @@ int service_start(void) {
 			 * Testa se precisa fazer invocação manual do processo de leitura
 			 * de impedancia
 			*/
-			bool manual = (vars_read_counter < params.num_cycles_var_read);
+			bool manual = (vars_read_counter == params.num_cycles_var_read);
 			if(!isFirstRead && manual){
 				readStatus |= cm_manager_read_strings(manager, 
 													  false,
@@ -202,18 +202,16 @@ int service_start(void) {
 				 * Dispara escrita de respostas de strings e alarmes 
 				 * de strings
 				*/
-				if(isFirstRead || manual){
 
-					capacity = disk_usedSpace("/");
+				capacity = disk_usedSpace("/");
 
-					/*
-					 * Persiste capacidade
-					*/
-					db_update_capacity(capacity);
+				/*
+					* Persiste capacidade
+				*/
+				db_update_capacity(capacity);
 
-					cm_manager_process_strings(manager, &alarmconfig, params,
-											   capacity, isFirstRead);
-				}
+				cm_manager_process_strings(manager, &alarmconfig, params,
+											capacity, isFirstRead);
 			}
 
 			/*

@@ -159,14 +159,14 @@ int ser_read(Serial_t *ser_instance, uint8_t *data, int exp_len) {
     			break; /* Sai do loop */
     		} else {
     			/* Erro, tenta novamente */
-    			LOG(SERIAL_LOG "read ERROR %d\n",bread);
+    			// LOG(SERIAL_LOG "read ERROR %d\n",bread);
     		}
     	} else if (rv == 0) {
-    		LOG(SERIAL_LOG "select TIMEOUT\n");
+    		// LOG(SERIAL_LOG "select TIMEOUT\n");
     		ret = -3;
     		break; /* Sai do loop */
     	} else {
-    		LOG(SERIAL_LOG "select ERROR\n");
+    		// LOG(SERIAL_LOG "select ERROR\n");
     		ret = -2;
     		break; /* Sai do loop */
     	}

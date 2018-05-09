@@ -22,16 +22,34 @@
  * Basic interface to handle CM-Strings operations
 */
 
+/*
+ * Creates a new CM-String received as an address to a pointer to cm_string_t
+ * with the desired size 'size'
+*/
 bool cm_string_new(cm_string_t **str, int size){
 	PTR_VALID(str);
+	/*
+	 * If the pointer is not null than this cm_string_t is already
+	 * inited and we do not touch it
+	*/
 	if(*str != NULL){
 		printf("Tried to init already inited pointer!\n");
 		return false;
 	}
+	/*
+	 * Allocates memory for this CM-String components using the PTR_ATT define.
+	 * PTR_ATT(x, y) makes a pointer attribution, it gives *x the value y and checks
+	 * if the operation succeed. In case it does it does nothing, in case of failure
+	 * it logs a message and returns false.
+	*/
 	PTR_ATT(&(*str), (cm_string_t *)malloc(sizeof(cm_string_t)));
 	(*str)->is_inited = false;
 	(*str)->string_size = -1;
-	if(size > 0){
+	/*
+	 * Clear the bitmask, assume each battery is ok
+	*/
+	bits_create_new(&((*str)->battery_mask));
+	if(size > 0){ //if size is actually positive, allocate its content
 		(*str)->string_size = size;
 		PTR_ATT(&((*str)->output_vars_read_last), 
 			(Protocol_ReadCmd_OutputVars *)malloc(sizeof(Protocol_ReadCmd_OutputVars) * size));
@@ -43,8 +61,6 @@ bool cm_string_new(cm_string_t **str, int size){
 		PTR_ATT(&((*str)->output_vars_imp_curr),
 			(Protocol_ImpedanceCmd_OutputVars *)malloc(sizeof(Protocol_ImpedanceCmd_OutputVars) * size));
 		
-		PTR_ATT(&((*str)->batteries_read_states_last),
-			(int *)calloc(size, sizeof(int)));
 		PTR_ATT(&((*str)->batteries_read_states_curr),
 			(int *)calloc(size, sizeof(int)));
 		
@@ -63,6 +79,16 @@ bool cm_string_new(cm_string_t **str, int size){
 	return true;
 }
 
+/*
+ * Sets the desired id for this CM-String, the id given
+ * should match the id of the representation of this CM-String. 
+ * Example: an id with value 0 represents the first bank of batteries
+ * S1. We have than that:
+ * 	id = 0   =>   S1
+ * 	id = 1   =>   S2
+ *  id = 2   =>   S3
+ * ...
+*/
 bool cm_string_set_id(cm_string_t **str, int id){
 	PTR_VALID(str);
 	PTR_VALID(*str);
@@ -71,81 +97,39 @@ bool cm_string_set_id(cm_string_t **str, int id){
 }
 
 /*
- * NOT USED!
+ * Performs a serial read of the variables of a single battery given by 'which' 
+ * using params to controll timeout and flags. 
 */
-bool cm_string_set_size(cm_string_t **str, int size){
-	PTR_VALID(str);
-
-	/*
-	 * When scaling a buffer we consider the type of
-	 * scaling. On scale downs realloc is around 40 times faster
-	 * than free/malloc. However when scaling up realloc is 
-	 * ~7600 times slower, so we call free/malloc.
-	*/
-
-	if((*str)->string_size > size){ //scale down
-		PTR_ATT(&((*str)->output_vars_read_last), 
-			(Protocol_ReadCmd_OutputVars *)realloc((*str)->output_vars_read_last, sizeof(Protocol_ReadCmd_OutputVars) * size));
-		PTR_ATT(&((*str)->output_vars_read_curr),
-			(Protocol_ReadCmd_OutputVars *)realloc((*str)->output_vars_read_curr, sizeof(Protocol_ReadCmd_OutputVars) * size));
-		
-		PTR_ATT(&((*str)->output_vars_imp_last), 
-			(Protocol_ImpedanceCmd_OutputVars *)realloc((*str)->output_vars_imp_last, sizeof(Protocol_ImpedanceCmd_OutputVars) * size));
-		PTR_ATT(&((*str)->output_vars_imp_curr),
-			(Protocol_ImpedanceCmd_OutputVars *)realloc((*str)->output_vars_imp_curr, sizeof(Protocol_ImpedanceCmd_OutputVars) * size));
-		
-		PTR_ATT(&((*str)->batteries_read_states_last),
-			(int *)realloc((*str)->batteries_read_states_last, sizeof(int) * size));
-		PTR_ATT(&((*str)->batteries_read_states_curr),
-			(int *)realloc((*str)->batteries_read_states_curr, sizeof(int) * size));
-		
-		PTR_ATT(&((*str)->batteries_states_curr),
-			(Protocol_States *)realloc((*str)->batteries_states_curr, sizeof(Protocol_States) * size));
-		PTR_ATT(&((*str)->batteries_states_last),
-			(Protocol_States *)realloc((*str)->batteries_states_last, sizeof(Protocol_States) * size));
-
-		PTR_ATT(&((*str)->batteries_has_read),
-			(int *)realloc((*str)->batteries_has_read, size * sizeof(int)));
-
-		memset((*str)->batteries_has_read, 1, sizeof(int) * size);
-		(*str)->is_inited = true;
-		(*str)->string_size = size;
-		(*str)->string_ok = true;
-
-	}else if((*str)->string_size < size){ //scale up
-		bool ret = cm_string_destroy(str);
-		ret &= cm_string_new(str, size);
-		PTR_VALID(str); PTR_VALID(*str);
-		(*str)->string_ok = true;
-		memset((*str)->batteries_has_read, 1, sizeof(int) * size);
-		(*str)->is_inited = true;
-		return ret;
-	}
-
-	/*
-	 * If there are no changes in size than we can just keep
-	 * the buffer and return true
-	*/
-
-	return true;
-}
-
 static bool cm_string_read_one_vars(cm_string_t *str, int which, Database_Parameters_t params){
 	Protocol_ReadCmd_InputVars 	 input_vars 	= {0};
 	int err										= 0;
-
+	/*
+	 * Set information about which battery we wish to read
+	*/
 	input_vars.addr_bank = str->string_id + 1;
 	input_vars.addr_batt = which + 1;
 
+	/*
+	 * Set the average value for vref and configuration
+	 * for duty values
+	*/
 	input_vars.vref = str->average_vars_last.average;
-
 	input_vars.duty_min = params.duty_min;
 	input_vars.duty_max = params.duty_max;
 
+	/*
+	 * If the previous read for this string showed a problem
+	 * we need to turn off equalization. This is done by
+	 * settings the duty_max variable to zero.
+	*/
 	if(!str->string_ok){
 		input_vars.duty_max = 0;
 	}
 
+	/*
+	 * Actually reads the variables from serial by relying on the
+	 * protocol API
+	*/
 	input_vars.index = params.index;
 	err = prot_read_vars(&input_vars,
 	 					 &(str->output_vars_read_curr[which]),
@@ -153,9 +137,13 @@ static bool cm_string_read_one_vars(cm_string_t *str, int which, Database_Parame
 	if(err != 0){
 		/*
 		 * An error occurred when reading this battery
+		 * Increment only if it is not currently triggering the alarm
+		 * this prevents this int value to grow too much and possibly break
 		*/
-		str->batteries_read_states_curr[which] += 1;
-
+		if(str->batteries_read_states_curr[which] < params.param3_messages_wait){
+			str->batteries_read_states_curr[which] += 1;
+		}
+		/* Copy last values for this read */
 		memcpy(&(str->output_vars_read_curr[which]),
 				   &(str->output_vars_read_last[which]),
 				   sizeof(Protocol_ReadCmd_OutputVars));
@@ -168,7 +156,10 @@ static bool cm_string_read_one_vars(cm_string_t *str, int which, Database_Parame
 		str->output_vars_read_curr[which].addr_bank = str->string_id + 1;
 		str->output_vars_read_curr[which].addr_batt = which + 1;
 
+		LOG("Component:Timeout on M%d, error count: %d\n", which+1, str->batteries_read_states_curr[which]);
+
 	}else{
+		/* In case of no errors make sure that if we hade previous errors they no longer are registered */
 		str->batteries_read_states_curr[which] = 0;
 	}
 
@@ -180,7 +171,7 @@ static bool cm_string_read_one_vars(cm_string_t *str, int which, Database_Parame
 		   &(str->output_vars_read_curr[which]),
 		   sizeof(Protocol_ReadCmd_OutputVars));
 	
-
+	/* Compute the contribution of this battery to average values for this CM-String */
 	float fvbat = (float)str->output_vars_read_curr[which].vbat;
 	float fitems = (float)str->string_size;
 	str->average_vars_curr.average += fvbat / fitems;
@@ -189,23 +180,35 @@ static bool cm_string_read_one_vars(cm_string_t *str, int which, Database_Parame
 	return true;
 }
 
-
+/*
+ * Performs a impedance read of a single battery given by 'which' using 'params' to control
+ * flags and timeouts
+*/
 static bool cm_string_read_one_impe(cm_string_t *str, int which, Database_Parameters_t params){
 	Protocol_ImpedanceCmd_InputVars	input_impedance = {0};
 	int err											= 0;
-
+	/*
+	 * Set information about which battery we wish to read
+	*/
 	input_impedance.addr_bank = str->string_id + 1;
 	input_impedance.addr_batt = which + 1;
 
+	/*
+	 * Read the impedance relying on the protocol API
+	*/
 	err = prot_read_impedance(&input_impedance, 
 							  &(str->output_vars_imp_curr[which]),
 							  params.param3_messages_wait);
 	if(err != 0){
 		/*
-		 * An error occurred when reading this battery impedance!
+		 * An error occurred when reading this battery
+		 * Increment only if it is not currently triggering the alarm
+		 * this prevents this int value to grow too much and possibly break
 		*/
-		str->batteries_read_states_curr[which] += 1;
-
+		if(str->batteries_read_states_curr[which] < params.param3_messages_wait){
+			str->batteries_read_states_curr[which] += 1;
+		}
+		/* Copy last values for this read */
 		memcpy(&(str->output_vars_imp_curr[which]),
 				   &(str->output_vars_imp_last[which]),
 				   sizeof(Protocol_ImpedanceCmd_OutputVars));
@@ -223,14 +226,20 @@ static bool cm_string_read_one_impe(cm_string_t *str, int which, Database_Parame
 	return true;
 }
 
+/*
+ * Reads a single battery given by 'which' with a generic read type 'type'
+ * and control parameters 'params'
+*/
 static bool cm_string_read_one(cm_string_t *str, const Read_t type,
 							   int which, Database_Parameters_t params)
 {
 	bool ret = false;
-	if(which < str->string_size){
+	if(which < str->string_size){ //check if inside our CM-String size
+		/* Check if we need to read both values or a single one */
 		bool read_vars = (type == VARS) || !str->batteries_has_read[which];
 		bool read_impe = (type == IMPE) || !str->batteries_has_read[which];
 		ret = true;
+		/* read variables for this battery */
 		if(read_vars){
 			ret &= cm_string_read_one_vars(str, which, params);
 		}
@@ -242,7 +251,7 @@ static bool cm_string_read_one(cm_string_t *str, const Read_t type,
 		if(read_impe && ret){
 			ret &= cm_string_read_one_impe(str, which, params);
 		}
-
+		/* set this battery as read */
 		str->batteries_has_read[which] = true;
 
 	}
@@ -250,31 +259,31 @@ static bool cm_string_read_one(cm_string_t *str, const Read_t type,
 	return ret;
 }
 
+/*
+ * Performs a read with type 'type' on all batteries present on the CM-String 'str'.
+ * Use flags to control parameters 'params' 
+*/
 bool cm_string_do_read_all(cm_string_t *str, const Read_t type,
  						   Database_Parameters_t params, bool firstRead)
 {
 	PTR_VALID(str);
-	if(str->is_inited){
+	if(str->is_inited){ //only read if the pointers have been initalized
 		bool ret = true;
+		/* in case we are going to read variables we need to reset the current average value */
 		if(firstRead || type == VARS){
 			str->average_vars_curr.average = 0.0f;
 			str->average_vars_curr.bus_sum = 0.0f;
 		}
-		
+		/* for each battery in this CM-String read 'type' */
 		for(int j = 0; j < str->string_size; j += 1){
-
 			ret &= cm_string_read_one(str, type, j, params);
-			
-			if(firstRead){
-				ret &= cm_string_read_one(str, !type, j, params);
-			}
-
 			/*
-			* Pausa entre as leituras das celulas
+			* Pause the read beetween batteries
 			*/
 			sleep_ms(params.param1_interbat_delay);
 		}
 
+		/* copy results of average values */
 		if(firstRead || type == VARS){
 			memcpy(&(str->average_vars_last),
 			 	   &(str->average_vars_curr),
@@ -373,6 +382,9 @@ static int evaluate_states_results(
 	return 0;
 }
 
+/*
+ * Process the CM-String 'str' in search of 'String'-like alarms
+*/
 bool cm_string_process_string_alarms(cm_string_t *str, Database_Alarmconfig_t *alarmconfig,
 							   Database_Parameters_t params, int capacity, bool firstRead)
 {
@@ -397,11 +409,21 @@ bool cm_string_process_string_alarms(cm_string_t *str, Database_Alarmconfig_t *a
 		 */
 		if(!str->string_ok){
 			/* Alarme relacionado a falha em alguma bateria na string */
-			int3 codes;
-			codes.i1 = str->last_batt_err;
-			codes.i2 = str->string_id;
-			codes.i3 = str->last_batt_num;
-			db_add_alarm(NULL, NULL, NULL, NULL, STRING, codes);
+			for(int i = 0; i < str->string_size; i += 1){
+				if(bits_is_bit_set(&(str->battery_mask), i)){
+					int3 codes;
+					codes.i1 = -3; //timeout is the only logical error
+					codes.i2 = str->string_id;
+					codes.i3 = i;
+					db_add_alarm(NULL, NULL, NULL, NULL, STRING, codes);
+
+					/* Clear the bit so that when we start over the mask is clear
+					 * Let's make use of this loop to clear this position since we already 
+					 * triggered the alarm
+					*/
+					bits_set_bit(&(str->battery_mask), i, false);
+				}
+			}
 		}
 		if (pt_state_current->barramento != pt_state_last->barramento) {
 			/* Registra alarme de mudanca de tensao de barramento */
@@ -428,6 +450,9 @@ bool cm_string_process_string_alarms(cm_string_t *str, Database_Alarmconfig_t *a
 
 }
 
+/*
+ * Process all batteries for battery-like alarms
+*/
 bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarmconfig,
 							   Database_Parameters_t params, int save_log_state,
 							   bool firstRead)
@@ -441,7 +466,9 @@ bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarm
 	unsigned int uaverage = _compressFloat(str->average_vars_curr.average);
 	int3 dummy = {0};
 	str->string_ok = true;
+
 	for(int j = 0; j < str->string_size; j += 1){
+		int global_id 		= str->string_id * str->string_size + j + 1;
 		pt_vars 			= &(str->output_vars_read_last[j]);
 		pt_state_current 	= &(str->batteries_states_curr[j]);
 		pt_state_last 		= &(str->batteries_states_last[j]);
@@ -449,14 +476,13 @@ bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarm
 
 		evaluate_states(str, j, alarmconfig);
 		
-		int state = str->batteries_read_states_curr[j] > params.param3_messages_wait ? 1 : 0;
-		if(state != 0 && str->string_ok){
-			str->last_batt_err = -3; //timeout is the only logical error
-			str->last_batt_num = j;
+		int state = str->batteries_read_states_curr[j] >= params.param3_messages_wait ? 1 : 0;
+		if(state != 0){
 			str->string_ok = false;
+			bits_set_bit(&(str->battery_mask), j, true);
 		}
 
-		err = db_add_response(pt_vars, pt_imp, pt_state_current, j+1, save_log_state, state, uaverage);
+		err = db_add_response(pt_vars, pt_imp, pt_state_current, global_id, save_log_state, state, uaverage);
 
 		if(!firstRead){
 			/*
@@ -490,7 +516,15 @@ bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarm
 }
 
 /*
- * Clear all buffers contained in this CM-String
+ * Returns id for the CM-String 'str'
+*/
+int cm_string_get_id(cm_string_t *str){
+	PTR_VALID(str);
+	return str->string_id;
+}
+
+/*
+ * Clear all buffers contained in the CM-String '*str'
 */
 
 bool cm_string_destroy(cm_string_t **str){
@@ -502,7 +536,6 @@ bool cm_string_destroy(cm_string_t **str){
 		free((*str)->output_vars_read_curr);
 		free((*str)->output_vars_imp_last);
 		free((*str)->output_vars_imp_curr);
-		free((*str)->batteries_read_states_last);
 		free((*str)->batteries_read_states_curr);
 		free((*str)->batteries_states_curr);
 		free((*str)->batteries_states_last);

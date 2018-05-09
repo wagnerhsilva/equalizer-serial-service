@@ -391,13 +391,11 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 		// LOG("OK\n");
 	}
 
-	/*
-	 * TODO: Corrigir implementação
-	 * Inclui campos na tabela de registros de tempo real
-	 */
 	// LOG(DATABASE_LOG "Salvando DataLogRT ...");
 	int_to_addr(read_vars->addr_bank, 1, &bank[0]);
 	int_to_addr(read_vars->addr_batt, 0, &batt[0]);
+
+	// LOG("Database:Saving data for %s-%s, id: %s\n", bank, batt, id);
 	char sql[2048];
 	snprintf(sql, 2048, "INSERT OR IGNORE INTO DataLogRT "
 		"(id, datahora, string, bateria, temperatura, impedancia, tensao, equalizacao, batstatus) "
@@ -509,8 +507,18 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 	char l_min[15];
 	char l_max[15];
 	char l_medida[15];
-	char batt[5]; int_to_addr(read_vars->addr_batt, 0, &batt[0]);
-	char bank[5]; int_to_addr(read_vars->addr_bank, 1, &bank[0]);
+	char batt[5]; 
+	char bank[5];
+
+	/*
+	 * When its a STRING failure, this pointer becomes null
+	 * make sure we don't segfault this software. For all 
+	 * other cases this is pointing to the correct value
+	*/
+	if(read_vars){
+		int_to_addr(read_vars->addr_batt, 0, &batt[0]);
+		int_to_addr(read_vars->addr_bank, 1, &bank[0]);
+	}
 
 	db_get_timestamp(timestamp);
 

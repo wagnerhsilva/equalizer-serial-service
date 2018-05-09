@@ -27,12 +27,8 @@ Instalation:
         make all
 
 Usage:
-    This takes a single argument which is the
-    serial device you want to connect, a simple invocation is:
+    This takes two arguments, the serial device you want to connect,
+    and a debug flag:
     
-        ./service /dev/ttyUSB0
+        ./service /dev/ttyUSB0 <debug_0_or_1>
 
-Legal:
-    This is not a free software if you are not from the following companies 
-    you are not allowed to modify/use/redistribute this source code:
-        PhiInnovations, CM Comandos Lineares
