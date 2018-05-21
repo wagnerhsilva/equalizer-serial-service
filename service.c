@@ -86,6 +86,7 @@ int service_start(void) {
 	Database_Parameters_t		params;
 	Database_Alarmconfig_t		alarmconfig;
 
+
 	/*
 	 * Atualiza o endereco MAC da placa
 	 */
@@ -117,7 +118,6 @@ int service_start(void) {
 		/*
 		 * Recupera a lista de elementos a serem recuperados
 		 */
-
 		if(CHECK(db_get_addresses(&list,&params))){
 			break;
 		}
@@ -236,6 +236,10 @@ int service_start(void) {
 			if (isFirstRead) {
 				//LOG("Primeira Leitura realizada\n");
 				isFirstRead = 0;
+				/* Informa a web que atualização pendente foi resolvida */
+				if(is_file(UPDATED_FILE)){
+					remove(UPDATED_FILE);
+				}
 			}
 			LOG(SERVICE_LOG "leitura %d realizada\n",vars_read_counter);
 			if (vars_read_counter < params.num_cycles_var_read) {

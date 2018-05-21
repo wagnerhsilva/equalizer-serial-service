@@ -124,3 +124,7 @@ void sleep_ms(int milliseconds)
     ts.tv_nsec = (milliseconds % 1000) * 1000000;
     nanosleep(&ts, NULL);
 }
+
+int is_file(const char *name){
+    return access(name, F_OK) != -1;
+}

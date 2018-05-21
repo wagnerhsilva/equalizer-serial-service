@@ -29,6 +29,7 @@
 #define MAX_STRING_LEN                      256
 
 #define DEFAULT_DB_PATH                     "../equalizer-api/equalizer-api/equalizerdb"
+#define UPDATED_FILE 						"../equalizer-api/equalizer-api/updated.txt"
 #define bytes_to_u16(LSB, MSB) (LSB | MSB << 8)
 #define bytes_to_u32(MSB0,MSB1,MSB2,LSB) ((MSB0 << 24) | (MSB1 << 16) \
                                          |(MSB2 << 8)  | (LSB))
@@ -68,4 +69,6 @@ int _check(int error, int line, const char *file);
 char * toStrHexa(unsigned char * data, int len);
 unsigned short _compressFloat(float a);
 void sleep_ms(int milliseconds);
+int is_file(const char *name);
+
 #endif

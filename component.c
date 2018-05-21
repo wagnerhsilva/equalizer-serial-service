@@ -52,22 +52,22 @@ bool cm_string_new(cm_string_t **str, int size){
 	if(size > 0){ //if size is actually positive, allocate its content
 		(*str)->string_size = size;
 		PTR_ATT(&((*str)->output_vars_read_last), 
-			(Protocol_ReadCmd_OutputVars *)malloc(sizeof(Protocol_ReadCmd_OutputVars) * size));
+			(Protocol_ReadCmd_OutputVars *)calloc(size, sizeof(Protocol_ReadCmd_OutputVars)));
 		PTR_ATT(&((*str)->output_vars_read_curr),
-			(Protocol_ReadCmd_OutputVars *)malloc(sizeof(Protocol_ReadCmd_OutputVars) * size));
+			(Protocol_ReadCmd_OutputVars *)calloc(size, sizeof(Protocol_ReadCmd_OutputVars)));
 		
 		PTR_ATT(&((*str)->output_vars_imp_last), 
-			(Protocol_ImpedanceCmd_OutputVars *)malloc(sizeof(Protocol_ImpedanceCmd_OutputVars) * size));
+			(Protocol_ImpedanceCmd_OutputVars *)calloc(size, sizeof(Protocol_ImpedanceCmd_OutputVars)));
 		PTR_ATT(&((*str)->output_vars_imp_curr),
-			(Protocol_ImpedanceCmd_OutputVars *)malloc(sizeof(Protocol_ImpedanceCmd_OutputVars) * size));
+			(Protocol_ImpedanceCmd_OutputVars *)calloc(size, sizeof(Protocol_ImpedanceCmd_OutputVars)));
 		
 		PTR_ATT(&((*str)->batteries_read_states_curr),
 			(int *)calloc(size, sizeof(int)));
 		
 		PTR_ATT(&((*str)->batteries_states_curr),
-			(Protocol_States *)malloc(sizeof(Protocol_States) * size));
+			(Protocol_States *)calloc(size, sizeof(Protocol_States)));
 		PTR_ATT(&((*str)->batteries_states_last),
-			(Protocol_States *)malloc(sizeof(Protocol_States) * size));
+			(Protocol_States *)calloc(size, sizeof(Protocol_States)));
 
 		PTR_ATT(&((*str)->batteries_has_read),
 			(int *)calloc(size, sizeof(int)));
