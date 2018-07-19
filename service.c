@@ -82,10 +82,10 @@ int service_start(void) {
 	int				 			save_log_counter = 0;
 	int				 			save_log_state = 1;
 	int				 			capacity = 0;
+	int 						global_read_ok = 0;
 	Database_Addresses_t		list;
 	Database_Parameters_t		params;
 	Database_Alarmconfig_t		alarmconfig;
-
 
 	/*
 	 * Atualiza o endereco MAC da placa
@@ -121,6 +121,8 @@ int service_start(void) {
 		if(CHECK(db_get_addresses(&list,&params))){
 			break;
 		}
+
+		(void) db_get_tendence_configs(&TendenceOpts);
 
 		/*
 		 * Caso ocorra troca da estrutura de leitura devido a atualizações
@@ -170,10 +172,11 @@ int service_start(void) {
 			 * ambas variáveis VARS e IMPE. Quando é false precisa-se
 			 * testar pelo ciclo de leitura
 			*/
+			bool readSuccess = true;
 			bool readStatus = cm_manager_read_strings(manager, 
 													 isFirstRead,
 													 params, 
-													 VARS);
+													 VARS, &readSuccess);
 			/*
 			 * Testa se precisa fazer invocação manual do processo de leitura
 			 * de impedancia
@@ -183,7 +186,7 @@ int service_start(void) {
 				readStatus |= cm_manager_read_strings(manager, 
 													  false,
 													  params,
-													  IMPE);
+													  IMPE, &readSuccess);
 			}
 
 			/*
@@ -196,7 +199,8 @@ int service_start(void) {
 				 * de baterias
 				*/
 				cm_manager_process_batteries(manager, &alarmconfig, params,
-											 save_log_state, isFirstRead);
+											 save_log_state, isFirstRead,
+											 readSuccess ? 1 : 0);
 
 				/*
 				 * Dispara escrita de respostas de strings e alarmes 

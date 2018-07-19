@@ -1,5 +1,7 @@
 #ifndef DEFS_H
 #define DEFS_H
+#define __USE_XOPEN
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -41,6 +43,35 @@ typedef struct{
 	unsigned int bus_sum;
 }StringAvg_t;
 
+/*
+ * Structure to be saved inside Tendencias table
+ * per battery
+*/
+typedef struct{
+	int 			MesaureInteraction; //what measure is this (0, 1, ...)
+	int				Temperature; //temperature of the read
+	unsigned int 	Impendance; //impedance of the read
+	unsigned int 	Battery; //which battery is this (index)
+	unsigned int 	String; //which sttring is this (index)
+	time_t 			CurrentTime; //time of definition
+}Tendence_t;
+
+typedef struct{
+	int    IsConfigured;
+	time_t InstallTime;
+	time_t LastWrite;
+	int    LastIteration; //last iteraction to be written
+	int    PeriodInitial; //this generates Zero Date
+	int    PeriodConstant; //this generates Following Dates
+	float  ImpeMin;
+	float  ImpeMax;
+	float  TempMin;
+	float  TempMax;
+	int	   HasWrites;
+}Tendence_Configs_t;
+
+extern Tendence_Configs_t TendenceOpts;
+
 typedef struct{
 	int i1, i2, i3;
 }int3;
@@ -62,6 +93,11 @@ enum bool{
 };
 
 typedef enum bool bool;
+
+time_t GetCurrentTime(void);
+time_t GetTimeFromString(const char *Format, char *Buffer);
+double GetDifferenceInMonths(time_t Date0, time_t Date1); //Date0 - Date1
+void GetTimeString(char * Buffer, size_t size, const char *Format, time_t value);
 
 int LOG(const char *format, ...);
 int EXT_PRINT(const char *format, ...);

@@ -9,7 +9,6 @@
 #include <sqlite3.h>
 #include "database.h"
 #include "protocol.h"
-#include <defs.h>
 #include <string.h>
 
 #define DATABASE_LOG					"DATABASE:"
@@ -34,6 +33,22 @@
 #define DATABASE_NETWORK_MAC_ADDR				1
 #define DATABASE_NETWORK_NB_ITEMS				14+1
 
+/*
+ * Columns for the TendenciasConfig table (easy usage)
+*/
+#define TENDENCIAS_ID 			"id"
+#define TENDENCIAS_DATA_INSTALL "dataInstalacao"
+#define TENDENCIAS_DATA_ZERO 	"dataZero"
+#define TENDENCIAS_PERIOD		"period"
+#define TENDENCIAS_IMPE_MIN		"impMin"
+#define TENDENCIAS_IMPE_MAX		"impMax"
+#define TENDENCIAS_TEMP_MIN		"tempMin"
+#define TENDENCIAS_TEMP_MAX		"tempMax"
+#define TENDENCIAS_ZERO_FILLED 	"zeroFilled"
+#define TENDENCIAS_IS_ON		"isOn"
+#define TENDENCIAS_LAST_DATA    "lastData"
+#define TENDENCIAS_LAST_ITERATION "lastIteration"
+
 #define BATTERY_STRINGS_ADDR           4
 #define BATTERY_COUNT_ADDR             5
 
@@ -55,6 +70,12 @@ static int db_get_timestamp(char *timestamp){
 	strftime (timestamp,80,"%G-%m-%d %H:%M:%S",timeinfo);
 
 	return 0;
+}
+
+static int db_get_timestamp_string(char *timestamp, size_t size, time_t value){
+	struct tm * timeinfo;
+	timeinfo = localtime(&value);
+	strftime (timestamp,size,"%d/%m/%Y",timeinfo);
 }
 
 static int write_callback(void *data, int argc, char **argv, char **azColName){
@@ -492,6 +513,32 @@ int db_add_alarm_results(unsigned int value,
 	return 0;
 }
 
+int db_add_tendence(Tendence_t Tendence){
+	
+	if(database != 0){
+		unsigned int bat = Tendence.Battery;
+		unsigned int str = Tendence.String;
+		char batt[5], bank[5];
+		int_to_addr(bat, 0, &batt[0]);
+		int_to_addr(str, 1, &bank[0]);
+		char sql_message[500];
+		char *zErrMsg = 0;
+		char dataHora[80];
+		db_get_timestamp_string(dataHora, 80, Tendence.CurrentTime);
+		sprintf(sql_message, "INSERT INTO Tendencias ( dataHora, string, bateria, impedancia, temperatura, iteration ) VALUES ( \"%s\", \"%s\", \"%s\", %hu, %hu, %d );",
+		dataHora, bank, batt, Tendence.Impendance, Tendence.Temperature, Tendence.MesaureInteraction);
+
+		int err = sqlite3_exec(database,sql_message, write_callback,0,&zErrMsg);
+		if(err != SQLITE_OK){
+			LOG("Error trying to insert tendence: %s\n", zErrMsg);
+			return -1;
+		}
+
+		return 0;
+	}
+
+	return -1;
+}
 
 
 int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
@@ -734,6 +781,118 @@ int db_get_parameters(Database_Parameters_t *list, Database_Alarmconfig_t *alarm
 	return -1;
 }
 
+///////////////////////////////////////////////////////////////
+
+static void db_tendencias_set_variable(Tendence_Configs_t *Configs,
+ 									char *value, const char *column)
+{
+	if(strcmp(column, TENDENCIAS_DATA_ZERO) == 0){
+		Configs->PeriodInitial = atoi(value);
+	}else if(strcmp(column, TENDENCIAS_DATA_INSTALL) == 0){
+		Configs->InstallTime = GetTimeFromString("%d/%m/%Y", value);
+	}else if(strcmp(column, TENDENCIAS_PERIOD) == 0){
+		Configs->PeriodConstant = atoi(value);
+	}else if(strcmp(column, TENDENCIAS_IMPE_MAX) == 0){
+		Configs->ImpeMax = strtof(value, 0);
+	}else if(strcmp(column, TENDENCIAS_IMPE_MIN) == 0){
+		Configs->ImpeMin = strtof(value, 0);
+	}else if(strcmp(column, TENDENCIAS_TEMP_MIN) == 0){
+		Configs->TempMin = strtof(value, 0);
+	}else if(strcmp(column, TENDENCIAS_TEMP_MAX) == 0){
+		Configs->TempMax = strtof(value, 0);
+	}else if(strcmp(column, TENDENCIAS_LAST_DATA) == 0){
+		if(value){
+			Configs->LastWrite = GetTimeFromString("%d/%m/%Y", value);
+			Configs->HasWrites = 1;
+		}else{
+			Configs->HasWrites = 0;
+		}
+	}else if(strcmp(column, TENDENCIAS_LAST_ITERATION) == 0){
+		Configs->LastIteration = atoi(value);
+	}
+}
+
+int db_update_tendence_configs(Tendence_Configs_t Configs){
+	if(database != 0){
+		int err = 0;
+		char sql_message[500];
+		char *zErrMsg = 0;
+		char buffer[80];
+		db_get_timestamp_string(buffer, 80, Configs.LastWrite);
+		sprintf(sql_message, "UPDATE TendenciasConfig SET zeroFilled = %d, lastData = \"%s\", lastIteration = %d;",
+				Configs.HasWrites, buffer, Configs.LastIteration);
+
+		err = sqlite3_exec(database,sql_message,write_callback,0,&zErrMsg);
+		if (err != SQLITE_OK) {
+			LOG(DATABASE_LOG "Error on tendence update, msg: %s\n",zErrMsg);
+			return -1;
+		}
+
+		return 0;
+	}
+	return -1;
+}
+
+int db_get_tendence_configs(Tendence_Configs_t *Configs){
+	/*
+	 * Get configuration here
+	*/
+	if(database != 0){
+		int err = 0;
+		char sql_message[500];
+		char *zErrMsg = 0;
+
+		sprintf(sql_message, "SELECT * FROM TendenciasConfig LIMIT 1;");
+
+		struct sqlite3_stmt *selectstmt;
+		int result = sqlite3_prepare_v2(database, sql_message,
+									   -1, &selectstmt, NULL);
+		if(result == SQLITE_OK){
+			if(sqlite3_step(selectstmt) == SQLITE_ROW){
+				int columns = sqlite3_column_count(selectstmt);
+				
+				for(int i = 0; i < columns; i+= 1){
+					char * text;
+					text  = (char *)sqlite3_column_text (selectstmt, i);
+					const char *columnName = sqlite3_column_name(selectstmt, i);
+					LOG("GOT [%s] => %s\n", columnName, text);
+					db_tendencias_set_variable(Configs, text, columnName);
+				}
+				Configs->IsConfigured = 1;
+			}else{ //no data
+				Configs->LastIteration = -1;
+				Configs->IsConfigured = 0;
+			}
+		}else{
+			LOG(DATABASE_LOG "Error on select tendences\n");
+			return -2;
+		}
+
+		if(Configs->HasWrites == 0){
+			Configs->LastWrite = Configs->InstallTime;
+		}
+
+		sqlite3_finalize(selectstmt);
+		char buffer[80], buffer1[80];
+		db_get_timestamp_string(buffer, 80, Configs->InstallTime);
+		db_get_timestamp_string(buffer1, 80, Configs->LastWrite);
+		LOG(TENDENCIAS_DATA_INSTALL " : %s\n", buffer);
+		LOG(TENDENCIAS_LAST_DATA " : %s\n", buffer1);
+		LOG(TENDENCIAS_DATA_ZERO " : %d\n", Configs->PeriodInitial);
+		LOG(TENDENCIAS_PERIOD " : %d\n", Configs->PeriodConstant);
+		LOG(TENDENCIAS_TEMP_MIN " : %g\n", Configs->TempMin);
+		LOG(TENDENCIAS_TEMP_MAX " : %g\n", Configs->TempMax);
+		LOG("HasWrites : %d\n", Configs->HasWrites);
+		LOG(TENDENCIAS_IMPE_MIN " : %g\n", Configs->ImpeMin);
+		LOG(TENDENCIAS_IMPE_MAX " : %g\n", Configs->ImpeMax);
+		LOG(TENDENCIAS_LAST_ITERATION " : %d\n", Configs->LastIteration);
+		return 0;
+	}
+
+	return -1;
+}
+
+/////////////////////////////////////////////////////////////////////////
 int db_update_average(unsigned short new_avg, unsigned int new_sum, int id) {
 	int err = 0;
 	char sql[256];

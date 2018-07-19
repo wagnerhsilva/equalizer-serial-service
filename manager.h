@@ -36,7 +36,7 @@ bool cm_manager_destroy(cm_manager_t **manager);
  * The arguments are passed to the API for the CM-String to perform read operations
 */
 bool cm_manager_read_strings(cm_manager_t *manager, bool firstRead,
- 							 Database_Parameters_t params, const Read_t type);
+ 							 Database_Parameters_t params, const Read_t type, bool *stringStatus);
 
 /*
  * Process batteries for alarms. This actually relies on the CM-String API for the 
@@ -44,7 +44,7 @@ bool cm_manager_read_strings(cm_manager_t *manager, bool firstRead,
 */
 bool cm_manager_process_batteries(cm_manager_t *manager, Database_Alarmconfig_t *alarmconfig,
 							   Database_Parameters_t params, int save_log_state,
-							   bool firstRead);
+							   bool firstRead, int was_global_read_ok);
 
 /*
  * Process strings for alarms. This actually relies on the CM-String API for the alarm generation

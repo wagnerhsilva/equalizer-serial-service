@@ -6,11 +6,15 @@
 #include <string.h>
 
 #define OUTPUT_CONSOLE 0
+#define MS_TO_MONTH_CONST 3.80517e-7
 
 FILE *fp = NULL;
 FILE *ext_fp = NULL;
 int DEBUG = 1;
 int EXT_PR = 0;
+
+Tendence_Configs_t TendenceOpts = {0};
+
 static int firstpass = 1;
 static int ext_first = 1;
 
@@ -115,6 +119,37 @@ char * toStrHexa(unsigned char *data, int len) {
 
     buffer[2*len] = 0;
     return buffer;
+}
+
+void GetTimeString(char *Buffer, size_t size, const char *Format, time_t value){
+    struct tm * timeinfo;
+	timeinfo = localtime(&value);
+	strftime (Buffer,size, Format,timeinfo);
+}
+
+time_t GetCurrentTime(void){
+    time_t rawtime;
+    time(&rawtime);
+    return rawtime;
+}
+
+time_t GetTimeFromString(const char *Format, char *Buffer){
+    struct tm tm;
+    strptime(Buffer, Format, &tm);
+    return mktime(&tm);
+}
+
+double GetDifferenceInMonths(time_t Date0, time_t Date1){
+    double MSTime = difftime(Date0, Date1);
+    double MonthTime = MSTime * MS_TO_MONTH_CONST;
+    return MonthTime;
+}
+
+/*
+ * Computes Date0 - Date1 return the result in days
+*/
+int GetDifferenceInDays(char * Date0, char *Date1){
+    return 0;
 }
 
 void sleep_ms(int milliseconds)

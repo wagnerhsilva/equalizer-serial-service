@@ -92,7 +92,7 @@ bool cm_string_do_read_all(cm_string_t *str_t, const Read_t type,
 */
 bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarmconfig,
 							   Database_Parameters_t params, int save_log_state,
-							   bool firstRead);
+							   bool firstRead, int was_global_read_ok);
 
 /*
  * Process the CM-String 'str' to treat alarms related to it. Considers the 'alarmconfig'

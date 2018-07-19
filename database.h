@@ -9,6 +9,7 @@
 #define DATABASE_H_
 
 #include "protocol.h"
+struct Tendence_t;
 
 #define DATABASE_MAX_ADDRESSES_LEN		10240
 
@@ -85,5 +86,9 @@ int db_get_parameters(Database_Parameters_t *list, Database_Alarmconfig_t *alarm
 int db_set_macaddress(void);
 int db_update_average(unsigned short new_avg, unsigned int new_sum, int id);
 int db_update_capacity(unsigned int capacity);
+
+int db_get_tendence_configs(Tendence_Configs_t *Configs);
+int db_add_tendence(Tendence_t Tendence);
+int db_update_tendence_configs(Tendence_Configs_t Configs);
 
 #endif /* DATABASE_H_ */

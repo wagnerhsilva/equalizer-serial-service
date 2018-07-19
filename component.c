@@ -450,12 +450,29 @@ bool cm_string_process_string_alarms(cm_string_t *str, Database_Alarmconfig_t *a
 
 }
 
+static bool cm_string_handle_tendence(Protocol_ReadCmd_OutputVars * OutVars, 
+							   	      Protocol_ImpedanceCmd_OutputVars * OutImpe,
+									  Protocol_States *States,
+									  time_t CurrentTime, Tendence_Configs_t *Configs)
+{
+	Tendence_t tendence = {0};
+	tendence.MesaureInteraction = Configs->LastIteration + 1;
+	tendence.Battery = OutVars->addr_batt;
+	tendence.String = OutVars->addr_bank;
+	tendence.CurrentTime = CurrentTime;
+	tendence.Temperature = OutVars->etemp;
+	tendence.Impendance = OutImpe->impedance;
+	LOG("Component::Writing tendence properties for [%d x %d]\n",
+	 	tendence.String, tendence.Battery);	
+	return (db_add_tendence(tendence) == 0);
+}
+
 /*
  * Process all batteries for battery-like alarms
 */
 bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarmconfig,
 							   Database_Parameters_t params, int save_log_state,
-							   bool firstRead)
+							   bool firstRead, int was_global_read_ok)
 {
 	PTR_VALID(str);
 	int err = 0;
@@ -466,6 +483,32 @@ bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarm
 	unsigned int uaverage = _compressFloat(str->average_vars_curr.average);
 	int3 dummy = {0};
 	str->string_ok = true;
+	
+	bool TendencesWrote = true;
+	int WriteTendences = 0;
+	double Months = 0;
+	int PreviousWrite = 0;
+	int TendencePeriod = 0;
+	time_t CurrentTime; 
+	if(TendenceOpts.IsConfigured == 1){
+		PreviousWrite = TendenceOpts.HasWrites;
+		CurrentTime = GetCurrentTime();
+		TendencePeriod = (TendenceOpts.HasWrites == 1 ? 
+							TendenceOpts.PeriodConstant : 
+							TendenceOpts.PeriodInitial);
+
+		char month0[80], month1[80];
+		GetTimeString(month0, 80, "%d/%m/%Y", CurrentTime);
+		GetTimeString(month1, 80, "%d/%m/%Y", TendenceOpts.LastWrite);
+		Months = GetDifferenceInMonths(CurrentTime, TendenceOpts.LastWrite);
+		LOG("Months [%s - %s] : %g => Used period: %d\n", month0, month1, Months, TendencePeriod);
+		/*
+		 * Only writes when the date period is reached AND we have a full read
+		 * otherwise we could get critical errors since if one battery fails
+		 * it will need to wait (several) months before the next read
+		*/
+		WriteTendences = (Months >= TendencePeriod && was_global_read_ok > 0 ? 1 : 0);
+	}
 
 	for(int j = 0; j < str->string_size; j += 1){
 		int global_id 		= str->string_id * str->string_size + j + 1;
@@ -482,7 +525,8 @@ bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarm
 			bits_set_bit(&(str->battery_mask), j, true);
 		}
 
-		err = db_add_response(pt_vars, pt_imp, pt_state_current, global_id, save_log_state, state, uaverage);
+		err = db_add_response(pt_vars, pt_imp, pt_state_current,
+		 				global_id, save_log_state, state, uaverage);
 
 		if(!firstRead){
 			/*
@@ -510,7 +554,38 @@ bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarm
 		pt_state_last->impedancia = pt_state_current->impedancia;
 	}
 
+	if(str->string_ok){
+		for(int j = 0; j < str->string_size; j += 1){
+			int global_id 		= str->string_id * str->string_size + j + 1;
+			pt_vars 			= &(str->output_vars_read_last[j]);
+			pt_state_current 	= &(str->batteries_states_curr[j]);
+			pt_state_last 		= &(str->batteries_states_last[j]);
+			pt_imp 				= &(str->output_vars_imp_last[j]);
+
+			if(WriteTendences == 1){
+				TendencesWrote &= cm_string_handle_tendence(pt_vars, pt_imp, pt_state_current,
+								 							CurrentTime, &TendenceOpts);
+			}
+		}
+	}
+	
 	db_update_average(uaverage, str->average_vars_curr.bus_sum, str->string_id);
+
+	if(WriteTendences == 1){
+		if (TendencesWrote){
+			TendenceOpts.HasWrites = 1;
+			TendenceOpts.LastWrite = GetCurrentTime();
+			TendenceOpts.LastIteration += 1;
+			db_update_tendence_configs(TendenceOpts);
+		}
+		else{
+			/*
+			 * TODO: Recover?
+			*/
+		}
+	}else{
+		LOG("Component::Not updating tendencies\n");
+	}
 
 	return true;
 }

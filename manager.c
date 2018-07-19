@@ -91,13 +91,14 @@ bool cm_manager_setup(cm_manager_t **manager, int strings, int batteries){
 */
 bool cm_manager_process_batteries(cm_manager_t *manager, Database_Alarmconfig_t *alarmconfig,
 							   Database_Parameters_t params, int save_log_state,
-							   bool firstRead)
+							   bool firstRead, int was_global_read_ok)
 {
 	PTR_VALID(manager);
 	bool ret = true;
 	for(int i = 0; i < manager->count; i+= 1){
 		ret &= cm_string_process_batteries(manager->cm_strings[i], alarmconfig,
-										   params, save_log_state, firstRead);
+										   params, save_log_state, firstRead,
+										   was_global_read_ok);
 	}
 	return ret;
 }
@@ -124,13 +125,15 @@ bool cm_manager_process_strings(cm_manager_t *manager,  Database_Alarmconfig_t *
 bool cm_manager_read_strings(cm_manager_t *manager,
 						  bool firstRead,
 						  Database_Parameters_t params,
-						  const Read_t type)
+						  const Read_t type,
+						  bool *stringStatus)
 {
 	PTR_VALID(manager);
 	bool ret = false;
 	for(int i = 0; i < manager->count; i+= 1){
 		LOG("Manager:Reading string %d\n", cm_string_get_id(manager->cm_strings[i]));
 		bool status = cm_string_do_read_all(manager->cm_strings[i], type, params, firstRead);
+		*stringStatus &= status;
 		ret |= status;
 		if(!status){
 			printf("Failed to read string %d\n", i);
