@@ -68,6 +68,7 @@ typedef struct{
 	float  TempMin;
 	float  TempMax;
 	int	   HasWrites;
+	int	   testMode;
 }Tendence_Configs_t;
 
 extern Tendence_Configs_t TendenceOpts;

@@ -1,4 +1,5 @@
 #include <component.h>
+#include <time.h>
 
 #define nullptr NULL
 /*
@@ -17,6 +18,10 @@
 */
 #define PTR_ATT(y, x) { (*y) = (x); if((*y) == nullptr) { LOG("COMPONENT:No Memory for %s=%s::%d\n", (char *)#y, (char*)#x, __LINE__); return false; } }
 
+/* Flavio Alves
+ * Inclusao de variavel inicial para modo de teste de tabela de tendencias
+ */
+static struct timeval InitialTime;
 
 /*
  * Basic interface to handle CM-Strings operations
@@ -467,6 +472,13 @@ static bool cm_string_handle_tendence(Protocol_ReadCmd_OutputVars * OutVars,
 	return (db_add_tendence(tendence) == 0);
 }
 
+/* Flavio Alves
+ * Usando um contador para fazer a pausa para o modo teste, para criação
+ * da tabela de tendencias
+ */
+#define TESTMODE_MAX_WAIT_TIME 12
+static int testModeCounter = 0;
+
 /*
  * Process all batteries for battery-like alarms
 */
@@ -489,25 +501,42 @@ bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarm
 	double Months = 0;
 	int PreviousWrite = 0;
 	int TendencePeriod = 0;
-	time_t CurrentTime; 
+	time_t CurrentTime;
 	if(TendenceOpts.IsConfigured == 1){
-		PreviousWrite = TendenceOpts.HasWrites;
-		CurrentTime = GetCurrentTime();
-		TendencePeriod = (TendenceOpts.HasWrites == 1 ? 
-							TendenceOpts.PeriodConstant : 
-							TendenceOpts.PeriodInitial);
-
-		char month0[80], month1[80];
-		GetTimeString(month0, 80, "%d/%m/%Y", CurrentTime);
-		GetTimeString(month1, 80, "%d/%m/%Y", TendenceOpts.LastWrite);
-		Months = GetDifferenceInMonths(CurrentTime, TendenceOpts.LastWrite);
-		LOG("Months [%s - %s] : %g => Used period: %d\n", month0, month1, Months, TendencePeriod);
-		/*
-		 * Only writes when the date period is reached AND we have a full read
-		 * otherwise we could get critical errors since if one battery fails
-		 * it will need to wait (several) months before the next read
-		*/
-		WriteTendences = (Months >= TendencePeriod && was_global_read_ok > 0 ? 1 : 0);
+		/* Flavio Alves
+		 * Incluindo um modo de teste, onde o dado é escrito na tabela a cada 10 minutos
+		 */
+		if (TendenceOpts.testMode) {
+			WriteTendences = 0;
+			if (testModeCounter < TESTMODE_MAX_WAIT_TIME) {
+				testModeCounter++;
+			} else {
+				LOG("TESTMODE: time elapsed\n");
+				if (was_global_read_ok > 0) {
+					LOG("WriteTendences\n");
+					WriteTendences = 1;
+				}
+				/* Reseta o contador */
+				testModeCounter = 0;
+			}
+		} else {
+			PreviousWrite = TendenceOpts.HasWrites;
+			CurrentTime = GetCurrentTime();
+			TendencePeriod = (TendenceOpts.HasWrites == 1 ?
+					TendenceOpts.PeriodConstant :
+					TendenceOpts.PeriodInitial);
+			char month0[80], month1[80];
+			GetTimeString(month0, 80, "%d/%m/%Y", CurrentTime);
+			GetTimeString(month1, 80, "%d/%m/%Y", TendenceOpts.LastWrite);
+			Months = GetDifferenceInMonths(CurrentTime, TendenceOpts.LastWrite);
+			LOG("Months [%s - %s] : %g => Used period: %d\n", month0, month1, Months, TendencePeriod);
+			/*
+			 * Only writes when the date period is reached AND we have a full read
+			 * otherwise we could get critical errors since if one battery fails
+			 * it will need to wait (several) months before the next read
+			 */
+			WriteTendences = (Months >= TendencePeriod && was_global_read_ok > 0 ? 1 : 0);
+		}
 	}
 
 	for(int j = 0; j < str->string_size; j += 1){

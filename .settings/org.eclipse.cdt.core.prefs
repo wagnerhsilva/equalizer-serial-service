@@ -1,0 +1,9 @@
+eclipse.preferences.version=1
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1185396297/CC/delimiter=\:
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1185396297/CC/operation=append
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1185396297/CC/value=arm-poky-linux-gnueabi-gcc -march\=armv7ve -marm -mfpu\=neon -mfloat-abi\=hard -mcpu\=cortex-a7 --sysroot\=/opt/equalizer-distro/1.0/sysroots/cortexa7hf-neon-poky-linux-gnueabi
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1185396297/PATH/delimiter=\:
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1185396297/PATH/operation=replace
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1185396297/PATH/value=/opt/equalizer-distro/1.0/sysroots/x86_64-phi-linux/usr/bin\:/opt/equalizer-distro/1.0/sysroots/x86_64-phi-linux/usr/sbin\:/opt/equalizer-distro/1.0/sysroots/x86_64-phi-linux/bin\:/opt/equalizer-distro/1.0/sysroots/x86_64-phi-linux/sbin\:/opt/equalizer-distro/1.0/sysroots/x86_64-phi-linux/usr/bin/../x86_64-phi-linux/bin\:/opt/equalizer-distro/1.0/sysroots/x86_64-phi-linux/usr/bin/arm-poky-linux-gnueabi\:/opt/equalizer-distro/1.0/sysroots/x86_64-phi-linux/usr/bin/arm-poky-linux-uclibc\:/opt/equalizer-distro/1.0/sysroots/x86_64-phi-linux/usr/bin/arm-poky-linux-musl\:/home/phi/bin\:/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/usr/games\:/usr/local/games\:/snap/bin
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1185396297/append=true
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1185396297/appendContributed=true

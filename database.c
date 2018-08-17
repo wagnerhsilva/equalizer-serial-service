@@ -48,6 +48,7 @@
 #define TENDENCIAS_IS_ON		"isOn"
 #define TENDENCIAS_LAST_DATA    "lastData"
 #define TENDENCIAS_LAST_ITERATION "lastIteration"
+#define TENDENCIAS_TEST_MODE	"testMode"
 
 #define BATTERY_STRINGS_ADDR           4
 #define BATTERY_COUNT_ADDR             5
@@ -809,6 +810,9 @@ static void db_tendencias_set_variable(Tendence_Configs_t *Configs,
 		}
 	}else if(strcmp(column, TENDENCIAS_LAST_ITERATION) == 0){
 		Configs->LastIteration = atoi(value);
+	} else if(strcmp(column, TENDENCIAS_TEST_MODE) == 0) {
+		/* Flavio Alves: incluindo o recurso de modo teste */
+		Configs->testMode = atoi(value);
 	}
 }
 

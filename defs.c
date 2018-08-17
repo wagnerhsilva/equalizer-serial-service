@@ -5,8 +5,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#define OUTPUT_CONSOLE 0
-#define MS_TO_MONTH_CONST 3.80517e-7
+#define OUTPUT_CONSOLE		0
+#define MS_TO_MONTH_CONST	3.80517e-7
+#define MS_TO_MINUTES_CONST	60000
 
 FILE *fp = NULL;
 FILE *ext_fp = NULL;
