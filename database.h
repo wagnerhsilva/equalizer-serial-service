@@ -49,6 +49,15 @@ typedef struct {
 	unsigned int barramento_max;
 	unsigned int target_min;
 	unsigned int target_max;
+	/* Flavio Alves: ticket #5829
+	 * Geracao de pre alarmes */
+	unsigned int tensao_premin;
+	unsigned int tensao_premax;
+	unsigned int temperatura_premin;
+	unsigned int temperatura_premax;
+	unsigned int impedancia_premin;
+	unsigned int impedancia_premax;
+	unsigned int pre_enabled;
 } Database_Alarmconfig_t;
 
 typedef struct {

@@ -274,6 +274,15 @@ static int alarmconfig_callback(void *data, int argc, char **argv, char **azColN
 		alarmconfig_list->barramento_min = 0;
 		alarmconfig_list->target_max = 0;
 		alarmconfig_list->target_min = 0;
+		/* Flavio Alves: ticket #5829
+		 * Inicializacao de parametros de pre minimo e pre maximo */
+		alarmconfig_list->impedancia_premin = 0;
+		alarmconfig_list->temperatura_premin = 0;
+		alarmconfig_list->tensao_premin = 0;
+		alarmconfig_list->impedancia_premax = 0;
+		alarmconfig_list->temperatura_premax = 0;
+		alarmconfig_list->tensao_premax = 0;
+		alarmconfig_list->pre_enabled = 0;
 	} else {
 		LOG(DATABASE_LOG "Leitura de valores da tabela de parametros\n");
 		alarmconfig_list->tensao_max = (unsigned int)(strtof(argv[0],&garbage) * 1000);
@@ -286,6 +295,15 @@ static int alarmconfig_callback(void *data, int argc, char **argv, char **azColN
 		alarmconfig_list->barramento_min = (unsigned int)(strtof(argv[7],&garbage) * 1000);
 		alarmconfig_list->target_max = (unsigned int)(strtof(argv[8],&garbage) * 1000);
 		alarmconfig_list->target_min = (unsigned int)(strtof(argv[9],&garbage) * 1000);
+		/* Flavio Alves: ticket #5829
+		 * Incluindo suporte a parametros de preminimo e premaximo */
+		alarmconfig_list->impedancia_premin = (unsigned int)(strtof(argv[10],&garbage) * 1000);
+		alarmconfig_list->temperatura_premin = (unsigned int)(strtof(argv[11],&garbage) * 1000);
+		alarmconfig_list->tensao_premin = (unsigned int)(strtof(argv[12],&garbage) * 1000);
+		alarmconfig_list->impedancia_premax = (unsigned int)(strtof(argv[13],&garbage) * 1000);
+		alarmconfig_list->temperatura_premax = (unsigned int)(strtof(argv[14],&garbage) * 1000);
+		alarmconfig_list->tensao_premax = (unsigned int)(strtof(argv[15],&garbage) * 1000);
+		alarmconfig_list->pre_enabled = (unsigned int)atoi(argv[16]);
 	}
 
 	LOG(DATABASE_LOG "Initing with:\n");
@@ -299,6 +317,13 @@ static int alarmconfig_callback(void *data, int argc, char **argv, char **azColN
 	LOG(DATABASE_LOG "BARRAMENTO_MIN: %d\n", alarmconfig_list->barramento_min);
 	LOG(DATABASE_LOG "TARGET_MAX: %d\n", alarmconfig_list->target_max);
 	LOG(DATABASE_LOG "TARGET_MIN: %d\n", alarmconfig_list->target_min);
+	LOG(DATABASE_LOG "IMPEDANCIA PRE MIN: %d\n", alarmconfig_list->impedancia_premin);
+	LOG(DATABASE_LOG "IMPEDANCIA PRE MAX: %d\n", alarmconfig_list->impedancia_premax);
+	LOG(DATABASE_LOG "TEMPERATURA PRE MIN: %d\n", alarmconfig_list->temperatura_premin);
+	LOG(DATABASE_LOG "TEMPERATURA PRE MAX: %d\n", alarmconfig_list->temperatura_premax);
+	LOG(DATABASE_LOG "TENSAO PRE MIN: %d\n", alarmconfig_list->tensao_premin);
+	LOG(DATABASE_LOG "TENSAO PRE MIN: %d\n", alarmconfig_list->tensao_premax);
+	LOG(DATABASE_LOG "PRE ENABLED: %d\n", alarmconfig_list->pre_enabled);
 
 	return ret;
 }
@@ -575,69 +600,69 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 	 */
 	switch(tipo) {
 	case TENSAO:
-		if (states->tensao == 1) {
+		if ((states->tensao == 1) && (alarmconfig_list->pre_enabled)) {
 			sprintf(l_medida,"%3d.%3d",(read_vars->vbat/1000),(read_vars->vbat%1000));
 			sprintf(l_min,"%3d.%3d",(alarmconfig->tensao_min/1000),(alarmconfig->tensao_min%1000));
-			sprintf(message,"Alerta de tensao em %s-%s, Minima %s de %s",
+			sprintf(message,"Alerta de tensao PRE-ALARME em %s-%s, Minima %s de %s",
 					bank,
 					batt,
 					l_medida,l_min);
 		} else if (states->tensao == 2) {
 			sprintf(l_medida,"%3d.%3d",(read_vars->vbat/1000),(read_vars->vbat%1000));
-			sprintf(message,"Alerta de tensao em %s-%s, dentro da faixa %s",
+			sprintf(message,"Alerta de tensao NORMAL em %s-%s, dentro da faixa %s",
 					bank,
 					batt,
 					l_medida);
 		} else if (states->tensao == 3) {
 			sprintf(l_medida,"%3d.%3d",(read_vars->vbat/1000),(read_vars->vbat%1000));
 			sprintf(l_max,"%3d.%3d",(alarmconfig->tensao_max/1000),(alarmconfig->tensao_max%1000));
-			sprintf(message,"Alerta de tensao em %s-%s, Maxima %s de %s",
+			sprintf(message,"Alerta de tensao ALARME em %s-%s, Maxima %s de %s",
 					bank,
 					batt,
 					l_medida,l_max);
 		}
 		break;
 	case TEMPERATURA:
-		if (states->temperatura == 1) {
+		if ((states->temperatura == 1) && (alarmconfig_list->pre_enabled)) {
 			sprintf(l_medida,"%3d.%1d",(read_vars->etemp/10),(read_vars->etemp%10));
 			sprintf(l_min,"%3d.%1d",(alarmconfig->temperatura_min/10),(alarmconfig->temperatura_min%10));
-			sprintf(message,"Alerta de temperatura em %s-%s, Minima %s de %s",
+			sprintf(message,"Alerta de temperatura PRE-ALARME em %s-%s, Minima %s de %s",
 					bank,
 					batt,
 					l_medida,l_min);
 		} else if (states->temperatura == 2) {
 			sprintf(l_medida,"%3d.%1d",(read_vars->etemp/10),(read_vars->etemp%10));
-			sprintf(message,"Alerta de temperatura em %s-%s, dentro da faixa %s",
+			sprintf(message,"Alerta de temperatura NORMAL em %s-%s, dentro da faixa %s",
 					bank,
 					batt,
 					l_medida);
 		} else if (states->temperatura == 3) {
 			sprintf(l_medida,"%3d.%1d",(read_vars->etemp/10),(read_vars->etemp%10));
 			sprintf(l_max,"%3d.%1d",(alarmconfig->temperatura_max/10),(alarmconfig->temperatura_max%10));
-			sprintf(message,"Alerta de temperatura em %s-%s, Maxima %s de %s",
+			sprintf(message,"Alerta de temperatura ALARME em %s-%s, Maxima %s de %s",
 					bank,
 					batt,
 					l_medida,l_max);
 		}
 		break;
 	case IMPEDANCIA:
-		if (states->impedancia == 1) {
+		if ((states->impedancia == 1) && (alarmconfig_list->pre_enabled)) {
 			sprintf(l_medida,"%3d.%2d",(imp_vars->impedance/100),(imp_vars->impedance%100));
 			sprintf(l_min,"%3d.%2d",(alarmconfig->impedancia_min/100),(alarmconfig->impedancia_min%100));
-			sprintf(message,"Alerta de impedancia em %s-%s, Minima %s de %s",
+			sprintf(message,"Alerta de impedancia PRE-ALARME em %s-%s, Minima %s de %s",
 					bank,
 					batt,
 					l_medida,l_min);
 		} else if (states->impedancia == 2) {
 			sprintf(l_medida,"%3d.%2d",(imp_vars->impedance/100),(imp_vars->impedance%100));
-			sprintf(message,"Alerta de impedancia em %s-%s, dentro da faixa %s",
+			sprintf(message,"Alerta de impedancia NORMAL em %s-%s, dentro da faixa %s",
 					bank,
 					batt,
 					l_medida);
 		} else if (states->impedancia == 3) {
 			sprintf(l_medida,"%3d.%2d",(imp_vars->impedance/100),(imp_vars->impedance%100));
 			sprintf(l_max,"%3d.%2d",(alarmconfig->impedancia_max/100),(alarmconfig->impedancia_max%100));
-			sprintf(message,"Alerta de impedancia em %s-%s, Maxima %s de %s",
+			sprintf(message,"Alerta de impedancia ALARME em %s-%s, Maxima %s de %s",
 					bank,
 					batt,
 					l_medida,l_max);
@@ -769,7 +794,11 @@ int db_get_parameters(Database_Parameters_t *list, Database_Alarmconfig_t *alarm
 				"alarme_nivel_temp_max, alarme_nivel_temp_min,"
 				"alarme_nivel_imped_max,alarme_nivel_imped_min,"
 				"alarme_nivel_tensaoBarr_max, alarme_nivel_tensaoBarr_min,"
-				"alarme_nivel_target_max, alarme_nivel_target_min "
+				"alarme_nivel_target_max, alarme_nivel_target_min,"
+				"alarme_nivel_imped_pre, alarme_nivel_temp_pre,"
+				"alarme_nivel_tens_pre, alarme_nivel_imped_pre_max,"
+				"alarme_nivel_temp_pre_max, alarme_nivel_tens_pre_max,"
+				"alarme_pre_enabled "
 				" FROM AlarmeConfig");
 		err = sqlite3_exec(database,sql_message,alarmconfig_callback,0,&zErrMsg);
 		if (err != SQLITE_OK) {

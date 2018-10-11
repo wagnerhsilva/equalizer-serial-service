@@ -306,39 +306,59 @@ static int evaluate_states(cm_string_t *str, int which, Database_Alarmconfig_t *
 	Protocol_ImpedanceCmd_OutputVars *imp_vars = &(str->output_vars_imp_curr[which]);
 	Protocol_ReadCmd_OutputVars 	 *read_vars = &(str->output_vars_read_curr[which]);
 
+	/* Flavio Alves: Ticket #5829
+	 * Revisao completa da organizacao dos estados
+	 * das leituras de tensao, temperatura e impedancia.
+	 * Deve-se seguir a mesma regra usada para as cores
+	 * amarela, verde e vermelha presente na interface web
+	 * No caso:
+	 * - Valor 1 (Amarelo): pre alarme
+	 * - Valor 2 (Verde): normal
+	 * - Valor 3 (Vermelho) : alarme
+	 */
+
 	/*
 	 * Tensao
+	 * Flavio Alves: Ticket #5829
 	 */
-	if (read_vars->vbat < params->tensao_min) {
-		str->batteries_states_curr[which].tensao = 1;
-	} else if (read_vars->vbat > params->tensao_max) {
+	if ((read_vars->vbat <= params->tensao_min) ||
+	    (read_vars->vbat >= params->tensao_max)) {
 		str->batteries_states_curr[which].tensao = 3;
-	} else {
+	} else if ((read_vars->vbat > params->tensao_premin) &&
+	           (read_vars->vbat < params->tensao_premax)) {
 		str->batteries_states_curr[which].tensao = 2;
+	} else {
+		str->batteries_states_curr[which].tensao = 1;
 	}
 
 	/*
 	 * Temperatura: o valor e com sinal (e possivel ter valores negativos)
 	 * Com isso, o cast e necessario, uma vez que o dado recebido e tratado
 	 * em numero bruto, sem considerar a sinalizacao (16 bits)
+	 * Flavio Alves: Ticket #5829
 	 */
-	if ((int)read_vars->etemp < params->temperatura_min) {
-		str->batteries_states_curr[which].temperatura = 1;
-	} else if ((int)read_vars->etemp > params->temperatura_max) {
+	if (((int)read_vars->etemp <= params->temperatura_min) ||
+	    ((int)read_vars->etemp >= params->temperatura_max)) {
 		str->batteries_states_curr[which].temperatura = 3;
-	} else {
+	} else if (((int)read_vars->etemp > params->temperatura_premin) &&
+	           ((int)read_vars->etemp < params->temperatura_premax)) {
 		str->batteries_states_curr[which].temperatura = 2;
+	} else {
+		str->batteries_states_curr[which].temperatura = 1;
 	}
 
 	/*
 	 * Impedancia
+	 * Flavio Alves: Ticket #5829
 	 */
-	if (imp_vars->impedance < params->impedancia_min) {
-		str->batteries_states_curr[which].impedancia = 1;
-	} else if (imp_vars->impedance > params->impedancia_max) {
+	if ((imp_vars->impedance <= params->impedancia_min) ||
+	    (imp_vars->impedance >= params->impedancia_max)) {
 		str->batteries_states_curr[which].impedancia = 3;
-	} else {
+	} else if ((imp_vars->impedance > params->impedancia_premin) && 
+	           (imp_vars->impedance < params->impedancia_premax)) {
 		str->batteries_states_curr[which].impedancia = 2;
+	} else {
+		str->batteries_states_curr[which].impedancia = 1;
 	}
 
 	return 0;
