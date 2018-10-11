@@ -413,6 +413,12 @@ static int evaluate_states_results(
 bool cm_string_process_string_alarms(cm_string_t *str, Database_Alarmconfig_t *alarmconfig,
 							   Database_Parameters_t params, int capacity, bool firstRead)
 {
+	/* Flavio Alves: ticket #5821
+	 * Inclusao de um mecanismo simples para detectar se foi enviado email de alarme
+	 * indicando problema de comunicacao na serial.
+	 */
+	static int serialProblemSent = 0;
+	int hasSerialProblem = 0;
 	PTR_VALID(str);
 
 	unsigned int uaverage 				= _compressFloat(str->average_vars_curr.average);
@@ -433,6 +439,10 @@ bool cm_string_process_string_alarms(cm_string_t *str, Database_Alarmconfig_t *a
 		 * Podem ser gerados ate 3 alarmes por leitura, sendo um para cada leitura critica
 		 */
 		if(!str->string_ok){
+			/* Flavio Alves: ticket #5821
+			 * inicializa identificador de problemas a cada iteracao.
+			 */
+			hasSerialProblem = 0;
 			/* Alarme relacionado a falha em alguma bateria na string */
 			for(int i = 0; i < str->string_size; i += 1){
 				if(bits_is_bit_set(&(str->battery_mask), i)){
@@ -440,14 +450,29 @@ bool cm_string_process_string_alarms(cm_string_t *str, Database_Alarmconfig_t *a
 					codes.i1 = -3; //timeout is the only logical error
 					codes.i2 = str->string_id;
 					codes.i3 = i;
-					db_add_alarm(NULL, NULL, NULL, NULL, STRING, codes);
-
+					if (!serialProblemSent) {
+						/* Flavio Alves: ticket #5821
+						 * Envia somente uma mensagem de problema de serial,
+						 * mesmo que o problema ocorra com varias strings
+						 */
+						db_add_alarm(NULL, NULL, NULL, NULL, STRING, codes);
+						serialProblemSent = 1;
+					}
+					/* Atualiza o indicador de presenca de problema */
+					hasSerialProblem = 1;
 					/* Clear the bit so that when we start over the mask is clear
 					 * Let's make use of this loop to clear this position since we already 
 					 * triggered the alarm
 					*/
 					bits_set_bit(&(str->battery_mask), i, false);
 				}
+			}
+			/* Flavio Alves: ticket #5821
+			 * Limpa a flag de problema enviado caso nao exista problemas com
+			 * a comunicacao serial, independente se estava setada ou nao.
+			 */
+			if (!hasSerialProblem) {
+				serialProblemSent = 0;
 			}
 		}
 		if (pt_state_current->barramento != pt_state_last->barramento) {
