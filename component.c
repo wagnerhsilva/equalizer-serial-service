@@ -397,12 +397,20 @@ static int evaluate_states_results(
 
 	/*
 	 * Capacidade de disco
+	 * (Flavio Alves: o estado "abaixo de 95%" praticamente
+	 * nao e mais necessario. Porem foi mantido para fins de
+	 * compatibilidade)
 	 */
-	if (disk_capacity > 95) {
-		states->disk = 3; 
+	if (disk_capacity > 90) {
+		if (disk_capacity > 95) {
+			states->disk = 3; 
+		} else {
+			states->disk = 5;
+		}
 	} else {
-		states->disk = 2;
+		states->disk = 4;
 	}
+	
 
 	return 0;
 }

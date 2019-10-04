@@ -71,7 +71,9 @@
 #define M_READ_ERROR	13
 #define M_ABOVE_95		14
 #define M_BELOW_95		15
-#define M_NB_MESSAGES	16
+#define M_ABOVE_90		16
+#define M_BELOW_90		17
+#define M_NB_MESSAGES	18
 
 #define M_NB_LANGUAGES	2
 
@@ -93,7 +95,9 @@ const char *alert_messages[M_NB_LANGUAGES][M_NB_MESSAGES] = {
 		"Alarme",
 		"Erro de leitura",
 		"Acima de 95%",
-		"Abaixo de 95%"
+		"Abaixo de 95%",
+		"Acima de 90%",
+		"Abaixo de 90%"
 	},
 	/* en */
 	{
@@ -112,7 +116,9 @@ const char *alert_messages[M_NB_LANGUAGES][M_NB_MESSAGES] = {
 		"Alarm",
 		"Read error",
 		"Above 95%",
-		"Below 95%"
+		"Below 95%",
+		"Above 90%",
+		"Below 90%"
 	}
 };
 
@@ -636,6 +642,20 @@ int db_add_alarm_results(unsigned int value,
 					alert_messages[idioma.code][M_ALERT],
 					alert_messages[idioma.code][M_DISK],
 					alert_messages[idioma.code][M_ABOVE_95]
+					);
+			// sprintf(message,"Alerta de capacidade de disco, acima de 95%%");
+		} else if (states->disk == 4) {
+			sprintf(message,"%s: %s : %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_DISK],
+					alert_messages[idioma.code][M_BELOW_90]
+					);
+			// sprintf(message,"Alerta de capacidade de disco, abaixo de 95%%");
+		} else if (states->disk == 5) {
+			sprintf(message,"%s: %s : %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_DISK],
+					alert_messages[idioma.code][M_ABOVE_90]
 					);
 			// sprintf(message,"Alerta de capacidade de disco, acima de 95%%");
 		}
