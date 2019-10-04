@@ -86,6 +86,21 @@ bool cm_manager_setup(cm_manager_t **manager, int strings, int batteries){
 	return changed;
 }
 
+bool cm_manager_evaluate_discharge_mode(cm_manager_t *manager, Database_Parameters_t params)
+{
+	unsigned int uaverage = 0;
+
+	for(int i = 0; i < manager->count; i+= 1) {
+		uaverage = _compressFloat(manager->cm_strings[i]->average_vars_curr.average);
+		LOG("string %d: uaverage = %d\n", i, uaverage);
+		if (uaverage < params.param8_voltage_threshold_discharge_mode) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 /*
  * Process baterries, actually just repass the call to every CM-String
 */

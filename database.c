@@ -29,6 +29,8 @@
 #define DATABASE_PARAM_PARAM1_INTERBAT_DELAY	10
 #define DATABASE_PARAM_PARAM2_SERIAL_READ_TO	11
 #define DATABASE_PARAM_PARAM3_MESSAGES_WAIT		12
+#define DATABASE_PARAM_PARAM8_VOLTAGE_DISCHARGE	17
+#define DATABASE_PARAM_PARAM9_DISCHARGE_RATE	18
 #define DATABASE_PARAM_NB_ITEMS					19+1
 #define DATABASE_NETWORK_MAC_ADDR				1
 #define DATABASE_NETWORK_NB_ITEMS				14+1
@@ -273,6 +275,8 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 		param_list->param1_interbat_delay = 0;
 		param_list->param2_serial_read_to = 0;
 		param_list->param3_messages_wait = 3;
+		param_list->param8_voltage_threshold_discharge_mode = 12500;
+		param_list->param9_discharge_mode_rate = 250;
 	} else {
 		LOG(DATABASE_LOG "Leitura de valores da tabela de parametros\n");
 		////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -291,6 +295,8 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 		param_list->param1_interbat_delay = (unsigned int) strtol(argv[DATABASE_PARAM_PARAM1_INTERBAT_DELAY], &garbage, 0);
 		param_list->param2_serial_read_to = (unsigned int) strtol(argv[DATABASE_PARAM_PARAM2_SERIAL_READ_TO], &garbage, 0);
 		param_list->param3_messages_wait = (unsigned int) strtol(argv[DATABASE_PARAM_PARAM3_MESSAGES_WAIT], &garbage, 0);
+		param_list->param8_voltage_threshold_discharge_mode = (unsigned int)(strtof(argv[DATABASE_PARAM_PARAM8_VOLTAGE_DISCHARGE], &garbage) * 1000);
+		param_list->param9_discharge_mode_rate = (unsigned int) strtol(argv[DATABASE_PARAM_PARAM9_DISCHARGE_RATE], &garbage, 0);
 	}
 
 	LOG(DATABASE_LOG "Initing with:\n");
@@ -305,6 +311,8 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 	LOG(DATABASE_LOG "PARAM1_INTERBAT_DELAY: %u\n",param_list->param1_interbat_delay);
 	LOG(DATABASE_LOG "PARAM2_SERIAL_READ_TO: %u\n",param_list->param2_serial_read_to);
 	LOG(DATABASE_LOG "PARAM3_MESSAGES_WAIT: %u\n",param_list->param3_messages_wait);
+	LOG(DATABASE_LOG "PARAM8_VOLTAGE_DISCHARGE: %u\n",param_list->param8_voltage_threshold_discharge_mode);
+	LOG(DATABASE_LOG "PARAM3_PARAM9_DISCHARGE_RATE: %u\n",param_list->param9_discharge_mode_rate);
 
 	return ret;
 }

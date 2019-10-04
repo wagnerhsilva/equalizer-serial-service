@@ -36,6 +36,8 @@ typedef struct {
 	unsigned int	param1_interbat_delay; /* param1 - intervalo, em microssegundos, entre leitura de bateria */
 	unsigned int	param2_serial_read_to; /* param2 - tempo de timeout, em microssegundos, de esperar de resposta do sensor pela serial */
 	unsigned int	param3_messages_wait;
+	unsigned int	param8_voltage_threshold_discharge_mode;
+	unsigned int	param9_discharge_mode_rate;
 } Database_Parameters_t;
 
 typedef struct {

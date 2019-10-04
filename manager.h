@@ -68,4 +68,9 @@ int cm_manager_batteries_count(cm_manager_t *manager);
 */
 int cm_manager_batteries_per_string_count(cm_manager_t *manager);
 
+/*
+ * Evaluate if the device is in discharge mode or not
+ */
+bool cm_manager_evaluate_discharge_mode(cm_manager_t *manager, Database_Parameters_t params);
+
 #endif

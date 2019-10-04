@@ -83,6 +83,7 @@ int service_start(void) {
 	int				 			save_log_state = 1;
 	int				 			capacity = 0;
 	int 						global_read_ok = 0;
+	bool						discharge_mode = false;
 	Database_Addresses_t		list;
 	Database_Parameters_t		params;
 	Database_Alarmconfig_t		alarmconfig;
@@ -221,12 +222,17 @@ int service_start(void) {
 				capacity = disk_usedSpace("/");
 
 				/*
-					* Persiste capacidade
+				 * Persiste capacidade
 				*/
 				db_update_capacity(capacity);
 
 				cm_manager_process_strings(manager, &alarmconfig, params,
 											capacity, isFirstRead);
+				
+				/*
+				 * Verifica o modo de descarga
+				 */
+				discharge_mode = cm_manager_evaluate_discharge_mode(manager,params);
 			}
 
 			/*
@@ -257,10 +263,18 @@ int service_start(void) {
 				}
 			}
 			LOG(SERVICE_LOG "leitura %d realizada\n",vars_read_counter);
-			if (vars_read_counter < params.num_cycles_var_read) {
-				vars_read_counter++;
+			if (discharge_mode) {
+				if (vars_read_counter < params.param9_discharge_mode_rate) {
+					vars_read_counter++;
+				} else {
+					vars_read_counter = 0;
+				}
 			} else {
-				vars_read_counter = 0;
+				if (vars_read_counter < params.num_cycles_var_read) {
+					vars_read_counter++;
+				} else {
+					vars_read_counter = 0;
+				}
 			}
 			/*
 			 * Realiza uma pausa entre as leituras, com valores
