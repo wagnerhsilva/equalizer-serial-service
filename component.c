@@ -427,6 +427,7 @@ bool cm_string_process_string_alarms(cm_string_t *str, Database_Alarmconfig_t *a
 	 */
 	static int serialProblemSent = 0;
 	int hasSerialProblem = 0;
+	int3 codes;
 	PTR_VALID(str);
 
 	unsigned int uaverage 				= _compressFloat(str->average_vars_curr.average);
@@ -454,7 +455,6 @@ bool cm_string_process_string_alarms(cm_string_t *str, Database_Alarmconfig_t *a
 			/* Alarme relacionado a falha em alguma bateria na string */
 			for(int i = 0; i < str->string_size; i += 1){
 				if(bits_is_bit_set(&(str->battery_mask), i)){
-					int3 codes;
 					codes.i1 = -3; //timeout is the only logical error
 					codes.i2 = str->string_id;
 					codes.i3 = i;
@@ -463,8 +463,10 @@ bool cm_string_process_string_alarms(cm_string_t *str, Database_Alarmconfig_t *a
 						 * Envia somente uma mensagem de problema de serial,
 						 * mesmo que o problema ocorra com varias strings
 						 */
-						db_add_alarm(NULL, NULL, NULL, NULL, STRING, codes);
+						db_add_alarm_timeout(&(str->battery_mask),codes);
 						serialProblemSent = 1;
+						/* Muda o estado para alarme enviado */
+						str->battery_mask.alarm_state[i] = 2;
 					}
 					/* Atualiza o indicador de presenca de problema */
 					hasSerialProblem = 1;
@@ -473,6 +475,19 @@ bool cm_string_process_string_alarms(cm_string_t *str, Database_Alarmconfig_t *a
 					 * triggered the alarm
 					*/
 					bits_set_bit(&(str->battery_mask), i, false);
+				} else {
+					codes.i1 = -3; //timeout is the only logical error
+					codes.i2 = str->string_id;
+					codes.i3 = i;
+					/* Situacao onde a string esta ok, porem nao houve o envio
+					 * do alarme de notificacao */
+					if (str->battery_mask.alarm_state[i] == 2) {
+						/* Muda o estado para configurar o alarme a ser enviado */
+						str->battery_mask.alarm_state[i] = 3;
+						db_add_alarm_timeout(&(str->battery_mask),codes);
+						/* Vai para o estado de idle */
+						str->battery_mask.alarm_state[i] = 0;
+					}
 				}
 			}
 			/* Flavio Alves: ticket #5821
@@ -605,6 +620,23 @@ bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarm
 		if(state != 0){
 			str->string_ok = false;
 			bits_set_bit(&(str->battery_mask), j, true);
+			/* Avalia se e para enviar o alarme novamente.
+			 * Muda o estado para envio de alarme caso se encontre no
+			 * estado inicial  */
+			if (str->battery_mask.alarm_state[j] == 0) {
+				str->battery_mask.alarm_state[j] = 1;
+			} else {
+				/* Caso a bateria esteja com problemas, a notificacao ja tiver
+				 * sido enviada e for 8h00, o estado de envio do alarme e resetado
+				 * para que uma nova mensagem possa ser enviada.
+				 */
+				time_t rawtime;   
+				time ( &rawtime );
+				struct tm *timeinfo = localtime (&rawtime);
+				if ((timeinfo->tm_hour == 8) && (timeinfo->tm_min == 0)) {
+					str->battery_mask.alarm_state[j] = 1;
+				}
+			}
 		}
 
 		err = db_add_response(pt_vars, pt_imp, pt_state_current,

@@ -12,6 +12,14 @@
 
 typedef struct{
 	unsigned int data[MAX_STRING_LEN]; //array of values representing 'bits'
+	/* Alarm states:
+	 * 0 - no problem
+	 * 1 - problem identified - to send alarm
+	 * 2 - alarm message sent
+	 * 3 - problem resolved - to send alarm
+	 * 4 - alarm message sent
+	 */
+	unsigned int alarm_state[MAX_STRING_LEN]; // state of each bit alarm
 	int maxlen; //maximum lenth of the 'data' size = MAX_STRING_LEN
 	int maxfill; //current maximum position filled
 }Bits;

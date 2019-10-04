@@ -15,6 +15,7 @@
 */
 static void clear_mask(Bits *bits){
 	memset(bits->data, 0, sizeof(bits->data));
+	memset(bits->alarm_state, 0, sizeof(bits->alarm_state));
 	bits->maxlen = MAX_STRING_LEN;
 	bits->maxfill = 0;
 }

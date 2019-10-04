@@ -9,6 +9,7 @@
 #include <sqlite3.h>
 #include "database.h"
 #include "protocol.h"
+#include "bits.h"
 #include <string.h>
 
 #define DATABASE_LOG					"DATABASE:"
@@ -73,7 +74,8 @@
 #define M_BELOW_95		15
 #define M_ABOVE_90		16
 #define M_BELOW_90		17
-#define M_NB_MESSAGES	18
+#define M_READ_OK		18
+#define M_NB_MESSAGES	19
 
 #define M_NB_LANGUAGES	2
 
@@ -97,7 +99,8 @@ const char *alert_messages[M_NB_LANGUAGES][M_NB_MESSAGES] = {
 		"Acima de 95%",
 		"Abaixo de 95%",
 		"Acima de 90%",
-		"Abaixo de 90%"
+		"Abaixo de 90%",
+		"Leitura OK"
 	},
 	/* en */
 	{
@@ -118,7 +121,8 @@ const char *alert_messages[M_NB_LANGUAGES][M_NB_MESSAGES] = {
 		"Above 95%",
 		"Below 95%",
 		"Above 90%",
-		"Below 90%"
+		"Below 90%",
+		"Read OK"
 	}
 };
 
@@ -706,6 +710,59 @@ int db_add_tendence(Tendence_t Tendence){
 	return -1;
 }
 
+int db_add_alarm_timeout(Bits *bits, int3 read_st)
+{
+	int send = 0;
+	char timestamp[80];
+	char message[256];
+	char batt[5]; 
+	char bank[5];
+	extern Idioma_t	idioma;
+
+	db_get_timestamp(timestamp);
+	int_to_addr(read_st.i2+1, 1, &bank[0]);
+	int_to_addr(read_st.i3+1, 0, &batt[0]);
+
+	switch(bits->alarm_state[read_st.i3]) {
+		case 1:
+			sprintf(message,"%s: %s : %s-%s : %d",
+				alert_messages[idioma.code][M_ALERT],
+				alert_messages[idioma.code][M_READ_ERROR],
+				bank,
+				batt,
+				read_st.i1
+				);
+			send = 1;
+			break;
+		case 3:
+			sprintf(message,"%s: %s : %s-%s : %d",
+				alert_messages[idioma.code][M_ALERT],
+				alert_messages[idioma.code][M_READ_OK],
+				bank,
+				batt,
+				read_st.i1
+				);
+			send = 1;
+			break;
+	}
+	/*
+	 * Inclui campos na tabela de registros de tempo real
+	 */
+	if (send) {
+		LOG(DATABASE_LOG "Registrando alarme ...\n");
+		LOG(DATABASE_LOG "Mensagem: %s\n", message);
+		sqlite3_bind_text(baked_alarmlog, 1, timestamp, -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(baked_alarmlog, 2, message, -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(baked_alarmlog, 3, "0", -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(baked_alarmlog, 4, "1", -1, SQLITE_TRANSIENT);
+		sqlite3_step(baked_alarmlog);
+		sqlite3_clear_bindings(baked_alarmlog);
+		sqlite3_reset(baked_alarmlog);
+		LOG("Alarme registrado\n");
+	}
+
+	return 0;
+}
 
 int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 		Protocol_ImpedanceCmd_OutputVars *imp_vars,

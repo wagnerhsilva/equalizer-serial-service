@@ -9,6 +9,8 @@
 #define DATABASE_H_
 
 #include "protocol.h"
+#include "bits.h"
+
 struct Tendence_t;
 
 #define DATABASE_MAX_ADDRESSES_LEN		10240
@@ -92,6 +94,7 @@ int db_add_alarm_results(unsigned int value,
 		Protocol_States *states,
 		Database_Alarmconfig_t *alarmconfig,
 		Protocol_States_e tipo);
+int db_add_alarm_timeout(Bits *bits, int3 read_st);
 int db_get_addresses(Database_Addresses_t *list,Database_Parameters_t *p_list);
 int db_get_parameters(Database_Parameters_t *list, Database_Alarmconfig_t *alarmconfig);
 int db_set_macaddress(void);
