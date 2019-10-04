@@ -38,6 +38,9 @@
 #define u16_LSB(u16) (u16 & 0xFF)
 #define u16_MSB(u16) ((u16 >> 8) & 0xFF)
 
+#define LANG_CODE_PT_BR 0
+#define LANG_CODE_EN	1
+
 typedef struct{
 	float average;
 	unsigned int bus_sum;
@@ -70,6 +73,11 @@ typedef struct{
 	int	   HasWrites;
 	int	   testMode;
 }Tendence_Configs_t;
+
+typedef struct {
+	int  code;
+	char idioma[20];
+} Idioma_t;
 
 extern Tendence_Configs_t TendenceOpts;
 

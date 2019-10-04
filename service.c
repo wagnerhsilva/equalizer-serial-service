@@ -86,6 +86,7 @@ int service_start(void) {
 	Database_Addresses_t		list;
 	Database_Parameters_t		params;
 	Database_Alarmconfig_t		alarmconfig;
+	extern Idioma_t				idioma;
 
 	/*
 	 * Atualiza o endereco MAC da placa
@@ -94,6 +95,12 @@ int service_start(void) {
 		return -1;
 	}
 
+	/*
+	 * Atualiza o idioma padrao
+	 */
+	if (CHECK(db_get_language(&idioma))) {
+		return -1;
+	}
 	/*
 	 * Atualiza a tabela de parametros, para o novo ciclo
 	 * de execucao
@@ -151,6 +158,10 @@ int service_start(void) {
 			ser_setReadRetries(&serial_comm,params.param3_messages_wait);
 			/* reseta contador */
 			update_param_counter = 0;
+			/* Atualiza o idioma */
+			if (CHECK(db_get_language(&idioma))) {
+				break;
+			}
 		} else {
 			/* incrementa o contador */
 			update_param_counter++;

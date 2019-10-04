@@ -53,6 +53,67 @@
 #define BATTERY_STRINGS_ADDR           4
 #define BATTERY_COUNT_ADDR             5
 
+#define	M_ALERT			0
+#define M_BUS			1
+#define M_TARGET		2
+#define M_DISK			3
+#define M_MINIMUM		4
+#define M_MAXIMUM		5
+#define M_INSIDE		6
+#define M_VOLTAGE		7
+#define M_TEMPERATURE	8
+#define M_IMPEDANCE		9
+#define M_PRE_ALARM		10
+#define M_NORMAL		11
+#define M_ALARM			12
+#define M_READ_ERROR	13
+#define M_ABOVE_95		14
+#define M_BELOW_95		15
+#define M_NB_MESSAGES	16
+
+#define M_NB_LANGUAGES	2
+
+const char *alert_messages[M_NB_LANGUAGES][M_NB_MESSAGES] = {
+	/* pt-br */
+	{
+		"Alerta",
+		"Tensão de barramento",
+		"Target",
+		"Disco",
+		"Minimo",
+		"Maximo",
+		"Dentro da Faixa",
+		"Tensão",
+		"Temperatura",
+		"Impedancia",
+		"Pré-Alarme",
+		"Normal",
+		"Alarme",
+		"Erro de leitura",
+		"Acima de 95%",
+		"Abaixo de 95%"
+	},
+	/* en */
+	{
+		"Alert",
+		"Bus",
+		"Target",
+		"Disk",
+		"Minimum",
+		"Maximum",
+		"Inside",
+		"Voltage",
+		"Temperature",
+		"Impedance",
+		"Pre-Alarm",
+		"Normal",
+		"Alarm",
+		"Read error",
+		"Above 95%",
+		"Below 95%"
+	}
+};
+
 static sqlite3 					*database;
 static Database_Addresses_t		*addr_list;
 static Database_Parameters_t	*param_list;
@@ -472,6 +533,7 @@ int db_add_alarm_results(unsigned int value,
 	char l_min[15];
 	char l_max[15];
 	char l_medida[15];
+	extern Idioma_t	idioma;
 
 	db_get_timestamp(timestamp);
 
@@ -483,41 +545,91 @@ int db_add_alarm_results(unsigned int value,
 		if (states->barramento == 1) {
 			sprintf(l_medida,"%3d.%3d",(value/1000),(value%1000));
 			sprintf(l_min,"%3d.%3d",(alarmconfig->barramento_min/1000),(alarmconfig->barramento_min%1000));
-			sprintf(message,"Alerta de tensao no barramento, Minima %s de %s",
-					l_medida,l_min);
+			sprintf(message,"%s: %s : %s : %s / %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_BUS],
+					alert_messages[idioma.code][M_MINIMUM],
+					l_medida,
+					l_min
+					);
+			// sprintf(message,"Alerta de tensao no barramento, Minima %s de %s",
+			// 		l_medida,l_min);
 		} else if (states->barramento == 2) {
 			sprintf(l_medida,"%3d.%3d",(value/1000),(value%1000));
-			sprintf(message,"Alerta de tensao no barramento, dentro da faixa %s",
-					l_medida);
+			sprintf(message,"%s: %s : %s : %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_BUS],
+					alert_messages[idioma.code][M_INSIDE],
+					l_medida
+					);
+			// sprintf(message,"Alerta de tensao no barramento, dentro da faixa %s",
+			// 		l_medida);
 		} else if (states->barramento == 3) {
 			sprintf(l_medida,"%3d.%3d",(value/1000),(value%1000));
 			sprintf(l_max,"%3d.%3d",(alarmconfig->barramento_max/1000),(alarmconfig->barramento_max%1000));
-			sprintf(message,"Alerta de tensao no barramento, Maxima %s de %s",
-					l_medida,l_max);
+			sprintf(message,"%s: %s : %s : %s / %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_BUS],
+					alert_messages[idioma.code][M_MAXIMUM],
+					l_medida,
+					l_max
+					);
+			// sprintf(message,"Alerta de tensao no barramento, Maxima %s de %s",
+			// 		l_medida,l_max);
 		}
 		break;
 	case TARGET:
 		if (states->target == 1) {
 			sprintf(l_medida,"%3d.%3d",(value/1000),(value%1000));
 			sprintf(l_min,"%3d.%3d",(alarmconfig->target_min/1000),(alarmconfig->target_min%1000));
-			sprintf(message,"Alerta de target, Minima %s de %s",
-					l_medida,l_min);
+			sprintf(message,"%s: %s : %s : %s / %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_TARGET],
+					alert_messages[idioma.code][M_MINIMUM],
+					l_medida,
+					l_min
+					);
+			// sprintf(message,"Alerta de target, Minima %s de %s",
+			// 		l_medida,l_min);
 		} else if (states->target == 2) {
 			sprintf(l_medida,"%3d.%3d",(value/1000),(value%1000));
-			sprintf(message,"Alerta de target, dentro da faixa %s",
-					l_medida);
+			sprintf(message,"%s: %s : %s : %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_TARGET],
+					alert_messages[idioma.code][M_INSIDE],
+					l_medida
+					);
+			// sprintf(message,"Alerta de target, dentro da faixa %s",
+			// 		l_medida);
 		} else if (states->target == 3) {
 			sprintf(l_medida,"%3d.%3d",(value/1000),(value%1000));
 			sprintf(l_max,"%3d.%3d",(alarmconfig->target_max/1000),(alarmconfig->target_max%1000));
-			sprintf(message,"Alerta de target, Maxima %s de %s",
-					l_medida,l_max);
+			sprintf(message,"%s: %s : %s : %s / %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_TARGET],
+					alert_messages[idioma.code][M_MAXIMUM],
+					l_medida,
+					l_max
+					);
+			// sprintf(message,"Alerta de target, Maxima %s de %s",
+			// 		l_medida,l_max);
 		}
 		break;
 	case DISK:
 		if (states->disk == 2) {
-			sprintf(message,"Alerta de capacidade de disco, abaixo de 95%%");
+			sprintf(message,"%s: %s : %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_DISK],
+					alert_messages[idioma.code][M_BELOW_95]
+					);
+			// sprintf(message,"Alerta de capacidade de disco, abaixo de 95%%");
 		} else if (states->disk == 3) {
-			sprintf(message,"Alerta de capacidade de disco, acima de 95%%");
+			sprintf(message,"%s: %s : %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_DISK],
+					alert_messages[idioma.code][M_ABOVE_95]
+					);
+			// sprintf(message,"Alerta de capacidade de disco, acima de 95%%");
 		}
 		break;
 	}
@@ -582,6 +694,7 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 	char l_medida[15];
 	char batt[5]; 
 	char bank[5];
+	extern Idioma_t	idioma;
 
 	/*
 	 * When its a STRING failure, this pointer becomes null
@@ -603,77 +716,162 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 		if ((states->tensao == 1) && (alarmconfig_list->pre_enabled)) {
 			sprintf(l_medida,"%3d.%3d",(read_vars->vbat/1000),(read_vars->vbat%1000));
 			sprintf(l_min,"%3d.%3d",(alarmconfig->tensao_min/1000),(alarmconfig->tensao_min%1000));
-			sprintf(message,"Alerta de tensao PRE-ALARME em %s-%s, Minima %s de %s",
+			sprintf(message,"%s: %s : %s-%s : %s : %s / %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_VOLTAGE],
 					bank,
 					batt,
-					l_medida,l_min);
+					alert_messages[idioma.code][M_PRE_ALARM],
+					l_medida,
+					l_min
+					);
+			// sprintf(message,"Alerta de tensao PRE-ALARME em %s-%s, Minima %s de %s",
+			// 		bank,
+			// 		batt,
+			// 		l_medida,l_min);
 		} else if (states->tensao == 2) {
 			sprintf(l_medida,"%3d.%3d",(read_vars->vbat/1000),(read_vars->vbat%1000));
-			sprintf(message,"Alerta de tensao NORMAL em %s-%s, dentro da faixa %s",
+			sprintf(message,"%s: %s : %s-%s : %s : %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_VOLTAGE],
 					bank,
 					batt,
-					l_medida);
+					alert_messages[idioma.code][M_NORMAL],
+					l_medida
+					);
+			// sprintf(message,"Alerta de tensao NORMAL em %s-%s, dentro da faixa %s",
+			// 		bank,
+			// 		batt,
+			// 		l_medida);
 		} else if (states->tensao == 3) {
 			sprintf(l_medida,"%3d.%3d",(read_vars->vbat/1000),(read_vars->vbat%1000));
 			sprintf(l_max,"%3d.%3d",(alarmconfig->tensao_max/1000),(alarmconfig->tensao_max%1000));
-			sprintf(message,"Alerta de tensao ALARME em %s-%s, Maxima %s de %s",
+			sprintf(message,"%s: %s : %s-%s : %s : %s / %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_VOLTAGE],
 					bank,
 					batt,
-					l_medida,l_max);
+					alert_messages[idioma.code][M_ALARM],
+					l_medida,
+					l_max
+					);
+			// sprintf(message,"Alerta de tensao ALARME em %s-%s, Maxima %s de %s",
+			// 		bank,
+			// 		batt,
+			// 		l_medida,l_max);
 		}
 		break;
 	case TEMPERATURA:
 		if ((states->temperatura == 1) && (alarmconfig_list->pre_enabled)) {
 			sprintf(l_medida,"%3d.%1d",(read_vars->etemp/10),(read_vars->etemp%10));
 			sprintf(l_min,"%3d.%1d",(alarmconfig->temperatura_min/10),(alarmconfig->temperatura_min%10));
-			sprintf(message,"Alerta de temperatura PRE-ALARME em %s-%s, Minima %s de %s",
+			sprintf(message,"%s: %s : %s-%s : %s : %s / %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_TEMPERATURE],
 					bank,
 					batt,
-					l_medida,l_min);
+					alert_messages[idioma.code][M_PRE_ALARM],
+					l_medida,
+					l_min
+					);
+			// sprintf(message,"Alerta de temperatura PRE-ALARME em %s-%s, Minima %s de %s",
+			// 		bank,
+			// 		batt,
+			// 		l_medida,l_min);
 		} else if (states->temperatura == 2) {
 			sprintf(l_medida,"%3d.%1d",(read_vars->etemp/10),(read_vars->etemp%10));
-			sprintf(message,"Alerta de temperatura NORMAL em %s-%s, dentro da faixa %s",
+			sprintf(message,"%s: %s : %s-%s : %s : %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_TEMPERATURE],
 					bank,
 					batt,
-					l_medida);
+					alert_messages[idioma.code][M_NORMAL],
+					l_medida
+					);
+			// sprintf(message,"Alerta de temperatura NORMAL em %s-%s, dentro da faixa %s",
+			// 		bank,
+			// 		batt,
+			// 		l_medida);
 		} else if (states->temperatura == 3) {
 			sprintf(l_medida,"%3d.%1d",(read_vars->etemp/10),(read_vars->etemp%10));
 			sprintf(l_max,"%3d.%1d",(alarmconfig->temperatura_max/10),(alarmconfig->temperatura_max%10));
-			sprintf(message,"Alerta de temperatura ALARME em %s-%s, Maxima %s de %s",
+			sprintf(message,"%s: %s : %s-%s : %s : %s / %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_TEMPERATURE],
 					bank,
 					batt,
-					l_medida,l_max);
+					alert_messages[idioma.code][M_ALARM],
+					l_medida,
+					l_max
+					);
+			// sprintf(message,"Alerta de temperatura ALARME em %s-%s, Maxima %s de %s",
+			// 		bank,
+			// 		batt,
+			// 		l_medida,l_max);
 		}
 		break;
 	case IMPEDANCIA:
 		if ((states->impedancia == 1) && (alarmconfig_list->pre_enabled)) {
 			sprintf(l_medida,"%3d.%2d",(imp_vars->impedance/100),(imp_vars->impedance%100));
 			sprintf(l_min,"%3d.%2d",(alarmconfig->impedancia_min/100),(alarmconfig->impedancia_min%100));
-			sprintf(message,"Alerta de impedancia PRE-ALARME em %s-%s, Minima %s de %s",
+			sprintf(message,"%s: %s : %s-%s : %s : %s / %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_IMPEDANCE],
 					bank,
 					batt,
-					l_medida,l_min);
+					alert_messages[idioma.code][M_PRE_ALARM],
+					l_medida,
+					l_min
+					);
+			// sprintf(message,"Alerta de impedancia PRE-ALARME em %s-%s, Minima %s de %s",
+			// 		bank,
+			// 		batt,
+			// 		l_medida,l_min);
 		} else if (states->impedancia == 2) {
 			sprintf(l_medida,"%3d.%2d",(imp_vars->impedance/100),(imp_vars->impedance%100));
-			sprintf(message,"Alerta de impedancia NORMAL em %s-%s, dentro da faixa %s",
+			sprintf(message,"%s: %s : %s-%s : %s : %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_IMPEDANCE],
 					bank,
 					batt,
-					l_medida);
+					alert_messages[idioma.code][M_NORMAL],
+					l_medida
+					);
+			// sprintf(message,"Alerta de impedancia NORMAL em %s-%s, dentro da faixa %s",
+			// 		bank,
+			// 		batt,
+			// 		l_medida);
 		} else if (states->impedancia == 3) {
 			sprintf(l_medida,"%3d.%2d",(imp_vars->impedance/100),(imp_vars->impedance%100));
 			sprintf(l_max,"%3d.%2d",(alarmconfig->impedancia_max/100),(alarmconfig->impedancia_max%100));
-			sprintf(message,"Alerta de impedancia ALARME em %s-%s, Maxima %s de %s",
+			sprintf(message,"%s: %s : %s-%s : %s : %s / %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_IMPEDANCE],
 					bank,
 					batt,
-					l_medida,l_max);
+					alert_messages[idioma.code][M_ALARM],
+					l_medida,
+					l_max
+					);
+			// sprintf(message,"Alerta de impedancia ALARME em %s-%s, Maxima %s de %s",
+			// 		bank,
+			// 		batt,
+			// 		l_medida,l_max);
 		}
 		break;
 	case STRING:{
 
 			int_to_addr(read_st.i2+1, 1, &bank[0]);
 			int_to_addr(read_st.i3+1, 0, &batt[0]);
-			snprintf(message, 256, "Alerta de erro de leitura em %s-%s com erro: %d",
-						bank, batt, read_st.i1);
+			sprintf(message,"%s: %s : %s-%s : %d",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_READ_ERROR],
+					bank,
+					batt,
+					read_st.i1
+					);
+			// snprintf(message, 256, "Alerta de erro de leitura em %s-%s com erro: %d",
+			// 			bank, batt, read_st.i1);
 		}
 		break;
 	}
@@ -919,6 +1117,65 @@ int db_get_tendence_configs(Tendence_Configs_t *Configs){
 		LOG(TENDENCIAS_IMPE_MIN " : %g\n", Configs->ImpeMin);
 		LOG(TENDENCIAS_IMPE_MAX " : %g\n", Configs->ImpeMax);
 		LOG(TENDENCIAS_LAST_ITERATION " : %d\n", Configs->LastIteration);
+		return 0;
+	}
+
+	return -1;
+}
+
+int db_get_language(Idioma_t *Lang) {
+	/*
+	 * Get configuration here
+	*/
+	if(database != 0){
+		int err = 0;
+		char sql_message[500];
+		char *zErrMsg = 0;
+
+		sprintf(sql_message, "SELECT * FROM Idioma LIMIT 1;");
+
+		struct sqlite3_stmt *selectstmt;
+		int result = sqlite3_prepare_v2(database, sql_message,
+									   -1, &selectstmt, NULL);
+		if(result == SQLITE_OK){
+			if(sqlite3_step(selectstmt) == SQLITE_ROW){
+				int columns = sqlite3_column_count(selectstmt);
+				
+				for(int i = 0; i < columns; i+= 1) {
+					char * text;
+					text  = (char *)sqlite3_column_text (selectstmt, i);
+					const char *columnName = sqlite3_column_name(selectstmt, i);
+					LOG("GOT [%s] => %s\n", columnName, text);
+					if (strcmp(columnName,"idioma") == 0) {
+						/* Recupera o idioma do banco de dados */
+						strcpy(Lang->idioma,text);
+						/* Define o codigo para o idioma recuperado, sendo
+						 * o idioma portugues brasileiro definido como padrao */
+						if (strcmp(text,"en") == 0) {
+							Lang->code = LANG_CODE_EN;
+						} else {
+							Lang->code = LANG_CODE_PT_BR;
+						}
+					} else {
+						LOG("idioma FIELD NOT FOUND. SETTING DEFAULT LANGUAGE");
+						strcpy(Lang->idioma,"pt-br");
+						Lang->code = LANG_CODE_PT_BR;
+					}
+				}
+			}else{ //no data
+				/* Idioma padrao e o Portugues Brasileiro */
+				LOG("NOT FOUND. SETTING DEFAULT LANGUAGE");
+				strcpy(Lang->idioma,"pt-br");
+				Lang->code = LANG_CODE_PT_BR;
+			}
+		}else{
+			LOG(DATABASE_LOG "Error on select language\n");
+			strcpy(Lang->idioma,"pt-br");
+			Lang->code = LANG_CODE_PT_BR;
+		}
+
+		sqlite3_finalize(selectstmt);
+
 		return 0;
 	}
 

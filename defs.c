@@ -14,7 +14,8 @@ FILE *ext_fp = NULL;
 int DEBUG = 1;
 int EXT_PR = 0;
 
-Tendence_Configs_t TendenceOpts = {0};
+Tendence_Configs_t  TendenceOpts = {0};
+Idioma_t            idioma = { 0, "pt-br" };
 
 static int firstpass = 1;
 static int ext_first = 1;
