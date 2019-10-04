@@ -75,7 +75,9 @@
 #define M_ABOVE_90		16
 #define M_BELOW_90		17
 #define M_READ_OK		18
-#define M_NB_MESSAGES	19
+#define M_PRE_MINIMUM	19
+#define M_PRE_MAXIMUM	20
+#define M_NB_MESSAGES	21
 
 #define M_NB_LANGUAGES	2
 
@@ -100,7 +102,9 @@ const char *alert_messages[M_NB_LANGUAGES][M_NB_MESSAGES] = {
 		"Abaixo de 95%",
 		"Acima de 90%",
 		"Abaixo de 90%",
-		"Leitura OK"
+		"Leitura OK",
+		"Pré-Minimo",
+		"Pré-Máximo"
 	},
 	/* en */
 	{
@@ -122,7 +126,9 @@ const char *alert_messages[M_NB_LANGUAGES][M_NB_MESSAGES] = {
 		"Below 95%",
 		"Above 90%",
 		"Below 90%",
-		"Read OK"
+		"Read OK",
+		"Pre-Minimum",
+		"Pre-Maximum"
 	}
 };
 
@@ -798,24 +804,30 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 	 */
 	switch(tipo) {
 	case TENSAO:
-		if ((states->tensao == 1) && (alarmconfig_list->pre_enabled)) {
-			sprintf(l_medida,"%3d.%3d",(read_vars->vbat/1000),(read_vars->vbat%1000));
+		sprintf(l_medida,"%3d.%3d",(read_vars->vbat/1000),(read_vars->vbat%1000));
+		if (states->tensao == 1) {
 			sprintf(l_min,"%3d.%3d",(alarmconfig->tensao_min/1000),(alarmconfig->tensao_min%1000));
 			sprintf(message,"%s: %s : %s-%s : %s : %s / %s",
 					alert_messages[idioma.code][M_ALERT],
 					alert_messages[idioma.code][M_VOLTAGE],
 					bank,
 					batt,
-					alert_messages[idioma.code][M_PRE_ALARM],
+					alert_messages[idioma.code][M_MINIMUM],
 					l_medida,
 					l_min
 					);
-			// sprintf(message,"Alerta de tensao PRE-ALARME em %s-%s, Minima %s de %s",
-			// 		bank,
-			// 		batt,
-			// 		l_medida,l_min);
-		} else if (states->tensao == 2) {
-			sprintf(l_medida,"%3d.%3d",(read_vars->vbat/1000),(read_vars->vbat%1000));
+		} else if ((states->tensao == 2) && (alarmconfig_list->pre_enabled)) {
+			sprintf(l_min,"%3d.%3d",(alarmconfig->tensao_premin/1000),(alarmconfig->tensao_premin%1000));
+			sprintf(message,"%s: %s : %s-%s : %s : %s / %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_VOLTAGE],
+					bank,
+					batt,
+					alert_messages[idioma.code][M_PRE_MINIMUM],
+					l_medida,
+					l_min
+					);
+		} else if (states->tensao == 3) {
 			sprintf(message,"%s: %s : %s-%s : %s : %s",
 					alert_messages[idioma.code][M_ALERT],
 					alert_messages[idioma.code][M_VOLTAGE],
@@ -824,47 +836,55 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 					alert_messages[idioma.code][M_NORMAL],
 					l_medida
 					);
-			// sprintf(message,"Alerta de tensao NORMAL em %s-%s, dentro da faixa %s",
-			// 		bank,
-			// 		batt,
-			// 		l_medida);
-		} else if (states->tensao == 3) {
-			sprintf(l_medida,"%3d.%3d",(read_vars->vbat/1000),(read_vars->vbat%1000));
+		} else if ((states->tensao == 4) && (alarmconfig_list->pre_enabled)) {
+			sprintf(l_max,"%3d.%3d",(alarmconfig->tensao_premax/1000),(alarmconfig->tensao_premax%1000));
+			sprintf(message,"%s: %s : %s-%s : %s : %s / %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_VOLTAGE],
+					bank,
+					batt,
+					alert_messages[idioma.code][M_PRE_MAXIMUM],
+					l_medida,
+					l_max
+					);
+		} else if (states->tensao == 5) {
 			sprintf(l_max,"%3d.%3d",(alarmconfig->tensao_max/1000),(alarmconfig->tensao_max%1000));
 			sprintf(message,"%s: %s : %s-%s : %s : %s / %s",
 					alert_messages[idioma.code][M_ALERT],
 					alert_messages[idioma.code][M_VOLTAGE],
 					bank,
 					batt,
-					alert_messages[idioma.code][M_ALARM],
+					alert_messages[idioma.code][M_MAXIMUM],
 					l_medida,
 					l_max
 					);
-			// sprintf(message,"Alerta de tensao ALARME em %s-%s, Maxima %s de %s",
-			// 		bank,
-			// 		batt,
-			// 		l_medida,l_max);
 		}
 		break;
 	case TEMPERATURA:
-		if ((states->temperatura == 1) && (alarmconfig_list->pre_enabled)) {
-			sprintf(l_medida,"%3d.%1d",(read_vars->etemp/10),(read_vars->etemp%10));
+		sprintf(l_medida,"%3d.%1d",(read_vars->etemp/10),(read_vars->etemp%10));
+		if (states->temperatura == 1) {
 			sprintf(l_min,"%3d.%1d",(alarmconfig->temperatura_min/10),(alarmconfig->temperatura_min%10));
 			sprintf(message,"%s: %s : %s-%s : %s : %s / %s",
 					alert_messages[idioma.code][M_ALERT],
 					alert_messages[idioma.code][M_TEMPERATURE],
 					bank,
 					batt,
-					alert_messages[idioma.code][M_PRE_ALARM],
+					alert_messages[idioma.code][M_MINIMUM],
 					l_medida,
 					l_min
 					);
-			// sprintf(message,"Alerta de temperatura PRE-ALARME em %s-%s, Minima %s de %s",
-			// 		bank,
-			// 		batt,
-			// 		l_medida,l_min);
-		} else if (states->temperatura == 2) {
-			sprintf(l_medida,"%3d.%1d",(read_vars->etemp/10),(read_vars->etemp%10));
+		} else if ((states->temperatura == 2) && (alarmconfig_list->pre_enabled)) {
+			sprintf(l_min,"%3d.%1d",(alarmconfig->temperatura_premin/10),(alarmconfig->temperatura_premin%10));
+			sprintf(message,"%s: %s : %s-%s : %s : %s / %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_TEMPERATURE],
+					bank,
+					batt,
+					alert_messages[idioma.code][M_PRE_MINIMUM],
+					l_medida,
+					l_min
+					);
+		} else if (states->temperatura == 3) {
 			sprintf(message,"%s: %s : %s-%s : %s : %s",
 					alert_messages[idioma.code][M_ALERT],
 					alert_messages[idioma.code][M_TEMPERATURE],
@@ -873,47 +893,56 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 					alert_messages[idioma.code][M_NORMAL],
 					l_medida
 					);
-			// sprintf(message,"Alerta de temperatura NORMAL em %s-%s, dentro da faixa %s",
-			// 		bank,
-			// 		batt,
-			// 		l_medida);
-		} else if (states->temperatura == 3) {
-			sprintf(l_medida,"%3d.%1d",(read_vars->etemp/10),(read_vars->etemp%10));
+		} else if ((states->temperatura == 4) && (alarmconfig_list->pre_enabled)) {
+			sprintf(l_max,"%3d.%1d",(alarmconfig->temperatura_premax/10),(alarmconfig->temperatura_premax%10));
+			sprintf(message,"%s: %s : %s-%s : %s : %s / %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_TEMPERATURE],
+					bank,
+					batt,
+					alert_messages[idioma.code][M_PRE_MAXIMUM],
+					l_medida,
+					l_max
+					);
+		} else if (states->temperatura == 5) {
 			sprintf(l_max,"%3d.%1d",(alarmconfig->temperatura_max/10),(alarmconfig->temperatura_max%10));
 			sprintf(message,"%s: %s : %s-%s : %s : %s / %s",
 					alert_messages[idioma.code][M_ALERT],
 					alert_messages[idioma.code][M_TEMPERATURE],
 					bank,
 					batt,
-					alert_messages[idioma.code][M_ALARM],
+					alert_messages[idioma.code][M_MAXIMUM],
 					l_medida,
 					l_max
 					);
-			// sprintf(message,"Alerta de temperatura ALARME em %s-%s, Maxima %s de %s",
-			// 		bank,
-			// 		batt,
-			// 		l_medida,l_max);
 		}
 		break;
 	case IMPEDANCIA:
-		if ((states->impedancia == 1) && (alarmconfig_list->pre_enabled)) {
-			sprintf(l_medida,"%3d.%2d",(imp_vars->impedance/100),(imp_vars->impedance%100));
+		sprintf(l_medida,"%3d.%2d",(imp_vars->impedance/100),(imp_vars->impedance%100));
+		if (states->impedancia == 1) {
 			sprintf(l_min,"%3d.%2d",(alarmconfig->impedancia_min/100),(alarmconfig->impedancia_min%100));
 			sprintf(message,"%s: %s : %s-%s : %s : %s / %s",
 					alert_messages[idioma.code][M_ALERT],
 					alert_messages[idioma.code][M_IMPEDANCE],
 					bank,
 					batt,
-					alert_messages[idioma.code][M_PRE_ALARM],
+					alert_messages[idioma.code][M_MINIMUM],
 					l_medida,
 					l_min
 					);
-			// sprintf(message,"Alerta de impedancia PRE-ALARME em %s-%s, Minima %s de %s",
-			// 		bank,
-			// 		batt,
-			// 		l_medida,l_min);
-		} else if (states->impedancia == 2) {
-			sprintf(l_medida,"%3d.%2d",(imp_vars->impedance/100),(imp_vars->impedance%100));
+		}
+		if ((states->impedancia == 2) && (alarmconfig_list->pre_enabled)) {
+			sprintf(l_min,"%3d.%2d",(alarmconfig->impedancia_min/100),(alarmconfig->impedancia_min%100));
+			sprintf(message,"%s: %s : %s-%s : %s : %s / %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_IMPEDANCE],
+					bank,
+					batt,
+					alert_messages[idioma.code][M_PRE_MINIMUM],
+					l_medida,
+					l_min
+					);
+		} else if (states->impedancia == 3) {
 			sprintf(message,"%s: %s : %s-%s : %s : %s",
 					alert_messages[idioma.code][M_ALERT],
 					alert_messages[idioma.code][M_IMPEDANCE],
@@ -922,41 +951,28 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 					alert_messages[idioma.code][M_NORMAL],
 					l_medida
 					);
-			// sprintf(message,"Alerta de impedancia NORMAL em %s-%s, dentro da faixa %s",
-			// 		bank,
-			// 		batt,
-			// 		l_medida);
-		} else if (states->impedancia == 3) {
-			sprintf(l_medida,"%3d.%2d",(imp_vars->impedance/100),(imp_vars->impedance%100));
+		} else if ((states->impedancia == 4) && (alarmconfig_list->pre_enabled)) {
+			sprintf(l_max,"%3d.%2d",(alarmconfig->impedancia_premax/100),(alarmconfig->impedancia_premax%100));
+			sprintf(message,"%s: %s : %s-%s : %s : %s / %s",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_IMPEDANCE],
+					bank,
+					batt,
+					alert_messages[idioma.code][M_PRE_MAXIMUM],
+					l_medida,
+					l_max
+					);
+		} else if (states->impedancia == 5) {
 			sprintf(l_max,"%3d.%2d",(alarmconfig->impedancia_max/100),(alarmconfig->impedancia_max%100));
 			sprintf(message,"%s: %s : %s-%s : %s : %s / %s",
 					alert_messages[idioma.code][M_ALERT],
 					alert_messages[idioma.code][M_IMPEDANCE],
 					bank,
 					batt,
-					alert_messages[idioma.code][M_ALARM],
+					alert_messages[idioma.code][M_MAXIMUM],
 					l_medida,
 					l_max
 					);
-			// sprintf(message,"Alerta de impedancia ALARME em %s-%s, Maxima %s de %s",
-			// 		bank,
-			// 		batt,
-			// 		l_medida,l_max);
-		}
-		break;
-	case STRING:{
-
-			int_to_addr(read_st.i2+1, 1, &bank[0]);
-			int_to_addr(read_st.i3+1, 0, &batt[0]);
-			sprintf(message,"%s: %s : %s-%s : %d",
-					alert_messages[idioma.code][M_ALERT],
-					alert_messages[idioma.code][M_READ_ERROR],
-					bank,
-					batt,
-					read_st.i1
-					);
-			// snprintf(message, 256, "Alerta de erro de leitura em %s-%s com erro: %d",
-			// 			bank, batt, read_st.i1);
 		}
 		break;
 	}
