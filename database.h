@@ -10,6 +10,7 @@
 
 #include "protocol.h"
 #include "bits.h"
+#include <unistd.h>
 
 struct Tendence_t;
 
@@ -70,6 +71,11 @@ typedef struct {
 	int strings;
 	int batteries;
 } Database_Addresses_t;
+
+typedef struct {
+	uint16_t alarms[6];
+	uint16_t read_state[10240];
+} Database_SharedMem_t;
 
 int db_init(char *path);
 int db_finish(void);

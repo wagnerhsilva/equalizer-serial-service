@@ -4,13 +4,16 @@
  *  Created on: Apr 9, 2017
  *      Author: flavio
  */
-
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <semaphore.h>
+#include <sys/mman.h>
 #include <time.h>
 #include <sqlite3.h>
 #include "database.h"
 #include "protocol.h"
 #include "bits.h"
-#include <string.h>
 
 #define DATABASE_LOG					"DATABASE:"
 #define DATABASE_VARS_TABLE_NAME		"DataLog"
@@ -140,6 +143,13 @@ static sqlite3_stmt       		*baked_stmt;
 static sqlite3_stmt				*baked_stmt_rt;
 static sqlite3_stmt				*baked_alarmlog;
 static char						mac_address[30];
+
+#define SEM_MUTEX_NAME "/sem-mutex"
+#define SHARED_MEM_NAME "/posix-shared-mem"
+
+Database_SharedMem_t *shared_mem_ptr;
+// sem_t *mutex_sem;
+int fd_shm;
 
 static int db_get_timestamp(char *timestamp){
 	time_t rawtime;
@@ -463,6 +473,46 @@ int db_init(char *path) {
 	 * previamente preparado.
 	 */
 
+	/*
+	 * Inicializacao da tabela compartilhada contendo as informacoes de alarmes
+	 */
+	//  mutual exclusion semaphore, mutex_sem with an initial value 0.
+	// if ((mutex_sem = sem_open(SEM_MUTEX_NAME, O_CREAT, 0660, 0)) == SEM_FAILED) {
+	// 	LOG(DATABASE_LOG "Error opening semaphore shared mem\n");
+	// 	sqlite3_close(database);
+	// 	return -1;
+	// }
+
+	// Get shared memory
+	if ((fd_shm = shm_open(SHARED_MEM_NAME, O_RDWR | O_CREAT, 0660)) == -1) {
+		LOG(DATABASE_LOG "Error opening shared mem\n");
+		sqlite3_close(database);
+		return -1;
+	}
+
+	if (ftruncate(fd_shm, sizeof(Database_SharedMem_t)) == -1) {
+		LOG(DATABASE_LOG "Error truncating shared mem\n");
+		sqlite3_close(database);
+		return -1;
+	}
+
+	if ((shared_mem_ptr = mmap(NULL, sizeof(Database_SharedMem_t),
+			PROT_READ | PROT_WRITE, MAP_SHARED, fd_shm, 0)) == MAP_FAILED) {
+		LOG(DATABASE_LOG "Error mmap shared mem\n");
+		sqlite3_close(database);
+		return -1;
+	}
+
+	// Initialize the shared memory
+	memset(shared_mem_ptr,0,sizeof(Database_SharedMem_t));
+	// Initialization complete; now we can set mutex semaphore as 1 to
+	// indicate shared memory segment is available
+	// if (sem_post(mutex_sem) == -1) {
+	// 	LOG(DATABASE_LOG "Error sem_post: mutex_sem\n");
+	// 	sqlite3_close(database);
+	// 	return -1;
+	// }
+
 	return 0;
 }
 
@@ -566,6 +616,9 @@ int db_add_alarm_results(unsigned int value,
 	 */
 	switch(tipo) {
 	case BARRAMENTO:
+		/* Atualiza a memoria compartilhada (modbus) */
+		shared_mem_ptr->alarms[3] = states->barramento;
+		/* Gera a mensagem de alarme a ser salva no banco */
 		if (states->barramento == 1) {
 			sprintf(l_medida,"%3d.%3d",(value/1000),(value%1000));
 			sprintf(l_min,"%3d.%3d",(alarmconfig->barramento_min/1000),(alarmconfig->barramento_min%1000));
@@ -603,6 +656,9 @@ int db_add_alarm_results(unsigned int value,
 		}
 		break;
 	case TARGET:
+		/* Atualiza a memoria compartilhada (modbus) */
+		shared_mem_ptr->alarms[4] = states->target;
+		/* Gera a mensagem de alarme a ser salva no banco */
 		if (states->target == 1) {
 			sprintf(l_medida,"%3d.%3d",(value/1000),(value%1000));
 			sprintf(l_min,"%3d.%3d",(alarmconfig->target_min/1000),(alarmconfig->target_min%1000));
@@ -640,6 +696,9 @@ int db_add_alarm_results(unsigned int value,
 		}
 		break;
 	case DISK:
+		/* Atualiza a memoria compartilhada (modbus) */
+		shared_mem_ptr->alarms[5] = states->disk;
+		/* Gera a mensagem de alarme a ser salva no banco */
 		if (states->disk == 2) {
 			sprintf(message,"%s: %s : %s",
 					alert_messages[idioma.code][M_ALERT],
@@ -731,6 +790,9 @@ int db_add_alarm_timeout(Bits *bits, int3 read_st)
 
 	switch(bits->alarm_state[read_st.i3]) {
 		case 1:
+			/* Muda estado na tabela */
+			shared_mem_ptr->read_state[read_st.i2*read_st.i3] = read_st.i1;
+			/* Cria mensagem de alarme */
 			sprintf(message,"%s: %s : %s-%s : %d",
 				alert_messages[idioma.code][M_ALERT],
 				alert_messages[idioma.code][M_READ_ERROR],
@@ -741,6 +803,9 @@ int db_add_alarm_timeout(Bits *bits, int3 read_st)
 			send = 1;
 			break;
 		case 3:
+			/* Muda estado na tabela */
+			shared_mem_ptr->read_state[read_st.i2*read_st.i3] = read_st.i1;
+			/* Cria mensagem de alarme */
 			sprintf(message,"%s: %s : %s-%s : %d",
 				alert_messages[idioma.code][M_ALERT],
 				alert_messages[idioma.code][M_READ_OK],
@@ -804,6 +869,9 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 	 */
 	switch(tipo) {
 	case TENSAO:
+		/* Atualiza a memoria compartilhada (modbus) */
+		shared_mem_ptr->alarms[0] = states->tensao;
+		/* Gera a mensagem de alarme a ser salva no banco */
 		sprintf(l_medida,"%3d.%3d",(read_vars->vbat/1000),(read_vars->vbat%1000));
 		if (states->tensao == 1) {
 			sprintf(l_min,"%3d.%3d",(alarmconfig->tensao_min/1000),(alarmconfig->tensao_min%1000));
@@ -861,6 +929,9 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 		}
 		break;
 	case TEMPERATURA:
+		/* Atualiza a memoria compartilhada (modbus) */
+		shared_mem_ptr->alarms[1] = states->temperatura;
+		/* Gera a mensagem de alarme a ser salva no banco */
 		sprintf(l_medida,"%3d.%1d",(read_vars->etemp/10),(read_vars->etemp%10));
 		if (states->temperatura == 1) {
 			sprintf(l_min,"%3d.%1d",(alarmconfig->temperatura_min/10),(alarmconfig->temperatura_min%10));
@@ -918,6 +989,9 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 		}
 		break;
 	case IMPEDANCIA:
+		/* Atualiza a memoria compartilhada (modbus) */
+		shared_mem_ptr->alarms[2] = states->impedancia;
+		/* Gera a mensagem de alarme a ser salva no banco */
 		sprintf(l_medida,"%3d.%2d",(imp_vars->impedance/100),(imp_vars->impedance%100));
 		if (states->impedancia == 1) {
 			sprintf(l_min,"%3d.%2d",(alarmconfig->impedancia_min/100),(alarmconfig->impedancia_min%100));

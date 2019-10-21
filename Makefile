@@ -9,7 +9,7 @@ TARGETS= \
 	component.o \
 	manager.o \
 	bits.o
-INC=-I . -lsqlite3 -lm
+INC=-I . -lsqlite3 -lm -lpthread -lrt
 OPT=-O0
 DEBUG=-g
 
