@@ -94,6 +94,12 @@ bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarm
 							   Database_Parameters_t params, int save_log_state,
 							   bool firstRead, int was_global_read_ok);
 
+bool cm_string_process_eval_tendencies(int was_global_read_ok);
+bool cm_string_process_save_tendencies(cm_string_t *str, Database_Alarmconfig_t *alarmconfig,
+							   Database_Parameters_t params, int save_log_state,
+							   bool firstRead, int was_global_read_ok);
+bool cm_string_process_update_tendencies(void);
+
 /*
  * Process the CM-String 'str' to treat alarms related to it. Considers the 'alarmconfig'
  * to define if an alarm is happening or not, it also writes the capacity of disk as given 
