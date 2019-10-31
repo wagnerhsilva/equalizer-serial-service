@@ -141,10 +141,32 @@ time_t GetTimeFromString(const char *Format, char *Buffer){
     return mktime(&tm);
 }
 
-double GetDifferenceInMonths(time_t Date0, time_t Date1){
-    double MSTime = difftime(Date0, Date1);
-    double MonthTime = MSTime * MS_TO_MONTH_CONST;
-    return MonthTime;
+int GetDifferenceInMonths(char *date0, char *date1) {
+
+    int d0_y = 0;
+    int d0_m = 0;
+    int d0_d = 0;
+    int d1_y = 0;
+    int d1_m = 0;
+    int d1_d = 0;
+
+    if (sscanf(date0,"%d/%d/%d",&d0_d,&d0_m,&d0_y) != 3) {
+        LOG("Erro processamento Date0\n");
+        return -1;
+    }
+
+    if (sscanf(date1,"%d/%d/%d",&d1_d,&d1_m,&d1_y) != 3) {
+        LOG("Erro processamento Date1\n");
+        return -1;
+    }
+
+    if ((d0_y - d1_y) > 0) {
+        return (d0_y - d1_y)*12 + d1_m;
+    } else if ((d0_y - d1_y) == 0) {
+        return (d0_m - d1_m);
+    } else {
+        return -1;
+    }
 }
 
 /*

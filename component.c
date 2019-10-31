@@ -755,7 +755,7 @@ bool cm_string_process_eval_tendencies(int was_global_read_ok)
 	// str->string_ok = true;
 	
 	int WriteTendences = 0;
-	double Months = 0;
+	int Months = 0;
 	int PreviousWrite = 0;
 	int TendencePeriod = 0;
 	
@@ -779,6 +779,9 @@ bool cm_string_process_eval_tendencies(int was_global_read_ok)
 		} else {
 			PreviousWrite = TendenceOpts.HasWrites;
 			
+			LOG("HasWrites:%d, PeriodConstant:%d, PeriodInitial:%d\n",
+						TendenceOpts.HasWrites,TendenceOpts.PeriodConstant,
+						TendenceOpts.PeriodInitial);
 			TendencePeriod = (TendenceOpts.HasWrites == 1 ?
 					TendenceOpts.PeriodConstant :
 					TendenceOpts.PeriodInitial);
@@ -786,14 +789,23 @@ bool cm_string_process_eval_tendencies(int was_global_read_ok)
 			time_t CurrentTime = GetCurrentTime();
 			GetTimeString(month0, 80, "%d/%m/%Y", CurrentTime);
 			GetTimeString(month1, 80, "%d/%m/%Y", TendenceOpts.LastWrite);
-			Months = GetDifferenceInMonths(CurrentTime, TendenceOpts.LastWrite);
-			LOG("Months [%s - %s] : %g => Used period: %d\n", month0, month1, Months, TendencePeriod);
+			Months = GetDifferenceInMonths(month0, month1);
+			LOG("Months [%s - %s] : %d => Used period: %d\n", month0, month1, Months, TendencePeriod);
 			/*
 			 * Only writes when the date period is reached AND we have a full read
 			 * otherwise we could get critical errors since if one battery fails
 			 * it will need to wait (several) months before the next read
 			 */
-			WriteTendences = (Months >= TendencePeriod && was_global_read_ok > 0 ? 1 : 0);
+			WriteTendences = 0;
+			if (was_global_read_ok > 0) {
+				if (Months < 0) {
+					WriteTendences = 1;
+				} else if (Months > TendencePeriod) {
+					WriteTendences = 1;
+				}
+			} 
+			// 	WriteTendences = (Months >= TendencePeriod && was_global_read_ok > 0 ? 1 : 0);
+			
 		}
 	}
 

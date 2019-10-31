@@ -1204,7 +1204,7 @@ static void db_tendencias_set_variable(Tendence_Configs_t *Configs,
 	}else if(strcmp(column, TENDENCIAS_TEMP_MAX) == 0){
 		Configs->TempMax = strtof(value, 0);
 	}else if(strcmp(column, TENDENCIAS_LAST_DATA) == 0){
-		if(value){
+		if(strlen(value)){
 			Configs->LastWrite = GetTimeFromString("%d/%m/%Y", value);
 			Configs->HasWrites = 1;
 		}else{

@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include <time.h>
 #define SOFTWARE_VERSION					"1.11"
 
 #define DEBUG_FILE "debug.txt"
@@ -105,7 +106,7 @@ typedef enum bool bool;
 
 time_t GetCurrentTime(void);
 time_t GetTimeFromString(const char *Format, char *Buffer);
-double GetDifferenceInMonths(time_t Date0, time_t Date1); //Date0 - Date1
+int GetDifferenceInMonths(char *date0, char *date1); //Date0 - Date1
 void GetTimeString(char * Buffer, size_t size, const char *Format, time_t value);
 
 int LOG(const char *format, ...);
