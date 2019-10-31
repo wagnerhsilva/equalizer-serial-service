@@ -129,7 +129,7 @@ bool cm_manager_process_batteries(cm_manager_t *manager, Database_Alarmconfig_t 
 		}
 	}
 
-	if (TendenciesWrote) {
+	if (WriteTendencies) {
 		LOG("Atualizando a configuracao\n");
 		cm_string_process_update_tendencies();
 	}
