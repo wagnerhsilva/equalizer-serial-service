@@ -800,7 +800,7 @@ bool cm_string_process_eval_tendencies(int was_global_read_ok)
 			if (was_global_read_ok > 0) {
 				if (Months < 0) {
 					WriteTendences = 1;
-				} else if (Months > TendencePeriod) {
+				} else if (Months >= TendencePeriod) {
 					WriteTendences = 1;
 				}
 			} 
