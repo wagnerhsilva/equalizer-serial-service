@@ -304,7 +304,7 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 		param_list->param8_voltage_threshold_discharge_mode = 12500;
 		param_list->param9_discharge_mode_rate = 250;
 	} else {
-		LOG(DATABASE_LOG "Leitura de valores da tabela de parametros\n");
+		// LOG(DATABASE_LOG "Leitura de valores da tabela de parametros\n");
 		////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		param_list->average_last = (unsigned short) strtol(argv[DATABASE_PARAM_AVG_ADDR], &garbage, 0);
 		////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -325,20 +325,20 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 		param_list->param9_discharge_mode_rate = (unsigned int) strtol(argv[DATABASE_PARAM_PARAM9_DISCHARGE_RATE], &garbage, 0);
 	}
 
-	LOG(DATABASE_LOG "Initing with:\n");
-	LOG(DATABASE_LOG "AVG_LAST: %hu\n", param_list->average_last);
-	LOG(DATABASE_LOG "DUTY_MIN: %hu\n", param_list->duty_min);
-	LOG(DATABASE_LOG "DUTY_MAX: %hu\n", param_list->duty_max);
-	LOG(DATABASE_LOG "INDEX: %hu\n", param_list->index);
-	LOG(DATABASE_LOG "DELAY: %hu\n", param_list->delay);
-	LOG(DATABASE_LOG "NUM_CYCLES_VAR_READ: %hu\n", param_list->num_cycles_var_read);
-	LOG(DATABASE_LOG "BUS_SUM: %u\n",param_list->bus_sum);
-	LOG(DATABASE_LOG "DISK_CAPACITY: %u\n",param_list->disk_capacity);
-	LOG(DATABASE_LOG "PARAM1_INTERBAT_DELAY: %u\n",param_list->param1_interbat_delay);
-	LOG(DATABASE_LOG "PARAM2_SERIAL_READ_TO: %u\n",param_list->param2_serial_read_to);
-	LOG(DATABASE_LOG "PARAM3_MESSAGES_WAIT: %u\n",param_list->param3_messages_wait);
-	LOG(DATABASE_LOG "PARAM8_VOLTAGE_DISCHARGE: %u\n",param_list->param8_voltage_threshold_discharge_mode);
-	LOG(DATABASE_LOG "PARAM3_PARAM9_DISCHARGE_RATE: %u\n",param_list->param9_discharge_mode_rate);
+	// LOG(DATABASE_LOG "Initing with:\n");
+	// LOG(DATABASE_LOG "AVG_LAST: %hu\n", param_list->average_last);
+	// LOG(DATABASE_LOG "DUTY_MIN: %hu\n", param_list->duty_min);
+	// LOG(DATABASE_LOG "DUTY_MAX: %hu\n", param_list->duty_max);
+	// LOG(DATABASE_LOG "INDEX: %hu\n", param_list->index);
+	// LOG(DATABASE_LOG "DELAY: %hu\n", param_list->delay);
+	// LOG(DATABASE_LOG "NUM_CYCLES_VAR_READ: %hu\n", param_list->num_cycles_var_read);
+	// LOG(DATABASE_LOG "BUS_SUM: %u\n",param_list->bus_sum);
+	// LOG(DATABASE_LOG "DISK_CAPACITY: %u\n",param_list->disk_capacity);
+	// LOG(DATABASE_LOG "PARAM1_INTERBAT_DELAY: %u\n",param_list->param1_interbat_delay);
+	// LOG(DATABASE_LOG "PARAM2_SERIAL_READ_TO: %u\n",param_list->param2_serial_read_to);
+	// LOG(DATABASE_LOG "PARAM3_MESSAGES_WAIT: %u\n",param_list->param3_messages_wait);
+	// LOG(DATABASE_LOG "PARAM8_VOLTAGE_DISCHARGE: %u\n",param_list->param8_voltage_threshold_discharge_mode);
+	// LOG(DATABASE_LOG "PARAM3_PARAM9_DISCHARGE_RATE: %u\n",param_list->param9_discharge_mode_rate);
 
 	return ret;
 }
@@ -357,7 +357,7 @@ static int alarmconfig_callback(void *data, int argc, char **argv, char **azColN
 
 	/* Em caso do banco de dados vir com problema, de forma a nao chegar
 	 * todos os parametros, eles serao carregados com valores padrao fixos */
-	if (argc != 10) {
+	if (argc != 17) {
 		LOG(DATABASE_LOG "Problemas na tabela Alarmconfig - carregando valores padrao: %d\n",argc);
 		alarmconfig_list->impedancia_max = 0;
 		alarmconfig_list->impedancia_min = 0;
@@ -379,7 +379,7 @@ static int alarmconfig_callback(void *data, int argc, char **argv, char **azColN
 		alarmconfig_list->tensao_premax = 0;
 		alarmconfig_list->pre_enabled = 0;
 	} else {
-		LOG(DATABASE_LOG "Leitura de valores da tabela de parametros\n");
+		// LOG(DATABASE_LOG "Leitura de valores da tabela de parametros\n");
 		alarmconfig_list->tensao_max = (unsigned int)(strtof(argv[0],&garbage) * 1000);
 		alarmconfig_list->tensao_min = (unsigned int)(strtof(argv[1],&garbage) * 1000);
 		alarmconfig_list->temperatura_max = (int)(strtof(argv[2],&garbage) * 10);
@@ -392,11 +392,11 @@ static int alarmconfig_callback(void *data, int argc, char **argv, char **azColN
 		alarmconfig_list->target_min = (unsigned int)(strtof(argv[9],&garbage) * 1000);
 		/* Flavio Alves: ticket #5829
 		 * Incluindo suporte a parametros de preminimo e premaximo */
-		alarmconfig_list->impedancia_premin = (unsigned int)(strtof(argv[10],&garbage) * 1000);
-		alarmconfig_list->temperatura_premin = (unsigned int)(strtof(argv[11],&garbage) * 1000);
+		alarmconfig_list->impedancia_premin = (unsigned int)(strtof(argv[10],&garbage) * 100);
+		alarmconfig_list->temperatura_premin = (unsigned int)(strtof(argv[11],&garbage) * 10);
 		alarmconfig_list->tensao_premin = (unsigned int)(strtof(argv[12],&garbage) * 1000);
-		alarmconfig_list->impedancia_premax = (unsigned int)(strtof(argv[13],&garbage) * 1000);
-		alarmconfig_list->temperatura_premax = (unsigned int)(strtof(argv[14],&garbage) * 1000);
+		alarmconfig_list->impedancia_premax = (unsigned int)(strtof(argv[13],&garbage) * 100);
+		alarmconfig_list->temperatura_premax = (unsigned int)(strtof(argv[14],&garbage) * 10);
 		alarmconfig_list->tensao_premax = (unsigned int)(strtof(argv[15],&garbage) * 1000);
 		alarmconfig_list->pre_enabled = (unsigned int)atoi(argv[16]);
 	}
@@ -820,7 +820,7 @@ int db_add_alarm_timeout(Bits *bits, int3 read_st)
 	 * Inclui campos na tabela de registros de tempo real
 	 */
 	if (send) {
-		LOG(DATABASE_LOG "Registrando alarme ...\n");
+		LOG(DATABASE_LOG "**** ALARME TIMEOUT ****\n");
 		LOG(DATABASE_LOG "Mensagem: %s\n", message);
 		sqlite3_bind_text(baked_alarmlog, 1, timestamp, -1, SQLITE_TRANSIENT);
 		sqlite3_bind_text(baked_alarmlog, 2, message, -1, SQLITE_TRANSIENT);
@@ -1054,7 +1054,7 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 	/*
 	 * Inclui campos na tabela de registros de tempo real
 	 */
-	LOG(DATABASE_LOG "Registrando alarme ...\n");
+	LOG(DATABASE_LOG "**** ALARME LEITURAS ****\n");
 	LOG(DATABASE_LOG "Mensagem: %s\n", message);
 	sqlite3_bind_text(baked_alarmlog, 1, timestamp, -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(baked_alarmlog, 2, message, -1, SQLITE_TRANSIENT);
@@ -1265,7 +1265,7 @@ int db_get_tendence_configs(Tendence_Configs_t *Configs){
 					char * text;
 					text  = (char *)sqlite3_column_text (selectstmt, i);
 					const char *columnName = sqlite3_column_name(selectstmt, i);
-					LOG("GOT [%s] => %s\n", columnName, text);
+					// LOG("GOT [%s] => %s\n", columnName, text);
 					db_tendencias_set_variable(Configs, text, columnName);
 				}
 				Configs->IsConfigured = 1;
@@ -1286,16 +1286,16 @@ int db_get_tendence_configs(Tendence_Configs_t *Configs){
 		char buffer[80], buffer1[80];
 		db_get_timestamp_string(buffer, 80, Configs->InstallTime);
 		db_get_timestamp_string(buffer1, 80, Configs->LastWrite);
-		LOG(TENDENCIAS_DATA_INSTALL " : %s\n", buffer);
-		LOG(TENDENCIAS_LAST_DATA " : %s\n", buffer1);
-		LOG(TENDENCIAS_DATA_ZERO " : %d\n", Configs->PeriodInitial);
-		LOG(TENDENCIAS_PERIOD " : %d\n", Configs->PeriodConstant);
-		LOG(TENDENCIAS_TEMP_MIN " : %g\n", Configs->TempMin);
-		LOG(TENDENCIAS_TEMP_MAX " : %g\n", Configs->TempMax);
-		LOG("HasWrites : %d\n", Configs->HasWrites);
-		LOG(TENDENCIAS_IMPE_MIN " : %g\n", Configs->ImpeMin);
-		LOG(TENDENCIAS_IMPE_MAX " : %g\n", Configs->ImpeMax);
-		LOG(TENDENCIAS_LAST_ITERATION " : %d\n", Configs->LastIteration);
+		// LOG(TENDENCIAS_DATA_INSTALL " : %s\n", buffer);
+		// LOG(TENDENCIAS_LAST_DATA " : %s\n", buffer1);
+		// LOG(TENDENCIAS_DATA_ZERO " : %d\n", Configs->PeriodInitial);
+		// LOG(TENDENCIAS_PERIOD " : %d\n", Configs->PeriodConstant);
+		// LOG(TENDENCIAS_TEMP_MIN " : %g\n", Configs->TempMin);
+		// LOG(TENDENCIAS_TEMP_MAX " : %g\n", Configs->TempMax);
+		// LOG("HasWrites : %d\n", Configs->HasWrites);
+		// LOG(TENDENCIAS_IMPE_MIN " : %g\n", Configs->ImpeMin);
+		// LOG(TENDENCIAS_IMPE_MAX " : %g\n", Configs->ImpeMax);
+		// LOG(TENDENCIAS_LAST_ITERATION " : %d\n", Configs->LastIteration);
 		return 0;
 	}
 
@@ -1311,7 +1311,7 @@ int db_get_language(Idioma_t *Lang) {
 		char sql_message[500];
 		char *zErrMsg = 0;
 
-		sprintf(sql_message, "SELECT * FROM Idioma LIMIT 1;");
+		sprintf(sql_message, "SELECT idioma FROM Idioma LIMIT 1;");
 
 		struct sqlite3_stmt *selectstmt;
 		int result = sqlite3_prepare_v2(database, sql_message,
@@ -1336,14 +1336,14 @@ int db_get_language(Idioma_t *Lang) {
 							Lang->code = LANG_CODE_PT_BR;
 						}
 					} else {
-						LOG("idioma FIELD NOT FOUND. SETTING DEFAULT LANGUAGE");
+						LOG("idioma FIELD NOT FOUND. SETTING DEFAULT LANGUAGE\n");
 						strcpy(Lang->idioma,"pt-br");
 						Lang->code = LANG_CODE_PT_BR;
 					}
 				}
 			}else{ //no data
 				/* Idioma padrao e o Portugues Brasileiro */
-				LOG("NOT FOUND. SETTING DEFAULT LANGUAGE");
+				LOG("NOT FOUND. SETTING DEFAULT LANGUAGE\n");
 				strcpy(Lang->idioma,"pt-br");
 				Lang->code = LANG_CODE_PT_BR;
 			}

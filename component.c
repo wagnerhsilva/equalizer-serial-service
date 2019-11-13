@@ -314,7 +314,16 @@ static int evaluate_states(cm_string_t *str, int which, Database_Alarmconfig_t *
 	 * 4 - pre-maximo detectado
 	 * 5 - maximo detectado
 	 */
-
+	// LOG("Evaluating states ... \n");
+	// LOG("     TENSAO:%d\tMIN:%d\tPREMIN:%d\tPREMAX:%d\tMAX:%d\n",
+	// 		read_vars->vbat,params->tensao_min,params->tensao_premin,
+	// 		params->tensao_premax,params->tensao_max);
+	// LOG("TEMPERATURA:%d\tMIN:%d\tPREMIN:%d\tPREMAX:%d\tMAX:%d\n",
+	// 		read_vars->etemp,params->temperatura_min,params->temperatura_premin,
+	// 		params->temperatura_premax,params->temperatura_max);
+	// LOG(" IMPEDANCIA:%d\tMIN:%d\tPREMIN:%d\tPREMAX:%d\tMAX:%d\n",
+	// 		imp_vars->impedance,params->impedancia_min,params->impedancia_premin,
+	// 		params->impedancia_premax,params->impedancia_max);
 	/*
 	 * TENSAO
 	 */
@@ -341,22 +350,25 @@ static int evaluate_states(cm_string_t *str, int which, Database_Alarmconfig_t *
 		}
 	}
 
+	// LOG("str->batteries_states_curr[%d].tensao=%d\n",which,
+	// 	str->batteries_states_curr[which].tensao);
+
 	/*
 	 * TEMPERATURA
 	 */
-	if (read_vars->vbat <= params->temperatura_min) {
+	if (read_vars->etemp <= params->temperatura_min) {
 		/* Minimo */
 		str->batteries_states_curr[which].temperatura = 1;
 	} else {
-		if (read_vars->vbat <= params->temperatura_premin) {
+		if (read_vars->etemp <= params->temperatura_premin) {
 			/* Pre-Minimo */
 			str->batteries_states_curr[which].temperatura = 2;
 		} else {
-			if (read_vars->vbat < params->temperatura_premax) {
+			if (read_vars->etemp < params->temperatura_premax) {
 				/* Normal */
 				str->batteries_states_curr[which].temperatura = 3;
 			} else {
-				if (read_vars->vbat <= params->temperatura_max) {
+				if (read_vars->etemp <= params->temperatura_max) {
 					/* Pre-Maximo */
 					str->batteries_states_curr[which].temperatura = 4;
 				} else {
@@ -367,22 +379,25 @@ static int evaluate_states(cm_string_t *str, int which, Database_Alarmconfig_t *
 		}
 	}
 
+	// LOG("str->batteries_states_curr[%d].temperatura=%d\n",which,
+	// 	str->batteries_states_curr[which].temperatura);
+
 	/*
 	 * IMPEDANCIA
 	 */
-	if (read_vars->vbat <= params->impedancia_min) {
+	if (imp_vars->impedance <= params->impedancia_min) {
 		/* Minimo */
 		str->batteries_states_curr[which].impedancia = 1;
 	} else {
-		if (read_vars->vbat <= params->impedancia_premin) {
+		if (imp_vars->impedance <= params->impedancia_premin) {
 			/* Pre-Minimo */
 			str->batteries_states_curr[which].impedancia = 2;
 		} else {
-			if (read_vars->vbat < params->impedancia_premax) {
+			if (imp_vars->impedance < params->impedancia_premax) {
 				/* Normal */
 				str->batteries_states_curr[which].impedancia = 3;
 			} else {
-				if (read_vars->vbat <= params->impedancia_max) {
+				if (imp_vars->impedance <= params->impedancia_max) {
 					/* Pre-Maximo */
 					str->batteries_states_curr[which].impedancia = 4;
 				} else {
@@ -392,6 +407,9 @@ static int evaluate_states(cm_string_t *str, int which, Database_Alarmconfig_t *
 			}
 		}
 	}
+
+	// LOG("str->batteries_states_curr[%d].impedancia=%d\n",which,
+	// 	str->batteries_states_curr[which].impedancia);
 
 	return 0;
 }
