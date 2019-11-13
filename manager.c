@@ -113,7 +113,7 @@ bool cm_manager_process_batteries(cm_manager_t *manager, Database_Alarmconfig_t 
 	bool WriteTendencies = false;
 	bool TendenciesWrote = false;
 
-	LOG("Verificando se deve salvar as tendencias ... \n");
+	// LOG("Verificando se deve salvar as tendencias ... \n");
 	WriteTendencies = cm_string_process_eval_tendencies(was_global_read_ok);
 
 	for(int i = 0; i < manager->count; i+= 1) {
@@ -122,7 +122,7 @@ bool cm_manager_process_batteries(cm_manager_t *manager, Database_Alarmconfig_t 
 										   was_global_read_ok);
 										   if (WriteTendencies);
 		if (WriteTendencies) {
-			LOG("Salvando tendencias ...\n");
+			// LOG("Salvando tendencias ...\n");
 			TendenciesWrote &= cm_string_process_save_tendencies(manager->cm_strings[i], alarmconfig,
 											   					params, save_log_state, firstRead,
 											  					was_global_read_ok);
@@ -130,7 +130,7 @@ bool cm_manager_process_batteries(cm_manager_t *manager, Database_Alarmconfig_t 
 	}
 
 	if (WriteTendencies) {
-		LOG("Atualizando a configuracao\n");
+		// LOG("Atualizando a configuracao\n");
 		cm_string_process_update_tendencies();
 	}
 

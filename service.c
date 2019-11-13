@@ -305,8 +305,8 @@ int service_finish(void) {
 	 */
 	LOG("Closing database...");
 	db_finish();
-	LOG("closed.\n");
-	LOG("Closing serial...");
+	// LOG("closed.\n");
+	// LOG("Closing serial...");
 	ser_finish(&serial_comm);
 	LOG("closed.");
 	return 0;

@@ -44,9 +44,9 @@ int main(int argc, char **argv) {
 
     LOG("Looking for database...\n");
     waitWebInitialization();
-    LOG("Database found, initing service...\n");
+    // LOG("Database found, initing service...\n");
 	if(CHECK(service_init(device, NULL)) == 0){
-        LOG("Service ok, running...\n");
+        // LOG("Service ok, running...\n");
 	    CHECK(service_start());
         service_finish();
     }else{
