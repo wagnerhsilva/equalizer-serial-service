@@ -73,8 +73,17 @@ typedef struct {
 } Database_Addresses_t;
 
 typedef struct {
-	uint16_t alarms[6];
-	uint16_t read_state[10240];
+	uint16_t tensao;
+	uint16_t temperatura;
+	uint16_t impedancia;
+	uint16_t timeout;
+} BatteryAlarms_t;
+
+typedef struct {
+	uint16_t barramento;
+	uint16_t target;
+	uint16_t disco;
+	BatteryAlarms_t bat_alarms[DATABASE_MAX_ADDRESSES_LEN];
 } Database_SharedMem_t;
 
 int db_init(char *path);
