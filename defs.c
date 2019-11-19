@@ -163,7 +163,18 @@ int GetDifferenceInMonths(char *date0, char *date1) {
     if ((d0_y - d1_y) > 0) {
         return (d0_y - d1_y)*12 + d1_m;
     } else if ((d0_y - d1_y) == 0) {
-        return (d0_m - d1_m);
+        /* Caso a diferenca de mes seja um, e preciso
+         * analisar os dias, pois o resultado pode ser 
+         * zero */
+        if ((d0_m - d1_m) == 1) {
+            if (d0_d < d1_d) {
+                return 0;
+            } else {
+                return 1;
+            }
+        } else {
+            return (d0_m - d1_m);
+        }
     } else {
         return -1;
     }
