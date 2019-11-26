@@ -306,6 +306,7 @@ static int evaluate_states(cm_string_t *str, int which, Database_Alarmconfig_t *
 	Protocol_ImpedanceCmd_OutputVars *imp_vars = &(str->output_vars_imp_curr[which]);
 	Protocol_ReadCmd_OutputVars 	 *read_vars = &(str->output_vars_read_curr[which]);
 
+	extern Database_SharedMem_t *shared_mem_ptr;
 	/*
 	 * Revisao dos estados de alarmes:
 	 * 1 - minimo detectado
@@ -411,6 +412,18 @@ static int evaluate_states(cm_string_t *str, int which, Database_Alarmconfig_t *
 	// LOG("str->batteries_states_curr[%d].impedancia=%d\n",which,
 	// 	str->batteries_states_curr[which].impedancia);
 
+	/*
+	 * Atualiza a memoria compartilhada (modbus)
+	 */
+	// LOG("Updating battery states: %d %d %d: %d %d %d\n",
+	// 		str->string_id, str->string_size, which,
+	// 		str->batteries_states_curr[which].tensao,
+	// 		str->batteries_states_curr[which].temperatura,
+	// 		str->batteries_states_curr[which].impedancia);
+	shared_mem_ptr->bat_alarms[str->string_id*str->string_size+which].tensao = str->batteries_states_curr[which].tensao;
+	shared_mem_ptr->bat_alarms[str->string_id*str->string_size+which].temperatura = str->batteries_states_curr[which].temperatura;
+	shared_mem_ptr->bat_alarms[str->string_id*str->string_size+which].impedancia = str->batteries_states_curr[which].impedancia;
+
 	return 0;
 }
 
@@ -422,6 +435,7 @@ static int evaluate_states_results(
 		unsigned int disk_capacity,
 		Protocol_States *states) 
 {
+	extern Database_SharedMem_t *shared_mem_ptr;
 
 	/*
 	 * Tensao de barramento (bus)
@@ -461,6 +475,16 @@ static int evaluate_states_results(
 		states->disk = 4;
 	}
 	
+	/*
+	 * Atualiza a memoria compartilhada (modbus)
+	 */
+	// LOG("Updating results: %d %d %d\n",
+	// 		states->barramento,
+	// 		states->target,
+	// 		states->disk);
+	shared_mem_ptr->barramento = states->barramento;
+	shared_mem_ptr->target = states->target;
+	shared_mem_ptr->disco = states->disk;
 
 	return 0;
 }

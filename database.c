@@ -484,17 +484,17 @@ int db_init(char *path) {
 	// }
 
 	// Get shared memory
-	if ((fd_shm = shm_open(SHARED_MEM_NAME, O_RDWR | O_CREAT, 0660)) == -1) {
+	if ((fd_shm = shm_open(SHARED_MEM_NAME, O_RDWR, 0660)) == -1) {
 		LOG(DATABASE_LOG "Error opening shared mem\n");
 		sqlite3_close(database);
 		return -1;
 	}
 
-	if (ftruncate(fd_shm, sizeof(Database_SharedMem_t)) == -1) {
-		LOG(DATABASE_LOG "Error truncating shared mem\n");
-		sqlite3_close(database);
-		return -1;
-	}
+	// if (ftruncate(fd_shm, sizeof(Database_SharedMem_t)) == -1) {
+	// 	LOG(DATABASE_LOG "Error truncating shared mem\n");
+	// 	sqlite3_close(database);
+	// 	return -1;
+	// }
 
 	if ((shared_mem_ptr = mmap(NULL, sizeof(Database_SharedMem_t),
 			PROT_READ | PROT_WRITE, MAP_SHARED, fd_shm, 0)) == MAP_FAILED) {
@@ -617,7 +617,7 @@ int db_add_alarm_results(unsigned int value,
 	switch(tipo) {
 	case BARRAMENTO:
 		/* Atualiza a memoria compartilhada (modbus) */
-		shared_mem_ptr->barramento = states->barramento;
+		// shared_mem_ptr->barramento = states->barramento;
 		/* Gera a mensagem de alarme a ser salva no banco */
 		if (states->barramento == 1) {
 			sprintf(l_medida,"%3d.%3d",(value/1000),(value%1000));
@@ -657,7 +657,7 @@ int db_add_alarm_results(unsigned int value,
 		break;
 	case TARGET:
 		/* Atualiza a memoria compartilhada (modbus) */
-		shared_mem_ptr->target = states->target;
+		// shared_mem_ptr->target = states->target;
 		/* Gera a mensagem de alarme a ser salva no banco */
 		if (states->target == 1) {
 			sprintf(l_medida,"%3d.%3d",(value/1000),(value%1000));
@@ -697,7 +697,7 @@ int db_add_alarm_results(unsigned int value,
 		break;
 	case DISK:
 		/* Atualiza a memoria compartilhada (modbus) */
-		shared_mem_ptr->disco = states->disk;
+		// shared_mem_ptr->disco = states->disk;
 		/* Gera a mensagem de alarme a ser salva no banco */
 		if (states->disk == 2) {
 			sprintf(message,"%s: %s : %s",
@@ -870,7 +870,7 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 	switch(tipo) {
 	case TENSAO:
 		/* Atualiza a memoria compartilhada (modbus) */
-		shared_mem_ptr->bat_alarms[read_st.i2*read_st.i3].tensao = states->tensao;
+		// shared_mem_ptr->bat_alarms[read_st.i2*read_st.i3].tensao = states->tensao;
 		/* Gera a mensagem de alarme a ser salva no banco */
 		sprintf(l_medida,"%3d.%3d",(read_vars->vbat/1000),(read_vars->vbat%1000));
 		if (states->tensao == 1) {
@@ -930,7 +930,7 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 		break;
 	case TEMPERATURA:
 		/* Atualiza a memoria compartilhada (modbus) */
-		shared_mem_ptr->bat_alarms[read_st.i2*read_st.i3].temperatura = states->temperatura;
+		// shared_mem_ptr->bat_alarms[read_st.i2*read_st.i3].temperatura = states->temperatura;
 		/* Gera a mensagem de alarme a ser salva no banco */
 		sprintf(l_medida,"%3d.%1d",(read_vars->etemp/10),(read_vars->etemp%10));
 		if (states->temperatura == 1) {
@@ -990,7 +990,7 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 		break;
 	case IMPEDANCIA:
 		/* Atualiza a memoria compartilhada (modbus) */
-		shared_mem_ptr->bat_alarms[read_st.i2*read_st.i3].impedancia = states->impedancia;
+		// shared_mem_ptr->bat_alarms[read_st.i2*read_st.i3].impedancia = states->impedancia;
 		/* Gera a mensagem de alarme a ser salva no banco */
 		sprintf(l_medida,"%3d.%2d",(imp_vars->impedance/100),(imp_vars->impedance%100));
 		if (states->impedancia == 1) {
