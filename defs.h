@@ -108,6 +108,7 @@ time_t GetCurrentTime(void);
 time_t GetTimeFromString(const char *Format, char *Buffer);
 int GetDifferenceInMonths(char *date0, char *date1); //Date0 - Date1
 void GetTimeString(char * Buffer, size_t size, const char *Format, time_t value);
+void GetTimestampString(char *Buffer, int bufLen);
 
 int LOG(const char *format, ...);
 int EXT_PRINT(const char *format, ...);

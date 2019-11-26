@@ -109,6 +109,12 @@ int service_start(void) {
 	if (CHECK(db_get_parameters(&params,&alarmconfig))) {
 		return -1;
 	}
+	/*
+	 * Atualiza o fuso horario
+	 */
+	if (CHECK(db_update_timezone())) {
+		return -1;
+	}
 	/* Atualiza o timeout de leitura de serial */
 	ser_setReadTimeout(&serial_comm,params.param2_serial_read_to);
 	ser_setReadRetries(&serial_comm,params.param3_messages_wait);
@@ -161,6 +167,10 @@ int service_start(void) {
 			update_param_counter = 0;
 			/* Atualiza o idioma */
 			if (CHECK(db_get_language(&idioma))) {
+				break;
+			}
+			/* Atualiza o timezone */
+			if (CHECK(db_update_timezone())) {
 				break;
 			}
 		} else {

@@ -1302,6 +1302,63 @@ int db_get_tendence_configs(Tendence_Configs_t *Configs){
 	return -1;
 }
 
+int db_update_timezone(void) {
+	int ok = 0;
+	char timezone[80];
+
+	memset(timezone,0,sizeof(timezone));
+	/*
+	 * Get configuration here
+	*/
+	if(database != 0) {
+		int err = 0;
+		char sql_message[500];
+		char *zErrMsg = 0;
+
+		sprintf(sql_message, "SELECT timeZone FROM TimeServer LIMIT 1;");
+
+		struct sqlite3_stmt *selectstmt;
+		int result = sqlite3_prepare_v2(database, sql_message,
+									   -1, &selectstmt, NULL);
+		if(result == SQLITE_OK){
+			if(sqlite3_step(selectstmt) == SQLITE_ROW){
+				int columns = sqlite3_column_count(selectstmt);
+				
+				for(int i = 0; i < columns; i+= 1) {
+					char * text;
+					text  = (char *)sqlite3_column_text (selectstmt, i);
+					const char *columnName = sqlite3_column_name(selectstmt, i);
+					LOG("GOT [%s] => %s\n", columnName, text);
+					if (strcmp(columnName,"timeZone") == 0) {
+						strcpy(timezone,text);
+						ok = 1;
+					} else {
+						LOG("timeZone FIELD NOT FOUND. SETTING DEFAULT TIMEZONE\n");
+						strcpy(timezone,"America/Sao_Paulo");
+					}
+				}
+			}else{ //no data
+				/* Idioma padrao e o Portugues Brasileiro */
+				LOG("NOT FOUND. SETTING DEFAULT TIMEZONE\n");
+				strcpy(timezone,"America/Sao_Paulo");
+			}
+		}else{
+			LOG(DATABASE_LOG "Error on select language\n");
+		}
+
+		sqlite3_finalize(selectstmt);
+
+		LOG("Changing timezone to: %s\n",timezone);
+		setenv("TZ",timezone,1);
+		tzset();
+
+		return 0;
+	}
+
+	return -1;
+}
+
+
 int db_get_language(Idioma_t *Lang) {
 	/*
 	 * Get configuration here

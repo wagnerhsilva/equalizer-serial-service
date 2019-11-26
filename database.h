@@ -121,5 +121,6 @@ int db_add_tendence(Tendence_t Tendence);
 int db_update_tendence_configs(Tendence_Configs_t Configs);
 
 int db_get_language(Idioma_t *Lang);
+int db_update_timezone(void);
 
 #endif /* DATABASE_H_ */

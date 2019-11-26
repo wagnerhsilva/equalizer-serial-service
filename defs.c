@@ -76,19 +76,26 @@ int EXT_PRINT(const char *format, ...){
 
 int LOG(const char *format, ...){
     int done = -1;
+    int s = 0;
+    va_list arg;
+    char timestamp[80];
+    char obuffer[256] = {0};
+    char buffer[256] = {0};
+    time_t rawtime;
+    struct tm * timeinfo;
+
+    memset(timestamp,0,sizeof(timestamp));
+    
     if(DEBUG){
         if(!fp){
             fp = fopen(DEBUG_FILE, "a+");
         }
         if(firstpass == 1){
-            time_t rawtime;
-            struct tm * timeinfo;
             time(&rawtime);
             timeinfo = localtime(&rawtime);
-            char buffer[256] = {0};
             strcat(buffer,"SOFTWARE BASICO V. " SOFTWARE_VERSION);
             strcat(buffer, "---[Invoked at: ");
-            int s = strlen(buffer);
+            s = strlen(buffer);
             strftime(&buffer[s], 100, "%Y-%m-%d %H:%M:%S", timeinfo);
             strcat(buffer, "]---\n");
             firstpass = 0;
@@ -97,15 +104,21 @@ int LOG(const char *format, ...){
                 printf("%s", buffer);
             }
         }
-        char obuffer[256] = {0};
-        va_list arg;
+        memset(buffer,0,sizeof(buffer));
+        strcpy(buffer," - ");
+        /* Captura o timestamp */
+        GetTimestampString(timestamp,sizeof(timestamp));
+        /* Cria o buffer formatado para salvar em arquivo */
         va_start(arg, format);
         done = vsnprintf(obuffer, 256, format, arg);
         va_end(arg);
+        /* Salva buffers em arquivo */
+        fwrite(timestamp, strlen(timestamp), 1, fp);
+        fwrite(buffer, strlen(buffer), 1, fp);
         fwrite(obuffer, strlen(obuffer), 1, fp);
         fflush(fp);
         if(OUTPUT_CONSOLE){
-            printf("%s", obuffer);
+            printf("%s%s%s", timestamp, buffer, obuffer);
             fflush(stdout);
         }
     }
@@ -133,6 +146,12 @@ time_t GetCurrentTime(void){
     time_t rawtime;
     time(&rawtime);
     return rawtime;
+}
+
+void GetTimestampString(char *Buffer, int bufLen) {
+    time_t ts = GetCurrentTime();
+
+    return GetTimeString(Buffer, bufLen,"%Y/%m/%d-%H:%M:%S", ts);
 }
 
 time_t GetTimeFromString(const char *Format, char *Buffer){
