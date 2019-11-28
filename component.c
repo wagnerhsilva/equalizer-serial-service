@@ -690,7 +690,9 @@ bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarm
 
 		evaluate_states(str, j, alarmconfig);
 		
-		int state = str->batteries_read_states_curr[j] >= params.param3_messages_wait ? 1 : 0;
+		int state = (str->batteries_read_states_curr[j] >= params.param3_messages_wait) ? 1 : 0;
+		// LOG("Flavio Alves: cm_string_process_batteries: state[%d] = %d (%d / %d)\n",
+		// 		j, state, str->batteries_read_states_curr[j], params.param3_messages_wait);
 		if(state != 0){
 			/* Flavio Alves: retirado com o intuito de garantir com que sempre
 			 * seja enviada a informacao de tendencias, quando for sua hora */
@@ -700,7 +702,10 @@ bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarm
 			 * Muda o estado para envio de alarme caso se encontre no
 			 * estado inicial  */
 			if (str->battery_mask.alarm_state[j] == 0) {
+				// LOG("Flavio Alves: Setando flag de alarme\n");
 				str->battery_mask.alarm_state[j] = 1;
+				/* Flag que dispara efetivamente o envio de alarme */
+				str->string_ok = false;
 			} else {
 				/* Caso a bateria esteja com problemas, a notificacao ja tiver
 				 * sido enviada e for 8h00, o estado de envio do alarme e resetado
@@ -711,6 +716,8 @@ bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarm
 				struct tm *timeinfo = localtime (&rawtime);
 				if ((timeinfo->tm_hour == 8) && (timeinfo->tm_min == 0)) {
 					str->battery_mask.alarm_state[j] = 1;
+					/* Flag que dispara efetivamente o envio de alarme */
+					str->string_ok = false;
 				}
 			}
 		}
