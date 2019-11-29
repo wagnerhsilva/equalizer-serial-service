@@ -802,7 +802,7 @@ int db_add_alarm_timeout(Bits *bits, int3 read_st)
 				);
 			send = 1;
 			break;
-		case 3:
+		default:
 			/* Muda estado na tabela */
 			shared_mem_ptr->bat_alarms[read_st.i2*read_st.i3].timeout = read_st.i1;
 			/* Cria mensagem de alarme */

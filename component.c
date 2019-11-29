@@ -500,7 +500,6 @@ bool cm_string_process_string_alarms(cm_string_t *str, Database_Alarmconfig_t *a
 	 * indicando problema de comunicacao na serial.
 	 */
 	static int serialProblemSent = 0;
-	int hasSerialProblem = 0;
 	int3 codes;
 	PTR_VALID(str);
 
@@ -519,59 +518,69 @@ bool cm_string_process_string_alarms(cm_string_t *str, Database_Alarmconfig_t *a
 
 	if (!firstRead) {
 		/*
-		 * Podem ser gerados ate 3 alarmes por leitura, sendo um para cada leitura critica
+		 * Varredura das flags
 		 */
-		if(!str->string_ok){
-			/* Flavio Alves: ticket #5821
-			 * inicializa identificador de problemas a cada iteracao.
-			 */
-			hasSerialProblem = 0;
-			/* Alarme relacionado a falha em alguma bateria na string */
-			for(int i = 0; i < str->string_size; i += 1){
-				if(bits_is_bit_set(&(str->battery_mask), i)){
-					codes.i1 = -3; //timeout is the only logical error
-					codes.i2 = str->string_id;
-					codes.i3 = i;
+		for(int i = 0; i < str->string_size; i += 1) {
+			// LOG("Flavio Alves: string[%d]: %d: alarm_state=%d: msg_sent=%d\n",
+			// 		i, str->string_ok, str->battery_mask.alarm_state[i], serialProblemSent);
+			/* Problemas com serial */
+			if (!str->string_ok) {
+				codes.i1 = -3; //timeout is the only logical error
+				codes.i2 = str->string_id;
+				codes.i3 = i;
+				if(bits_is_bit_set(&(str->battery_mask), i)) {	
 					if (!serialProblemSent) {
 						/* Flavio Alves: ticket #5821
-						 * Envia somente uma mensagem de problema de serial,
-						 * mesmo que o problema ocorra com varias strings
-						 */
+						* Envia somente uma mensagem de problema de serial,
+						* mesmo que o problema ocorra com varias strings
+						*/
 						db_add_alarm_timeout(&(str->battery_mask),codes);
 						serialProblemSent = 1;
-						/* Muda o estado para alarme enviado */
-						str->battery_mask.alarm_state[i] = 2;
 					}
-					/* Atualiza o indicador de presenca de problema */
-					hasSerialProblem = 1;
+					/* Muda o estado para alarme enviado, mesmo que a 
+					 * mensagem especifica de alarme nao corresponda
+					 * a string em questao */
+					str->battery_mask.alarm_state[i] = 2;
+					
 					/* Clear the bit so that when we start over the mask is clear
 					 * Let's make use of this loop to clear this position since we already 
 					 * triggered the alarm
 					*/
 					bits_set_bit(&(str->battery_mask), i, false);
-				} else {
-					codes.i1 = -3; //timeout is the only logical error
-					codes.i2 = str->string_id;
-					codes.i3 = i;
-					/* Situacao onde a string esta ok, porem nao houve o envio
-					 * do alarme de notificacao */
-					if (str->battery_mask.alarm_state[i] == 2) {
+				}
+			} else {
+				if (str->battery_mask.alarm_state[i]) {
+					if (serialProblemSent) {
+						codes.i1 = -3; //timeout is the only logical error
+						codes.i2 = str->string_id;
+						codes.i3 = i;
 						/* Muda o estado para configurar o alarme a ser enviado */
 						str->battery_mask.alarm_state[i] = 3;
 						db_add_alarm_timeout(&(str->battery_mask),codes);
-						/* Vai para o estado de idle */
-						str->battery_mask.alarm_state[i] = 0;
+						serialProblemSent = 0;
 					}
+					/* Vai para o estado de idle */
+					str->battery_mask.alarm_state[i] = 0;
 				}
 			}
-			/* Flavio Alves: ticket #5821
-			 * Limpa a flag de problema enviado caso nao exista problemas com
-			 * a comunicacao serial, independente se estava setada ou nao.
-			 */
-			if (!hasSerialProblem) {
-				serialProblemSent = 0;
-			}
 		}
+
+		// /*
+		//  * Podem ser gerados ate 3 alarmes por leitura, sendo um para cada leitura critica
+		//  */
+		// if(!str->string_ok){
+		// 	/* Flavio Alves: ticket #5821
+		// 	 * inicializa identificador de problemas a cada iteracao.
+		// 	 */
+		// 	// LOG("Flavio Alves: problemas com a string\n");
+		// 	/* Alarme relacionado a falha em alguma bateria na string */
+		// 	for(int i = 0; i < str->string_size; i += 1){
+				
+		// 		}
+		// 	}
+		// }
+
+
 		if (pt_state_current->barramento != pt_state_last->barramento) {
 			/* Registra alarme de mudanca de tensao de barramento */
 			db_add_alarm_results(str->average_vars_curr.bus_sum,pt_state_current, alarmconfig,BARRAMENTO);
@@ -691,8 +700,9 @@ bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarm
 		evaluate_states(str, j, alarmconfig);
 		
 		int state = (str->batteries_read_states_curr[j] >= params.param3_messages_wait) ? 1 : 0;
-		// LOG("Flavio Alves: cm_string_process_batteries: state[%d] = %d (%d / %d)\n",
-		// 		j, state, str->batteries_read_states_curr[j], params.param3_messages_wait);
+		// LOG("Flavio Alves: cm_string_process_batteries: state[%d] = %d (%d / %d) %d\n",
+		// 		j, state, str->batteries_read_states_curr[j], params.param3_messages_wait,
+		// 		str->battery_mask.alarm_state[j]);
 		if(state != 0){
 			/* Flavio Alves: retirado com o intuito de garantir com que sempre
 			 * seja enviada a informacao de tendencias, quando for sua hora */
@@ -701,8 +711,8 @@ bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarm
 			/* Avalia se e para enviar o alarme novamente.
 			 * Muda o estado para envio de alarme caso se encontre no
 			 * estado inicial  */
-			if (str->battery_mask.alarm_state[j] == 0) {
-				// LOG("Flavio Alves: Setando flag de alarme\n");
+			if (str->battery_mask.alarm_state[j] != 1) {
+				LOG("Flavio Alves: Setando flag de alarme\n");
 				str->battery_mask.alarm_state[j] = 1;
 				/* Flag que dispara efetivamente o envio de alarme */
 				str->string_ok = false;
@@ -720,7 +730,11 @@ bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarm
 					str->string_ok = false;
 				}
 			}
-		}
+		} 
+		// else {
+		// 	/* Vai para o estado de idle */
+		// 	str->battery_mask.alarm_state[j] = 0;
+		// }
 
 		err = db_add_response(pt_vars, pt_imp, pt_state_current,
 		 				global_id, save_log_state, state, uaverage);
