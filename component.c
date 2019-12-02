@@ -541,6 +541,18 @@ bool cm_string_process_string_alarms(cm_string_t *str, Database_Alarmconfig_t *a
 						serialProblemSent = 1;
 						/* Muda o estado para alarme enviado */
 						str->battery_mask.alarm_state[i] = 2;
+					} else {
+						/* Caso a bateria esteja com problemas, a notificacao ja tiver
+						* sido enviada e for 8h00, o estado de envio do alarme e resetado
+						* para que uma nova mensagem possa ser enviada.
+						*/
+						time_t rawtime;   
+						time ( &rawtime );
+						struct tm *timeinfo = localtime (&rawtime);
+						if ((timeinfo->tm_hour == 8) && (timeinfo->tm_min == 0)) {
+							LOG("Dia seguinte de persistencia do problema\n")
+							db_add_alarm_timeout(&(str->battery_mask),codes);
+						}
 					}
 					/* Atualiza o indicador de presenca de problema */
 					hasSerialProblem = 1;
