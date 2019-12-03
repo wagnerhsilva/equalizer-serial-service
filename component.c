@@ -500,6 +500,7 @@ bool cm_string_process_string_alarms(cm_string_t *str, Database_Alarmconfig_t *a
 	 * indicando problema de comunicacao na serial.
 	 */
 	static int serialProblemSent = 0;
+	static int serialProblemMorningSent = 0;
 	int3 codes;
 	PTR_VALID(str);
 
@@ -536,6 +537,27 @@ bool cm_string_process_string_alarms(cm_string_t *str, Database_Alarmconfig_t *a
 						*/
 						db_add_alarm_timeout(&(str->battery_mask),codes);
 						serialProblemSent = 1;
+						/* Muda o estado para alarme enviado */
+						str->battery_mask.alarm_state[i] = 2;
+					} else {
+						/* Caso a bateria esteja com problemas, a notificacao ja tiver
+						* sido enviada e for 8h00, o estado de envio do alarme e resetado
+						* para que uma nova mensagem possa ser enviada.
+						*/
+						time_t rawtime;   
+						time ( &rawtime );
+						struct tm *timeinfo = localtime (&rawtime);
+						if ((timeinfo->tm_hour == 8) && (timeinfo->tm_min == 0)) {
+							if (serialProblemMorningSent == 0) {
+								LOG("Dia seguinte de persistencia do problema\n");
+								db_add_alarm_timeout(&(str->battery_mask),codes);
+								serialProblemMorningSent = 1;
+							}
+						} else {
+							if (serialProblemMorningSent) {
+								serialProblemMorningSent = 0;
+							}
+						}
 					}
 					/* Muda o estado para alarme enviado, mesmo que a 
 					 * mensagem especifica de alarme nao corresponda
@@ -712,24 +734,25 @@ bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarm
 			 * Muda o estado para envio de alarme caso se encontre no
 			 * estado inicial  */
 			if (str->battery_mask.alarm_state[j] != 1) {
-				LOG("Flavio Alves: Setando flag de alarme\n");
+				// LOG("Flavio Alves: Setando flag de alarme\n");
 				str->battery_mask.alarm_state[j] = 1;
 				/* Flag que dispara efetivamente o envio de alarme */
 				str->string_ok = false;
-			} else {
-				/* Caso a bateria esteja com problemas, a notificacao ja tiver
-				 * sido enviada e for 8h00, o estado de envio do alarme e resetado
-				 * para que uma nova mensagem possa ser enviada.
-				 */
-				time_t rawtime;   
-				time ( &rawtime );
-				struct tm *timeinfo = localtime (&rawtime);
-				if ((timeinfo->tm_hour == 8) && (timeinfo->tm_min == 0)) {
-					str->battery_mask.alarm_state[j] = 1;
-					/* Flag que dispara efetivamente o envio de alarme */
-					str->string_ok = false;
-				}
-			}
+			} 
+			// else {
+			// 	/* Caso a bateria esteja com problemas, a notificacao ja tiver
+			// 	 * sido enviada e for 8h00, o estado de envio do alarme e resetado
+			// 	 * para que uma nova mensagem possa ser enviada.
+			// 	 */
+			// 	time_t rawtime;   
+			// 	time ( &rawtime );
+			// 	struct tm *timeinfo = localtime (&rawtime);
+			// 	if ((timeinfo->tm_hour == 8) && (timeinfo->tm_min == 0)) {
+			// 		str->battery_mask.alarm_state[j] = 1;
+			// 		/* Flag que dispara efetivamente o envio de alarme */
+			// 		str->string_ok = false;
+			// 	}
+			// }
 		} 
 		// else {
 		// 	/* Vai para o estado de idle */
@@ -892,7 +915,7 @@ bool cm_string_process_save_tendencies(cm_string_t *str, Database_Alarmconfig_t 
 
 	CurrentTime = GetCurrentTime();
 
-	LOG("Flavio Alves: entrando nas tendencias %d %d\n",str->string_id, str->string_size);
+	// LOG("Flavio Alves: entrando nas tendencias %d %d\n",str->string_id, str->string_size);
 	for(int j = 0; j < str->string_size; j += 1) {
 		pt_vars 			= &(str->output_vars_read_last[j]);
 		pt_state_current 	= &(str->batteries_states_curr[j]);
