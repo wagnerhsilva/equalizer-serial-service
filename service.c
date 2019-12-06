@@ -260,11 +260,11 @@ int service_start(void) {
 				LOG("Evaluating save log: current=%d, discharge_mode=%d, max=%d|%d\n",
 						save_log_counter, discharge_mode, params.save_log_time, params.param9_discharge_mode_rate);
 				if (discharge_mode) {
-					if (save_log_counter == params.param9_discharge_mode_rate) {
+					if (save_log_counter >= params.param9_discharge_mode_rate) {
 						save_log_state = 1;
 					}
 				} else {
-					if (save_log_counter == params.save_log_time) {
+					if (save_log_counter >= params.save_log_time) {
 						save_log_state = 1;
 					}
 				}
