@@ -92,8 +92,9 @@ bool cm_manager_evaluate_discharge_mode(cm_manager_t *manager, Database_Paramete
 
 	for(int i = 0; i < manager->count; i+= 1) {
 		uaverage = _compressFloat(manager->cm_strings[i]->average_vars_curr.average);
-		LOG("string %d: uaverage = %d\n", i, uaverage);
+		LOG("Discharge Mode Test - string %d: uaverage = %d: discharge_mode = %d\n", i, uaverage, params.param8_voltage_threshold_discharge_mode);
 		if (uaverage < params.param8_voltage_threshold_discharge_mode) {
+			LOG("DISCHARGE_MODE\n");
 			return true;
 		}
 	}

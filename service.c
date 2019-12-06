@@ -257,9 +257,18 @@ int service_start(void) {
 				/* Caso contrario, fica sempre na situacao de gravacao */
 			} else {
 				save_log_counter++;
-				if (save_log_counter == params.save_log_time) {
-					save_log_state = 1;
+				LOG("Evaluating save log: current=%d, discharge_mode=%d, max=%d|%d\n",
+						save_log_counter, discharge_mode, params.save_log_time, params.param9_discharge_mode_rate);
+				if (discharge_mode) {
+					if (save_log_counter == params.param9_discharge_mode_rate) {
+						save_log_state = 1;
+					}
+				} else {
+					if (save_log_counter == params.save_log_time) {
+						save_log_state = 1;
+					}
 				}
+				LOG("save_log_state = %d\n");
 			}
 			/*
 			 * Atualiza flag e contadores
@@ -273,18 +282,10 @@ int service_start(void) {
 				}
 			}
 			LOG(SERVICE_LOG "leitura %d realizada\n",vars_read_counter);
-			if (discharge_mode) {
-				if (vars_read_counter < params.param9_discharge_mode_rate) {
-					vars_read_counter++;
-				} else {
-					vars_read_counter = 0;
-				}
+			if (vars_read_counter < params.num_cycles_var_read) {
+				vars_read_counter++;
 			} else {
-				if (vars_read_counter < params.num_cycles_var_read) {
-					vars_read_counter++;
-				} else {
-					vars_read_counter = 0;
-				}
+				vars_read_counter = 0;
 			}
 			/*
 			 * Realiza uma pausa entre as leituras, com valores
