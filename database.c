@@ -35,7 +35,8 @@
 #define DATABASE_PARAM_PARAM3_MESSAGES_WAIT		12
 #define DATABASE_PARAM_PARAM8_VOLTAGE_DISCHARGE	17
 #define DATABASE_PARAM_PARAM9_DISCHARGE_RATE	18
-#define DATABASE_PARAM_NB_ITEMS					19+1
+#define DATABASE_PARAM_CHECKBOX_CURRENT			20 // Parametro do checkbox de corrente
+#define DATABASE_PARAM_NB_ITEMS					19+2
 #define DATABASE_NETWORK_MAC_ADDR				1
 #define DATABASE_NETWORK_NB_ITEMS				14+1
 
@@ -143,6 +144,13 @@ static sqlite3_stmt       		*baked_stmt;
 static sqlite3_stmt				*baked_stmt_rt;
 static sqlite3_stmt				*baked_alarmlog;
 static char						mac_address[30];
+
+/*
+* Inclusao de variaveis para leitura do modulo sensor de corrente
+*/
+extern unsigned short 			current[255];
+extern char 					orientation[255];
+extern unsigned int 			currentSensorCheckbox;
 
 #define SEM_MUTEX_NAME "/sem-mutex"
 #define SHARED_MEM_NAME "/posix-shared-mem"
@@ -303,6 +311,7 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 		param_list->param3_messages_wait = 3;
 		param_list->param8_voltage_threshold_discharge_mode = 12500;
 		param_list->param9_discharge_mode_rate = 250;
+		param_list->checkbox_current = 0;
 	} else {
 		// LOG(DATABASE_LOG "Leitura de valores da tabela de parametros\n");
 		////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -323,7 +332,13 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 		param_list->param3_messages_wait = (unsigned int) strtol(argv[DATABASE_PARAM_PARAM3_MESSAGES_WAIT], &garbage, 0);
 		param_list->param8_voltage_threshold_discharge_mode = (unsigned int)(strtof(argv[DATABASE_PARAM_PARAM8_VOLTAGE_DISCHARGE], &garbage) * 1000);
 		param_list->param9_discharge_mode_rate = (unsigned int) strtol(argv[DATABASE_PARAM_PARAM9_DISCHARGE_RATE], &garbage, 0);
+		param_list->checkbox_current = (unsigned int) strtol(argv[DATABASE_PARAM_CHECKBOX_CURRENT], &garbage, 0);
 	}
+
+	/*
+	* Checkbox do sensor de corrente
+	*/
+	currentSensorCheckbox = param_list->checkbox_current;
 
 	// LOG(DATABASE_LOG "Initing with:\n");
 	// LOG(DATABASE_LOG "AVG_LAST: %hu\n", param_list->average_last);
@@ -1428,9 +1443,19 @@ int db_update_average(unsigned short new_avg, unsigned int new_sum, int id) {
 		/*
 		 * Atualizacao da informacao da tabela da tensao de target (media das tensoes)
 		 */
+		/*
 		sprintf(sql,"INSERT OR IGNORE INTO Medias (id, tensao, target) VALUES (%u, %u, %d);"
 					" UPDATE Medias SET tensao=%u, target=%u WHERE id=%d;",
 		 	   id, new_sum, new_avg, new_sum, new_avg, id);
+		*/
+		/*
+		* Atualizacao da informacao da tabela da tensao de target (media das tensoes) e inclusão do sensor de corrente
+		*/
+		
+		sprintf(sql,"INSERT OR IGNORE INTO Medias (id, tensao, target, current, orientation) VALUES (%u, %u, %d, %u, %u);"
+					" UPDATE Medias SET tensao=%u, target=%u, current=%u, orientation=%u WHERE id=%d;",
+		 	   id, new_sum, new_avg, current[id], (unsigned short)orientation[id], new_sum, new_avg, current[id], (unsigned short)orientation[id], id);
+		
 
 		err = sqlite3_exec(database,sql,write_callback,0,&zErrMsg);
 		if (err != SQLITE_OK) {

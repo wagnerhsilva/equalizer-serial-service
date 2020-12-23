@@ -149,6 +149,8 @@ static int prot_check_extract_readvar_response8(uint8_t * data,
     out->duty_cycle = bytes_to_u16(data[21], data[20]);
     out->addr_bank = data[22];
     out->addr_batt = data[23];
+	out->currentRead = bytes_to_u16(data[25], data[24]); // Leitura de corrente
+	out->currentOrientation = data[29]; // Leitura do sentido da corrente
 
     //////////////////////////////////////////////////////
     //LOG("ERRCODE: %04x\n", out->errcode);

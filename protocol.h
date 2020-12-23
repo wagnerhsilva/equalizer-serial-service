@@ -35,6 +35,8 @@ typedef struct {
 	unsigned short	duty_cycle;
 	unsigned char	addr_bank;
 	unsigned char	addr_batt;
+	unsigned short  currentRead; // Adicionada variavel para de leitura de corrente
+	unsigned char   currentOrientation; // Adicionada variavel para leitura do sentido da corrente
 } Protocol_ReadCmd_OutputVars;
 
 typedef struct {

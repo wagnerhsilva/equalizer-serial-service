@@ -24,6 +24,13 @@
 static struct timeval InitialTime;
 
 /*
+* Inclusao de variaveis para leitura do modulo sensor de corrente
+*/
+unsigned short 			current[255];
+char 					orientation[255];
+unsigned int 			currentSensorCheckbox;
+
+/*
  * Basic interface to handle CM-Strings operations
 */
 
@@ -271,6 +278,10 @@ static bool cm_string_read_one(cm_string_t *str, const Read_t type,
 bool cm_string_do_read_all(cm_string_t *str, const Read_t type,
  						   Database_Parameters_t params, bool firstRead)
 {
+	int errCurrentSensor=0;
+	Protocol_ReadCmd_InputVars readCurrentInputVars =  {0};
+	Protocol_ReadCmd_OutputVars readCurrentOutputVars = {0};
+
 	PTR_VALID(str);
 	if(str->is_inited){ //only read if the pointers have been initalized
 		bool ret = true;
@@ -286,6 +297,52 @@ bool cm_string_do_read_all(cm_string_t *str, const Read_t type,
 			* Pause the read beetween batteries
 			*/
 			sleep_ms(params.param1_interbat_delay);
+		}
+
+		/*
+		* Inclusão de Leitura do sensor de corrente caso habilitada
+		*/
+		if (currentSensorCheckbox)
+		{
+			LOG("STRING %d - LEITURA DO SENSOR DE CORRENTE HABILITADA\n", (str->string_id+1));
+			//LOG("ATRIBUICAO: %u\n", currentSensorCheckbox);
+			readCurrentInputVars.addr_bank = str->string_id + 1;
+			readCurrentInputVars.addr_batt = str->string_size + 1;
+			readCurrentInputVars.vref = str->average_vars_last.average;
+			readCurrentInputVars.duty_min = params.duty_min;
+			readCurrentInputVars.duty_max = params.duty_max;
+			readCurrentInputVars.index = params.index;
+
+			errCurrentSensor = prot_read_vars(&readCurrentInputVars, &readCurrentOutputVars, params.param3_messages_wait);
+
+			if(errCurrentSensor == 0)
+			{
+				LOG("STRING %d - CORRENTE = %u\n", (str->string_id+1), current[str->string_id]);
+				LOG("STRING %d - SENTIDO DA CORRENTE = %u\n", (str->string_id+1), orientation[str->string_id]);
+				//LOG("ATRIBUICAO: %u\n", currentSensorCheckbox);
+				current[str->string_id] = readCurrentOutputVars.currentRead;
+				orientation[str->string_id] = readCurrentOutputVars.currentOrientation;
+			}
+			else
+			{
+				LOG("STRING %d - ERRO NA COMUNICACAO COM O SENSOR DE CORRENTE\n", (str->string_id+1));
+				LOG("STRING %d - CORRENTE = %u\n", (str->string_id+1), current[str->string_id]);
+				LOG("STRING %d - SENTIDO DA CORRENTE = %u\n", (str->string_id+1), orientation[str->string_id]);
+				//LOG("ATRIBUICAO: %u\n", currentSensorCheckbox);
+				current[str->string_id] = 0;
+				orientation[str->string_id] = 0;
+			}
+
+			sleep_ms(params.param1_interbat_delay);
+		}
+		else
+		{
+			LOG("STRING %d - LEITURA DO SENSOR DE CORRENTE DESABILITADA\n", (str->string_id+1));
+			LOG("STRING %d - CORRENTE = %u\n", (str->string_id+1), current[str->string_id]);
+			LOG("STRING %d - SENTIDO DA CORRENTE = %u\n", (str->string_id+1), orientation[str->string_id]);
+			//LOG("ATRIBUICAO: %u\n", currentSensorCheckbox);
+			current[str->string_id] = 0;
+			orientation[str->string_id] = 0;
 		}
 
 		/* copy results of average values */

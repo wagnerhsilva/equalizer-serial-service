@@ -41,6 +41,7 @@ typedef struct {
 	unsigned int	param3_messages_wait;
 	unsigned int	param8_voltage_threshold_discharge_mode;
 	unsigned int	param9_discharge_mode_rate;
+	unsigned int	checkbox_current; // Checkbox de leitura de corrente
 } Database_Parameters_t;
 
 typedef struct {

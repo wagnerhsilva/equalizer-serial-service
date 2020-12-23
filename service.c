@@ -11,7 +11,7 @@
 #include <math.h>
 #include <manager.h>
 
-#define SERVICE_UPDATE_PARAM_INTERVAL 	60
+#define SERVICE_UPDATE_PARAM_INTERVAL 	10//60
 #define SERVICE_LOG						"SERVICE:"
 Serial_t serial_comm;
 

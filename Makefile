@@ -8,10 +8,12 @@ TARGETS= \
 	disk.o \
 	component.o \
 	manager.o \
-	bits.o
-INC=-I . -lsqlite3 -lm -lpthread -lrt
+	bits.o \
+
+INC=-I . -L/usr/lib/gcc-cross/arm-linux-gnueabihf/5/lib -lsqlite3 -lm -lpthread -lrt 
 OPT=-O0
 DEBUG=-g
+CC = arm-linux-gnueabihf-gcc
 
 .PHONY: all clean rebuild release
 
