@@ -31,6 +31,15 @@ char 					orientation[255];
 unsigned int 			currentSensorCheckbox;
 
 /*
+Inclusão de variável para receber valor de target e calcular lógica
+ */
+float target_num_bat=0; //conta número de baterias dentro da faixa de 0,5% do target
+int controle_equalizacao_ativado=0; //mostra se o controle de duty_cicle foi ativado em algum momento
+float valor_average_target=0; //valor de target a ser recebido quando a string completa for somada à variável str
+int permite_exec_rotina=0; //ativação do controle
+float valor_tensao_bat[256]; //vetor que recebe string e verifica valor de cada bateria
+
+/*
  * Basic interface to handle CM-Strings operations
 */
 
@@ -125,6 +134,17 @@ static bool cm_string_read_one_vars(cm_string_t *str, int which, Database_Parame
 	 * Set the average value for vref and configuration
 	 * for duty values
 	*/
+
+	//Controla equalização limitando o valor máximo para a leitura atual da string selecionada
+	if(controle_equalizacao_ativado==1){
+		LOG("LINHA 140, CONTROLE DE EQUALIZACAO ATIVADO");
+		params.duty_max = 9000;
+		
+	}else{
+		LOG("LINHA 144, CONTROLE DE EQUALIZACAO DESATIVADO");
+		params.duty_max = 45000;
+	}
+
 	input_vars.vref = str->average_vars_last.average;
 	input_vars.duty_min = params.duty_min;
 	input_vars.duty_max = params.duty_max;
@@ -187,6 +207,46 @@ static bool cm_string_read_one_vars(cm_string_t *str, int which, Database_Parame
 	float fvbat = (float)str->output_vars_read_curr[which].vbat;
 	float fitems = (float)str->string_size;
 	str->average_vars_curr.average += fvbat / fitems;
+
+	//recebe o valor de tensão de cada bateria da string
+	valor_tensao_bat[which] = fvbat;
+
+	//verifica se existem mais de duas baterias e faz compensação de float no número de baterias para, de fato, executar a rotina de controle de equalização
+	if((int)fitems > 2){
+		if(((float)which==(fitems-1)) || ((float)which==fitems)){
+			permite_exec_rotina = 1;
+			valor_average_target = str->average_vars_curr.average;
+			LOG("VERIFICACAO DE NUM DE BAT NA STRING");
+		}
+	}
+
+	//execução de rotina de controle de equalização para permitir ou não o controle de equalização a partir da próxima leitura de string
+	if(permite_exec_rotina==1){
+
+		LOG("PERMITE EXEC DE ROTINA DE CONTROLE");
+		//verificação de tensão de cada bateria, se todas estiverem dentro de +ou- 0,65% do target, o controle poderá ser ativado
+		for(int a = 0; a <= which; a++){
+			if((valor_tensao_bat[a]>=(0.9965*valor_average_target)) && (valor_tensao_bat[a]<=(1.0035*valor_average_target))){
+				target_num_bat++;				
+			}
+		}
+
+		//verificação de qtd de baterias dentro da faixa estabelecida para controle
+		if(target_num_bat>=(fitems)){
+			LOG("BATERIAS DENTRO DE FAIXA PARA CONTROLE ----> ATIVADO");
+			controle_equalizacao_ativado = 1;
+		}else if(target_num_bat<=(fitems-3)){//número de baterias limite que pode estar fora do target para desligar o controle
+			LOG("BATERIAS FORA DE FAIXA PARA CONTROLE -----> DESATIVADO");
+			controle_equalizacao_ativado = 0;
+		}
+
+		//reinicia variáveis para leituras posteriores da string
+		permite_exec_rotina = 0;
+		target_num_bat = 0;
+
+		LOG("SAI DA ROTINA");
+	}
+
 	str->average_vars_curr.bus_sum += (unsigned int)str->output_vars_read_curr[which].vbat;
 	
 	return true;
@@ -330,7 +390,7 @@ bool cm_string_do_read_all(cm_string_t *str, const Read_t type,
 				LOG("STRING %d - SENTIDO DA CORRENTE = %u\n", (str->string_id+1), orientation[str->string_id]);
 				//LOG("ATRIBUICAO: %u\n", currentSensorCheckbox);
 				current[str->string_id] = 0;
-				orientation[str->string_id] = 0;
+				orientation[str->string_id] = 3;
 			}
 
 			sleep_ms(params.param1_interbat_delay);
@@ -342,7 +402,7 @@ bool cm_string_do_read_all(cm_string_t *str, const Read_t type,
 			LOG("STRING %d - SENTIDO DA CORRENTE = %u\n", (str->string_id+1), orientation[str->string_id]);
 			//LOG("ATRIBUICAO: %u\n", currentSensorCheckbox);
 			current[str->string_id] = 0;
-			orientation[str->string_id] = 0;
+			orientation[str->string_id] = 4;
 		}
 
 		/* copy results of average values */
@@ -773,6 +833,9 @@ bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarm
 		pt_state_current 	= &(str->batteries_states_curr[j]);
 		pt_state_last 		= &(str->batteries_states_last[j]);
 		pt_imp 				= &(str->output_vars_imp_last[j]);
+		/* Alteração feita por Elielder para implementação de variável de corrente a fim de alimentar tabela DatalogRT no BD */
+		int current_db      = current[str->string_id];
+		int orientation_db	= orientation[str->string_id];
 
 		evaluate_states(str, j, alarmconfig);
 		
@@ -814,7 +877,7 @@ bool cm_string_process_batteries(cm_string_t *str, Database_Alarmconfig_t *alarm
 		// }
 
 		err = db_add_response(pt_vars, pt_imp, pt_state_current,
-		 				global_id, save_log_state, state, uaverage);
+		 				global_id, save_log_state, state, uaverage, current_db, orientation_db);
 
 		if(!firstRead){
 			/*

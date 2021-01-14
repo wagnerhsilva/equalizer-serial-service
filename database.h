@@ -99,7 +99,9 @@ int db_add_response(
 		int id_db,
 		int save_log,
 		int ok,
-		unsigned int str_target);
+		unsigned int str_target,
+		int currentdb, 
+		int orientationdb/*Incluídas por Elielder, para alimentar tabela DatalogRT no BD*/);
 int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 		Protocol_ImpedanceCmd_OutputVars *imp_vars,
 		Protocol_States *states,

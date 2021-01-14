@@ -477,7 +477,7 @@ int db_init(char *path) {
 		return -1;
 	}
 
-	sqlite3_prepare_v2(database, "INSERT INTO DataLog (dataHora, string, bateria, temperatura, impedancia, tensao, equalizacao, target) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8);", -1, &baked_stmt, NULL);
+	sqlite3_prepare_v2(database, "INSERT INTO DataLog (dataHora, string, bateria, temperatura, impedancia, tensao, equalizacao, target, current) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9);", -1, &baked_stmt, NULL);
 	sqlite3_prepare_v2(database, "INSERT OR IGNORE INTO DataLogRT (id, datahora, string, bateria, temperatura, impedancia, tensao, equalizacao, batstatus) VALUES (?8, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?9); UPDATE DataLogRT SET datahora = ?1, string = ?2, bateria = ?3, temperatura = ?4, impedancia = ?5, tensao = ?6, equalizacao = ?7, batstatus = ?9 WHERE id = ?8;", -1, &baked_stmt_rt, NULL);
 	sqlite3_prepare_v2(database, "INSERT INTO AlarmLog (dataHora, descricao, emailEnviado, n_ocorrencias) VALUES (?1, ?2, ?3, ?4);", -1, &baked_alarmlog, NULL);
 
@@ -543,10 +543,15 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 		int id_db,
 		int save_log,
 		int ok,
-		unsigned int str_target)
+		unsigned int str_target, 
+		int currentdb, 
+		int orientationdb/*Incluídas por Elielder*/)
 {
 	// CCK_ZERO_DEBUG_V(read_vars);
 
+	if(orientationdb==1){
+		currentdb = currentdb*(-1);
+	}
 
 	char *zErrMsg = 0;
 	char timestamp[80];
@@ -564,6 +569,7 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 	char s_temperatura[15]; sprintf(s_temperatura, "%d", states->temperatura);
 	char s_impedancia[15]; sprintf(s_impedancia, "%d", states->impedancia);
 	char chr_str_targ[15]; sprintf(chr_str_targ, "%hu", str_target);
+	char chr_cur_db[15]; sprintf(chr_cur_db, "%d", currentdb);
 
 	//LOG("%d:%d:impedance = %d:%s\n",read_vars->addr_bank,read_vars->addr_batt,imp_vars->impedance,imped);
 
@@ -582,6 +588,7 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 		sqlite3_bind_text(baked_stmt, 6, vbat, -1, SQLITE_TRANSIENT);
 		sqlite3_bind_text(baked_stmt, 7, duty, -1, SQLITE_TRANSIENT);
 		sqlite3_bind_text(baked_stmt, 8, chr_str_targ, -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(baked_stmt, 9, chr_cur_db, -1, SQLITE_TRANSIENT);
 		sqlite3_step(baked_stmt);
 		sqlite3_clear_bindings(baked_stmt);
 		sqlite3_reset(baked_stmt);
@@ -594,12 +601,19 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 
 	// LOG("Database:Saving data for %s-%s, id: %s\n", bank, batt, id);
 	char sql[2048];
-	snprintf(sql, 2048, "INSERT OR IGNORE INTO DataLogRT "
-		"(id, datahora, string, bateria, temperatura, impedancia, tensao, equalizacao, batstatus) "
-		"VALUES (%s, '%s', '%s', '%s', %s, %s, %s, %s, %d); UPDATE DataLogRT SET datahora = '%s', string = '%s', "
-		"bateria = '%s', temperatura = %s, impedancia = %s, tensao = %s, equalizacao = %s, batstatus = %d WHERE id = %s;", id,
-		timestamp, bank, batt, etemp, imped, vbat, duty, ok, timestamp, bank, batt, etemp, imped, vbat, duty, ok, id);
+	// snprintf(sql, 2048, "INSERT OR IGNORE INTO DataLogRT "
+	// 	"(id, datahora, string, bateria, temperatura, impedancia, tensao, equalizacao, batstatus) "
+	// 	"VALUES (%s, '%s', '%s', '%s', %s, %s, %s, %s, %d); UPDATE DataLogRT SET datahora = '%s', string = '%s', "
+	// 	"bateria = '%s', temperatura = %s, impedancia = %s, tensao = %s, equalizacao = %s, batstatus = %d WHERE id = %s;", id,
+	// 	timestamp, bank, batt, etemp, imped, vbat, duty, ok, timestamp, bank, batt, etemp, imped, vbat, duty, ok, id);
 
+	//Alteração feita por Elielder para alimentar o BD
+	snprintf(sql, 2048, "INSERT OR IGNORE INTO DataLogRT "
+		"(id, datahora, string, bateria, temperatura, impedancia, tensao, equalizacao, batstatus, current) "
+		"VALUES (%s, '%s', '%s', '%s', %s, %s, %s, %s, %d, %d); UPDATE DataLogRT SET datahora = '%s', string = '%s', "
+		"bateria = '%s', temperatura = %s, impedancia = %s, tensao = %s, equalizacao = %s, batstatus = %d, current = %d WHERE id = %s;", id,
+		timestamp, bank, batt, etemp, imped, vbat, duty, ok, currentdb, timestamp, bank, batt, etemp, imped, vbat, duty, ok, currentdb, id);
+	
 	int err = sqlite3_exec(database,sql,write_callback,0,&zErrMsg);
 
 	if(err != SQLITE_OK){
