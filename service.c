@@ -17,6 +17,8 @@ Serial_t serial_comm;
 
 static int stop = 1;
 
+unsigned int 			readimp=0;
+
 static void setStop(int value) {
 	stop = value;
 }
@@ -209,6 +211,21 @@ int service_start(void) {
 													  false,
 													  params,
 													  IMPE, &readSuccess);
+			}
+
+			/*
+			 * Implementação incluída por Elielder, para, de fato, realizar a leitura de impedância assim que reiniciado o sistema ou modificados os parâmetros
+			*/
+
+			if(readimp){
+				readStatus |= cm_manager_read_strings(manager, 
+													  false,
+													  params,
+													  IMPE, &readSuccess);
+				LOG("Leitura de impedância realizada\n");		
+				LOG("readimp(antes): %u\n", readimp);
+				readimp = 0;
+				LOG("readimp(depois): %u\n", readimp);							  
 			}
 
 			/*

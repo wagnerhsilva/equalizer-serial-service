@@ -57,6 +57,7 @@ typedef struct {
 	unsigned int barramento;
 	unsigned int target;
 	unsigned int disk;
+	unsigned int corrente;
 } Protocol_States;
 
 typedef enum {
@@ -66,7 +67,8 @@ typedef enum {
 	BARRAMENTO,
 	TARGET,
 	DISK,
-	STRING
+	STRING, 
+	CORRENTE
 } Protocol_States_e;
 
 int prot_init(Serial_t *serial);

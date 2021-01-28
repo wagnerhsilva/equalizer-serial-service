@@ -30,6 +30,13 @@ unsigned short 			current[255];
 char 					orientation[255];
 unsigned int 			currentSensorCheckbox;
 
+//Status do Módulo - inclusão posterior seguindo o padrão para informar na tabela Medias
+unsigned short			status_current[255]; //recebe geral_status_current para cada string e informa ao BD
+unsigned short			geral_status_current[255]; //variável que recebe valor de alarme e erro no dado de orientation (0->ok 1->falha) (ESCRITA EM VÁRIOS PONTOS)
+unsigned short			previous_current[255] = {0}; //último valor lido de corrente, quando comunicação ok dos módulos para incluir na tabela Medias, apenas
+unsigned short			alarm_curr[255]={0}; //seta variável para indicar que os limites foram ultrapassados 
+
+unsigned int 			add_alerta_curr[255]={0}; //verifica a falta de comunicação do módulo e do sensor de corrente (orientation == 2 e == 3)
 /*
 Inclusão de variável para receber valor de target e calcular lógica
  */
@@ -382,6 +389,8 @@ bool cm_string_do_read_all(cm_string_t *str, const Read_t type,
 				//LOG("ATRIBUICAO: %u\n", currentSensorCheckbox);
 				current[str->string_id] = readCurrentOutputVars.currentRead;
 				orientation[str->string_id] = readCurrentOutputVars.currentOrientation;
+				geral_status_current[str->string_id] = 0;
+				add_alerta_curr[str->string_id] = 0;
 			}
 			else
 			{
@@ -391,6 +400,8 @@ bool cm_string_do_read_all(cm_string_t *str, const Read_t type,
 				//LOG("ATRIBUICAO: %u\n", currentSensorCheckbox);
 				current[str->string_id] = 0;
 				orientation[str->string_id] = 3;
+				geral_status_current[str->string_id] = 1;
+				add_alerta_curr[str->string_id] = 2;
 			}
 
 			sleep_ms(params.param1_interbat_delay);
@@ -403,6 +414,7 @@ bool cm_string_do_read_all(cm_string_t *str, const Read_t type,
 			//LOG("ATRIBUICAO: %u\n", currentSensorCheckbox);
 			current[str->string_id] = 0;
 			orientation[str->string_id] = 4;
+			geral_status_current[str->string_id] = 1;
 		}
 
 		/* copy results of average values */
@@ -550,9 +562,40 @@ static int evaluate_states_results(
 		unsigned int target,
 		unsigned int bus,
 		unsigned int disk_capacity,
+		unsigned int current, 
+		unsigned int str_id,
 		Protocol_States *states) 
 {
 	extern Database_SharedMem_t *shared_mem_ptr;
+
+	/*
+	 * Corrente
+	 */
+	if (params->corrente_min < current && orientation[str_id]==1) {
+		states->corrente = 1;
+		alarm_curr[str_id]=1;	
+		if(add_alerta_curr[str_id]==1){
+			states->corrente = 4;
+		}else if(add_alerta_curr[str_id]==2){
+			states->corrente = 5;
+		}
+	} else if (current > params->corrente_max && orientation[str_id]==0) {
+		states->corrente = 3;
+		alarm_curr[str_id]=3;
+		if(add_alerta_curr[str_id]==1){
+			states->corrente = 4;
+		}else if(add_alerta_curr[str_id]==2){
+			states->corrente = 5;
+		}
+	} else {
+		states->corrente = 2;
+		alarm_curr[str_id]=2;
+		if(add_alerta_curr[str_id]==1){
+			states->corrente = 4;
+		}else if(add_alerta_curr[str_id]==2){
+			states->corrente = 5;
+		}
+	}
 
 	/*
 	 * Tensao de barramento (bus)
@@ -602,6 +645,7 @@ static int evaluate_states_results(
 	shared_mem_ptr->barramento = states->barramento;
 	shared_mem_ptr->target = states->target;
 	shared_mem_ptr->disco = states->disk;
+	shared_mem_ptr->corrente = states->corrente;
 
 	return 0;
 }
@@ -632,7 +676,7 @@ bool cm_string_process_string_alarms(cm_string_t *str, Database_Alarmconfig_t *a
 	 * Processa os estados dos resultados calculados
 	 */
 	evaluate_states_results(alarmconfig, uaverage, str->average_vars_curr.bus_sum,
-							capacity,pt_state_current);
+							capacity, current[str->string_id], str->string_id, pt_state_current);
 
 	if (!firstRead) {
 		/*
@@ -720,15 +764,19 @@ bool cm_string_process_string_alarms(cm_string_t *str, Database_Alarmconfig_t *a
 
 		if (pt_state_current->barramento != pt_state_last->barramento) {
 			/* Registra alarme de mudanca de tensao de barramento */
-			db_add_alarm_results(str->average_vars_curr.bus_sum,pt_state_current, alarmconfig,BARRAMENTO);
+			db_add_alarm_results(str->average_vars_curr.bus_sum,pt_state_current, alarmconfig,BARRAMENTO, str->string_id);
 		}
 		if (pt_state_current->target != pt_state_last->target) {
 			/* Registra alarme de mudanca de tensao target */
-			db_add_alarm_results(uaverage,pt_state_current, alarmconfig,TARGET);
+			db_add_alarm_results(uaverage,pt_state_current, alarmconfig,TARGET, str->string_id);
 		}
 		if (pt_state_current->disk != pt_state_last->disk) {
 			/* Registra alarme de capacidade de disco */
-			db_add_alarm_results(capacity,pt_state_current, alarmconfig,DISK);
+			db_add_alarm_results(capacity,pt_state_current, alarmconfig,DISK, str->string_id);
+		}
+		if (pt_state_current->corrente != pt_state_last->corrente){
+			/* Registra alarme de corrente da string */
+			db_add_alarm_results(current[str->string_id],pt_state_current,alarmconfig, CORRENTE, str->string_id);
 		}
 	}
 
@@ -738,6 +786,7 @@ bool cm_string_process_string_alarms(cm_string_t *str, Database_Alarmconfig_t *a
 	pt_state_last->barramento = pt_state_current->barramento;
 	pt_state_last->target = pt_state_current->target;
 	pt_state_last->disk = pt_state_current->disk;
+	pt_state_last->corrente = pt_state_current->corrente;
 
 	return true;
 

@@ -42,6 +42,7 @@ typedef struct {
 	unsigned int	param8_voltage_threshold_discharge_mode;
 	unsigned int	param9_discharge_mode_rate;
 	unsigned int	checkbox_current; // Checkbox de leitura de corrente
+	unsigned int 	read_impedance; // Botão que habilita leitura de impedância
 } Database_Parameters_t;
 
 typedef struct {
@@ -64,6 +65,8 @@ typedef struct {
 	unsigned int impedancia_premin;
 	unsigned int impedancia_premax;
 	unsigned int pre_enabled;
+	unsigned int corrente_min;
+	unsigned int corrente_max;
 } Database_Alarmconfig_t;
 
 typedef struct {
@@ -84,6 +87,7 @@ typedef struct {
 	uint16_t barramento;
 	uint16_t target;
 	uint16_t disco;
+	uint16_t corrente;
 	BatteryAlarms_t bat_alarms[DATABASE_MAX_ADDRESSES_LEN];
 } Database_SharedMem_t;
 
@@ -111,7 +115,8 @@ int db_add_alarm(Protocol_ReadCmd_OutputVars *read_vars,
 int db_add_alarm_results(unsigned int value,
 		Protocol_States *states,
 		Database_Alarmconfig_t *alarmconfig,
-		Protocol_States_e tipo);
+		Protocol_States_e tipo, 
+		unsigned int id_string);
 int db_add_alarm_timeout(Bits *bits, int3 read_st);
 int db_get_addresses(Database_Addresses_t *list,Database_Parameters_t *p_list);
 int db_get_parameters(Database_Parameters_t *list, Database_Alarmconfig_t *alarmconfig);

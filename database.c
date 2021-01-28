@@ -36,7 +36,8 @@
 #define DATABASE_PARAM_PARAM8_VOLTAGE_DISCHARGE	17
 #define DATABASE_PARAM_PARAM9_DISCHARGE_RATE	18
 #define DATABASE_PARAM_CHECKBOX_CURRENT			20 // Parametro do checkbox de corrente
-#define DATABASE_PARAM_NB_ITEMS					19+2
+#define DATABASE_PARAM_READ_IMPEDANCE			21 // Habilita leitura de impedância
+#define DATABASE_PARAM_NB_ITEMS					19+3
 #define DATABASE_NETWORK_MAC_ADDR				1
 #define DATABASE_NETWORK_NB_ITEMS				14+1
 
@@ -81,7 +82,10 @@
 #define M_READ_OK		18
 #define M_PRE_MINIMUM	19
 #define M_PRE_MAXIMUM	20
-#define M_NB_MESSAGES	21
+#define M_CORRENTE		21
+#define M_CORRENTE_SENSOR_ERRO 22
+#define M_CORRENTE_MODULO_ERRO 23
+#define M_NB_MESSAGES	24
 
 #define M_NB_LANGUAGES	2
 
@@ -108,7 +112,10 @@ const char *alert_messages[M_NB_LANGUAGES][M_NB_MESSAGES] = {
 		"Abaixo de 90%",
 		"Leitura OK",
 		"Pré-Minimo",
-		"Pré-Máximo"
+		"Pré-Máximo",
+		"Corrente",
+		"Erro no Sensor", 
+		"Erro de Comunicação"
 	},
 	/* en */
 	{
@@ -132,7 +139,10 @@ const char *alert_messages[M_NB_LANGUAGES][M_NB_MESSAGES] = {
 		"Below 90%",
 		"Read OK",
 		"Pre-Minimum",
-		"Pre-Maximum"
+		"Pre-Maximum",
+		"Current",
+		"Sensor error", 
+		"Comunication error"
 	}
 };
 
@@ -151,6 +161,15 @@ static char						mac_address[30];
 extern unsigned short 			current[255];
 extern char 					orientation[255];
 extern unsigned int 			currentSensorCheckbox;
+
+extern unsigned short			status_current[255];
+extern unsigned short			geral_status_current[255];  
+extern unsigned short			previous_current[255]; //Elielder, bem como as duas acima (para adição de alarme de módulo e manter último valor)
+extern unsigned short			alarm_curr[255];
+
+extern unsigned int 			add_alerta_curr[255];
+
+extern unsigned int 			readimp; // Adicionado por Elielder
 
 #define SEM_MUTEX_NAME "/sem-mutex"
 #define SHARED_MEM_NAME "/posix-shared-mem"
@@ -312,6 +331,7 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 		param_list->param8_voltage_threshold_discharge_mode = 12500;
 		param_list->param9_discharge_mode_rate = 250;
 		param_list->checkbox_current = 0;
+		param_list->read_impedance = 0;
 	} else {
 		// LOG(DATABASE_LOG "Leitura de valores da tabela de parametros\n");
 		////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -333,12 +353,14 @@ static int param_callback(void *data, int argc, char **argv, char **azColName){
 		param_list->param8_voltage_threshold_discharge_mode = (unsigned int)(strtof(argv[DATABASE_PARAM_PARAM8_VOLTAGE_DISCHARGE], &garbage) * 1000);
 		param_list->param9_discharge_mode_rate = (unsigned int) strtol(argv[DATABASE_PARAM_PARAM9_DISCHARGE_RATE], &garbage, 0);
 		param_list->checkbox_current = (unsigned int) strtol(argv[DATABASE_PARAM_CHECKBOX_CURRENT], &garbage, 0);
+		param_list->read_impedance = (unsigned int) strtol(argv[DATABASE_PARAM_READ_IMPEDANCE], &garbage, 0);
 	}
 
 	/*
 	* Checkbox do sensor de corrente
 	*/
 	currentSensorCheckbox = param_list->checkbox_current;
+	readimp = param_list->read_impedance;
 
 	// LOG(DATABASE_LOG "Initing with:\n");
 	// LOG(DATABASE_LOG "AVG_LAST: %hu\n", param_list->average_last);
@@ -372,7 +394,7 @@ static int alarmconfig_callback(void *data, int argc, char **argv, char **azColN
 
 	/* Em caso do banco de dados vir com problema, de forma a nao chegar
 	 * todos os parametros, eles serao carregados com valores padrao fixos */
-	if (argc != 17) {
+	if (argc != 19) {
 		LOG(DATABASE_LOG "Problemas na tabela Alarmconfig - carregando valores padrao: %d\n",argc);
 		alarmconfig_list->impedancia_max = 0;
 		alarmconfig_list->impedancia_min = 0;
@@ -393,6 +415,8 @@ static int alarmconfig_callback(void *data, int argc, char **argv, char **azColN
 		alarmconfig_list->temperatura_premax = 0;
 		alarmconfig_list->tensao_premax = 0;
 		alarmconfig_list->pre_enabled = 0;
+		alarmconfig_list->corrente_min = 0;
+		alarmconfig_list->corrente_max = 0;
 	} else {
 		// LOG(DATABASE_LOG "Leitura de valores da tabela de parametros\n");
 		alarmconfig_list->tensao_max = (unsigned int)(strtof(argv[0],&garbage) * 1000);
@@ -414,6 +438,8 @@ static int alarmconfig_callback(void *data, int argc, char **argv, char **azColN
 		alarmconfig_list->temperatura_premax = (unsigned int)(strtof(argv[14],&garbage) * 10);
 		alarmconfig_list->tensao_premax = (unsigned int)(strtof(argv[15],&garbage) * 1000);
 		alarmconfig_list->pre_enabled = (unsigned int)atoi(argv[16]);
+		alarmconfig_list->corrente_min = (unsigned int)(strtof(argv[17],&garbage) * 10);
+		alarmconfig_list->corrente_max = (unsigned int)(strtof(argv[18],&garbage) * 10);
 	}
 
 	LOG(DATABASE_LOG "Initing with:\n");
@@ -434,6 +460,8 @@ static int alarmconfig_callback(void *data, int argc, char **argv, char **azColN
 	LOG(DATABASE_LOG "TENSAO PRE MIN: %d\n", alarmconfig_list->tensao_premin);
 	LOG(DATABASE_LOG "TENSAO PRE MIN: %d\n", alarmconfig_list->tensao_premax);
 	LOG(DATABASE_LOG "PRE ENABLED: %d\n", alarmconfig_list->pre_enabled);
+	LOG(DATABASE_LOG "PRE ENABLED: %d\n", alarmconfig_list->corrente_min);
+	LOG(DATABASE_LOG "PRE ENABLED: %d\n", alarmconfig_list->corrente_max);
 
 	return ret;
 }
@@ -628,7 +656,8 @@ int db_add_response(Protocol_ReadCmd_OutputVars *read_vars,
 int db_add_alarm_results(unsigned int value,
 		Protocol_States *states,
 		Database_Alarmconfig_t *alarmconfig,
-		Protocol_States_e tipo)
+		Protocol_States_e tipo,
+		unsigned int id_string)
 {
 	// CCK_ZERO_DEBUG_V(read_vars);
 	char timestamp[80];
@@ -640,10 +669,73 @@ int db_add_alarm_results(unsigned int value,
 
 	db_get_timestamp(timestamp);
 
+	id_string = id_string + 1;
+
 	/*
 	 * Construcao da mensagem de alarme
 	 */
 	switch(tipo) {
+	case CORRENTE:
+		/* Atualiza a memoria compartilhada (modbus) */
+		// shared_mem_ptr->barramento = states->barramento;
+		/* Gera a mensagem de alarme a ser salva no banco */
+		if (states->corrente == 1) {
+			sprintf(l_medida,"%3d.%3d",(value/10),(value%10));
+			sprintf(l_min,"%3d.%3d",(alarmconfig->corrente_min/10),(alarmconfig->corrente_min%10));
+			sprintf(message,"%s: %s : %s : %s / %s string %u",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_CORRENTE],
+					alert_messages[idioma.code][M_MINIMUM],
+					l_medida,
+					l_min,
+					id_string
+					);
+			// sprintf(message,"Alerta de corrente, Minima %s de %s",
+			// 		l_medida,l_min);
+		} else if (states->corrente == 2) {
+			sprintf(l_medida,"%3d.%3d",(value/10),(value%10));
+			sprintf(message,"%s: %s : %s : %s string %u",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_CORRENTE],
+					alert_messages[idioma.code][M_INSIDE],
+					l_medida,
+					id_string
+					);
+			// sprintf(message,"Alerta de corrente, dentro da faixa %s",
+			// 		l_medida);
+		} else if (states->corrente == 3) {
+			sprintf(l_medida,"%3d.%3d",(value/10),(value%10));
+			sprintf(l_max,"%3d.%3d",(alarmconfig->corrente_max/10),(alarmconfig->corrente_max%10));
+			sprintf(message,"%s: %s : %s : %s / %s string %u",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_CORRENTE],
+					alert_messages[idioma.code][M_MAXIMUM],
+					l_medida,
+					l_max,
+					id_string
+					);
+			// sprintf(message,"Alerta de corrente, Maxima %s de %s",
+			// 		l_medida,l_max);
+		} else if (states->corrente == 4) {
+			sprintf(message,"%s: %s : %s string %u",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_CORRENTE],
+					alert_messages[idioma.code][M_CORRENTE_SENSOR_ERRO],
+					id_string
+					);
+			// sprintf(message,"Alerta de corrente, erro do sensor de corrente",
+			// 		l_medida);
+		} else if (states->corrente == 5) {
+			sprintf(message,"%s: %s : %s string %u",
+					alert_messages[idioma.code][M_ALERT],
+					alert_messages[idioma.code][M_CORRENTE],
+					alert_messages[idioma.code][M_CORRENTE_MODULO_ERRO],
+					id_string
+					);
+			// sprintf(message,"Alerta de corrente, sem comunicação com módulo",
+			// 		l_medida);
+		}
+		break;	
 	case BARRAMENTO:
 		/* Atualiza a memoria compartilhada (modbus) */
 		// shared_mem_ptr->barramento = states->barramento;
@@ -1187,6 +1279,16 @@ int db_get_parameters(Database_Parameters_t *list, Database_Alarmconfig_t *alarm
 			return -1;
 		}
 
+		// Escreve no Banco de Dados, na tabela "Parameters" (read_impedance)
+		int rimp = 0;
+		sprintf(sql_message, "UPDATE Parameters SET ReadImpedance = '%d';",
+		rimp);
+		err = sqlite3_exec(database,sql_message, write_callback,0,&zErrMsg);
+		if(err != SQLITE_OK){
+			LOG("Error trying to insert parameters: %s\n", zErrMsg);
+			return -1;
+		}
+
 		/*
 		 * Busca informacoes da tabela alarmconfig
 		 */
@@ -1200,7 +1302,7 @@ int db_get_parameters(Database_Parameters_t *list, Database_Alarmconfig_t *alarm
 				"alarme_nivel_imped_pre, alarme_nivel_temp_pre,"
 				"alarme_nivel_tens_pre, alarme_nivel_imped_pre_max,"
 				"alarme_nivel_temp_pre_max, alarme_nivel_tens_pre_max,"
-				"alarme_pre_enabled "
+				"alarme_pre_enabled, alarme_corr_min, alarme_corr_max "
 				" FROM AlarmeConfig");
 		err = sqlite3_exec(database,sql_message,alarmconfig_callback,0,&zErrMsg);
 		if (err != SQLITE_OK) {
@@ -1466,9 +1568,25 @@ int db_update_average(unsigned short new_avg, unsigned int new_sum, int id) {
 		* Atualizacao da informacao da tabela da tensao de target (media das tensoes) e inclusão do sensor de corrente
 		*/
 		
-		sprintf(sql,"INSERT OR IGNORE INTO Medias (id, tensao, target, current, orientation) VALUES (%u, %u, %d, %u, %u);"
-					" UPDATE Medias SET tensao=%u, target=%u, current=%u, orientation=%u WHERE id=%d;",
-		 	   id, new_sum, new_avg, current[id], (unsigned short)orientation[id], new_sum, new_avg, current[id], (unsigned short)orientation[id], id);
+		if(current[id]!=0){
+			previous_current[id] = current[id];
+		} //mantém último valor em caso de erro
+
+		if(orientation[id]==2){
+			geral_status_current[id] = 1;
+			add_alerta_curr[id] = 1;
+			previous_current[id] = 0;
+		} //para orientation diferente de 0 e 1, status de falha
+
+		if(alarm_curr[id]!=2){
+			geral_status_current[id] = 1;
+		}
+
+		status_current[id] = geral_status_current[id]; //recebe a última atualização de falha ou não (obs.: preciso verificar os alarmes antes desse ponto, criar uma variável global lá e fazer verificação aqui)
+
+		sprintf(sql,"INSERT OR IGNORE INTO Medias (id, tensao, target, current, orientation, status_current) VALUES (%u, %u, %d, %u, %u, %u);"
+					" UPDATE Medias SET tensao=%u, target=%u, current=%u, orientation=%u, status_current=%u WHERE id=%d;",
+		 	   id, new_sum, new_avg, previous_current[id], (unsigned short)orientation[id], status_current[id], new_sum, new_avg, previous_current[id], (unsigned short)orientation[id], status_current[id], id);
 		
 
 		err = sqlite3_exec(database,sql,write_callback,0,&zErrMsg);
